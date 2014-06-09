@@ -1,0 +1,4 @@
+* Improve OO design:
+	- Avoid use of void pointers using union types.
+	- Use a Value Interface to simplify the S1AP_PROTOCOL_IES_t, removing the showValue and freeValue function pointers and using Polymorphism.
+	- ASN.1 error management. Use criticality field.

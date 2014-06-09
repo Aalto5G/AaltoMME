@@ -1,0 +1,122 @@
+This application was initially developed as a Final Project by
+	Vicent Ferrer Guasch (vicent.ferrerguasch@aalto.fi)
+Under the supervision of, 
+	Jukka Manner (jukka.manner@aalto.fi)
+	Jose Costa-Requena (jose.costa@aalto.fi)
+in AALTO University and partially funded by EIT ICT labs.
+---------------------------------------------------------------
+
+TestProgram: Regression test using check test framework
+
+* Build MME:
+
+$ libtoolize
+$ autoreconf -i
+$ ./configure
+$ make
+
+* Install
+	- Setup DB
+		1 Install MariaDB or MySQL on your machine (if you haven't already done so)
+			MariaDB repository configuration tool: https://downloads.mariadb.org/mariadb/repositories/
+			Don't forget the client development packet, libmariadbclient-dev on Debian. 
+
+		2 Run the script that creates the database and the tables.
+			$ mysql -u admin -p < mme/S6a/scripts/hss_lte_db.sql
+ 
+		3 Run the script that creates demo user
+			$ mysql -u admin -p < mme/S6a/scripts/userdata.sql
+	
+		4 The users and passwords for interacting with mysql are:
+		 		user: hss 
+ 				password: hss
+
+* Unit testing
+Check Test framework, http://check.sourceforge.net/
+$ make check
+
+*Dependencies:
+pkg-config 
+check (http://sourceforge.net/projects/check/)
+   flex (optional)
+   bison (optional)
+libpcap (http://sourceforge.net/projects/libpcap/)
+libconfig (http://www.hyperrealm.com/libconfig/libconfig.html)
+libsctp
+MariaDB server and client (mariadb-server libmariadbclient-dev) 
+
+* 3rd Party Sources included on the project:
+HMAC library (https://github.com/ouah/hmac)
+AES & milenage (http://svn0.us-east.freebsd.org/base/vendor/hostapd/0.5.8/contrib/hostapd/)
+HASH Table (http://uthash.sourceforge.net)
+
+* Jenkins Job Configuration:
+
+	**Shell 1 (Build Code):
+	libtoolize -i
+	autoreconf -i
+	./configure --enable-debug --enable-gcov
+	make
+	
+	**Shell 2 (Run Unit Test Framework):
+	bash -c "make check ; exit 0 "
+
+	**Shell 3 (Run Static Metrics):
+	cppcheck . --xml 2> cppcheck-result.xml
+	find .  \( \( \( -name *.c \) -o \( -name *.h \) \) -a \( ! -name xml* \) \) -print | cccc --lang="c" -
+	sloccount --duplicates --wide --details . | grep ansic > sloccount.sc
+	bash -c "/usr/local/bin/pmd/bin/run.sh cpd --minimum-tokens 50 --files . --language c --format xml 1>cpd.xml ; exit 0"
+	
+	**Shell 4 (Build Documentation):
+	doxygen mme.doxyfile
+	
+	**Shell5 (Measure code coverage):
+	cd TestProgram
+	gcov *.o
+	cd ..
+	gcovr -x > coverage.xml
+	
+	**Publish results:
+	CPD:			**/cpd.xml
+	CCCC:			.cccc/cccc.xml
+	Covertura:		**/coverage.xml
+	CppCheck:		**/cppcheck-result.xml
+	Doxygen path:	mme.doxyfile
+	SLOCcount:		**/sloccount.sc
+	xUnit:			**/check_tests.xml
+
+
+* Debugging
+To build the project with debugging symbols, use the configure flag --enable-debug
+
+* Code Coverage
+To enable code coverage use the configure flags --enable-debug --enable-gcov
+The code coverage is obtained with gcov and gcovr. (gcovr allows the integration on Jenkins using coverage plugin)
+
+To install gcovr:
+$ wget https://bitbucket.org/pypa/setuptools/raw/bootstrap/ez_setup.py -O - | sudo python
+$ svn co https://software.sandia.gov/svn/public/fast/gcovr/trunk/ gcovr
+$ cd gcovr
+$ sudo python setup.py install
+
+
+* Test bed execution.
+
+** nwLteSaeGw
+	- NAT is required to have an IP pool address available to assign to the UEs. 
+	The nwLteSaeGw is not able to asnwer ARP requests, to solve this issue the 
+	arp table spoofing is considered as a temporal solution:
+	$ arpspoof -i <iface> -t <NAT route> <UE IP>
+
+	- Other requirements detailed on nwLteSaeGw README.
+	
+** MME
+	- The MME configuration is obtained from the mme.cfg file
+	- To stop the MME use the MMEcmd program to send the signal 1 or the key combination Ctrl+C
+	- Before executing the MME don't forget to set the required library path, i.e. :
+		$ export LD_LIBRARY_PATH=~/MME/libgtp/.libs/:~/MME/S1AP/src/.libs/:~/MME/NAS/src/.libs/
+	- The MME currently uses the same NIC for S1 and S11.
+
+** Firewall
+	Disable the firewall if there are connection problems like 
+	"Destination Unreachable" - "Host Administratively prohibited"

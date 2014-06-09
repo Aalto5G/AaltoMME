@@ -1,0 +1,46 @@
+TODO list - Road Map - Limitations
+
+* Autotools:
+	- Find a proper way to include automaticaly mysql.m4 with autoreconf, enabling the removal of old acinclude.m4 
+
+* Workflow and State Machines additions:
+	- Implement the Failure workflow of the procedures. Failure workflows are not implemented on current version
+	because these MME is intended for a first study of MME virtualisation feasibility. 
+	- Including NAS timers. NAS timers have been considered as no essential on a first version because they are
+	 used to manage failure workflows.
+	- Direct forwarding and Indirect forwarding during Handovers are not complete because the other EPC nodes
+	doesn't support these procedures. Further tests and fixes are needed.
+
+* Node Manager Module (nodemgr.c):
+	- Only getNode() function reads the node information of the configuration file. 
+	The rest of the functions are dummy functions.
+
+*S11:
+	- Add support for Echo Request, Echo Response or Version not supported (GTPv2).
+	Implementation on the State Machine and the s11 handler (mme/MME.c 241).
+	
+*Improve MME-UE-S1AP-ID - Session struct mapping. Currently an array of pointers is used as a temporal solution.
+	The mapping can be merged with the pending response hash table. In general, the functions present on MME.c.
+	could be improved and realocated to converge to an object-oriented design.
+
+*libgtp: 
+	- The library can be decoupled from the early libgtp version to support only GTPv2 and remove the gsn
+	structures.
+
+*NAS:
+	- Check authentication. (mme/S1/NAS/NAS_FSM.c 419).
+	- Activate Security Mode Procedure (mme/S1/NAS/NAS_FSM.c 422). First the NAS cipher and integrity check should
+	 be implemented on the libNAS.
+	- Implement timers.
+
+* libNAS:
+	- Implement NAS cipher and integrity check of the messages.
+* libS1AP:
+	- Implement decoder and encoder of missing IE, ie #96 - S-TMSI
+	
+* Encoding and decoding libraries:
+	- The messages not used may contain errors, specially on libNAS.
+
+* HSS is emulated using a MariaDB or MySQL database. The tests show the MME is able to manage up to 12000 UE. The 
+database shall be optimized. Why an empty database has a better performance when it is used after it is created
+than if when it is used after deleting the UE information? (see project results).  

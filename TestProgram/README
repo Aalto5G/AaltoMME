@@ -1,0 +1,79 @@
+*****Check Test Framework***** 
+
+We are using Check as our unit testing framework. It was inspired by similar frameworks,
+the most famous example being JUnit for Java.
+
+Main characteristics:
+	- uses fork() to separate the namespace.
+	- Test can be grouped. unit tests > test case > Suite
+	- Fixtures feature.
+	- Integrated with autotools, to run the test just 'make check'
+	- Multiple output formats, i.e xml, allowing to integrate it on a Jenkins CI server
+
+
+* Links of interest:
+
+Check webpage: http://check.sourceforge.net/
+Check manual (with examples): http://check.sourceforge.net/doc/check_html/index.html
+
+
+* Install:
+
+Probably it is included in your distribution repositories,
+$ sudo apt-get install check
+
+For the last version, download the code here: http://sourceforge.net/projects/check/files/
+untar and build the code:
+
+$ reconfigure --install
+$ ./configure
+$ make
+# make install (as root)  
+
+
+* Usage:
+
+Add the test folders and this macro to the main configure.ac:
+			PKG_CHECK_MODULES([CHECK], [check >= 0.9.4])
+This macro is the substitute of AM_PATH_CHECK(). This one is deprecated but is still present in the manual, 
+if you get any error while loading shared libraries or during the autoreconf, use the new one.
+
+Write the test Makefile.am, there are an example in this folder or in the check manual.
+Write your tests. You can also find the check manual example in '/usr/share/doc/check/example'.
+
+
+* Jenkins integration.
+
+Check support available in xUnit 1.23 plugin.
+
+
+* Errors & fixes
+
+ERROR:
+TestProgram/.libs/lt-check_libgtp: error while loading shared libraries: libcheck.so.0: cannot open shared object file: No such file or directory
+
+FIX:
+ The PKG_CHECK_MODULES([CHECK], [check >= 0.9.4]) macro should pass the link directories correctly. An alternative is to add the 
+ linker directory to ld: 
+
+$ export LD_LIBRARY_PATH="/usr/local/lib"
+
+To make it permanent, you can edit the ldconfig files. First, create a new file such as:
+
+sudo vi /etc/ld.so.conf.d/libcheck.conf
+
+Second, add the path in the created file
+
+/usr/local/lib
+
+Finally, run ldconfig to update the cache.
+
+$ sudo ldconfig
+
+					**********
+ERROR:
+warnings about Macro AM_PATH_CHECK()
+
+FIX:
+AM_PATH_CHECK() is deprecated use the macro below instead:
+PKG_CHECK_MODULES([CHECK], [check >= 0.9.4])
