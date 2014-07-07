@@ -202,7 +202,8 @@ static int STATE_S1_handle(Signal *signal)
 
     switch(sndrcvinfo->sinfo_stream){
     case 0:
-        log_msg(LOG_DEBUG, 0, "Stream 0");
+    case 1:
+	    log_msg(LOG_DEBUG, 0, "Stream %d", sndrcvinfo->sinfo_stream);
         /*printfbuffer(msg->packet.raw, msg->length);*/
 
         if(s1msg->pdu->procedureCode == id_initialUEMessage && s1msg->choice == initiating_message){
