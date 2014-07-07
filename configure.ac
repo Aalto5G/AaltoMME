@@ -61,7 +61,7 @@ AM_PROG_CC_C_O
 
 dnl remove optimization flags
 changequote({,})
-CFLAGS=`echo "$CFLAGS" | $SED -e 's/-O[0-9]*//g'`
+dnl CFLAGS=$(echo "$CFLAGS" | $SED -e 's/-O[0-9]*//g')
 changequote([,])
 
 dnl This mechanism allows one to enable debug compilations...
