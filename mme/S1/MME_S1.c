@@ -202,7 +202,6 @@ static int STATE_S1_handle(Signal *signal)
 
     switch(sndrcvinfo->sinfo_stream){
     case 0:
-    case 1:
 	    log_msg(LOG_DEBUG, 0, "Stream %d", sndrcvinfo->sinfo_stream);
         /*printfbuffer(msg->packet.raw, msg->length);*/
 
@@ -234,6 +233,11 @@ static int STATE_S1_handle(Signal *signal)
         mmeUEId = s1ap_findIe(s1msg, id_MME_UE_S1AP_ID);
 
         if(mmeUEId==NULL){
+	        if(s1msg->pdu->procedureCode == id_initialUEMessage && s1msg->choice == initiating_message){
+		        log_msg(LOG_DEBUG, 0, "S1AP: New user");
+		        S1_newUserSession(PROC->engine, s1ep, s1msg);
+		        return 0;
+	        }
             log_msg(LOG_WARNING, 0, "MME_UE_S1AP_ID not found ignoring message");
             return 0;
         }
