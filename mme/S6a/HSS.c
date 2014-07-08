@@ -169,7 +169,7 @@ static void HSS_newAuthVec(struct user_ctx_t *user){
     uint8_t str_ik[16*2+1], str_ck[16*2+1], str_rand[16*2+1], str_autn[16*2+1], str_kasme[16*2+1], str_opc[16*2+1];
     uint8_t str_res[8*2+1], str_sqn[6*2+1];
 
-    uint8_t sqn[] = {   0x00, 0x00, 0x00, 0x00, 0x00, 0x61};
+    uint8_t sqn[] = {   0x00, 0x00, 0x00, 0x00, 0x00, 0x81};
 
     uint8_t i;
     size_t resLen=8;
