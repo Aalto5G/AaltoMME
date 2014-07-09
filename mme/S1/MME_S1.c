@@ -828,9 +828,9 @@ static uint8_t TASK_MME_S1___Forge_InitCtxSetupReq(Signal *signal){
     s1msg->pdu->value->addIe(s1msg->pdu->value, ie);
     ie->id = id_uEaggregateMaximumBitrate;
     ie->presence = optional;
-    ie->criticality = ignore;
-    bitrate->uEaggregateMaximumBitRateDL.rate = 0ULL;
-    bitrate->uEaggregateMaximumBitRateUL.rate = 0ULL;
+    ie->criticality = reject;
+    bitrate->uEaggregateMaximumBitRateDL.rate = PDATA->user_ctx->ue_ambr_dl;
+    bitrate->uEaggregateMaximumBitRateUL.rate = PDATA->user_ctx->ue_ambr_ul;
 
     /* E-RABToBeSetupListCtxtSUReq*/
     ie=newProtocolIE();

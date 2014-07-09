@@ -169,7 +169,7 @@ static void HSS_newAuthVec(struct user_ctx_t *user){
     uint8_t str_ik[16*2+1], str_ck[16*2+1], str_rand[16*2+1], str_autn[16*2+1], str_kasme[16*2+1], str_opc[16*2+1];
     uint8_t str_res[8*2+1], str_sqn[6*2+1];
 
-    uint8_t sqn[] = {   0x00, 0x00, 0x00, 0x00, 0x00, 0x61};
+    uint8_t sqn[] = {   0x00, 0x00, 0x00, 0x00, 0x00, 0xa1};
 
     uint8_t i;
     size_t resLen=8;
@@ -362,6 +362,8 @@ void HSS_UpdateLocation(Signal *signal){
 
 
     user->msisdn = strtoull(row[0], NULL, 0);
+    user->ue_ambr_ul = strtoull(row[1], NULL, 0);
+    user->ue_ambr_dl = strtoull(row[2], NULL, 0);
     user->qos.pci = *row[15];
     user->qos.pl  = atoi(row[14]);
     user->qos.pvi = *row[16];
@@ -370,6 +372,7 @@ void HSS_UpdateLocation(Signal *signal){
     user->qos.mbr_dl = 0;
     user->qos.gbr_ul = 0;
     user->qos.gbr_dl = 0;
+
 
     user->pdn_type = atoi(row[9]);
     sprintf(user->aPname, "%s.mnc%.3u.mcc%.3u.gprs", row[5], mnc, mcc);

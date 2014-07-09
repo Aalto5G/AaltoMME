@@ -199,6 +199,8 @@ struct user_ctx_t{
 	  /*EPS Bearer TFT */
 	  /* Bearer QoS */
     struct qos_t qos;
+	uint64_t ue_ambr_dl;
+	uint64_t ue_ambr_ul;
 };
 
 
