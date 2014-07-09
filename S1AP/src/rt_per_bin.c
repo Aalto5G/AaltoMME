@@ -1005,7 +1005,7 @@ void encode_constrained_number(struct BinaryData *bytes, uint64_t Val, uint32_t 
         encode_constrained_number(bytes, len, 1,4);
         setoctets(bytes, len, byte);
     }else if(range<=0x10000000000){
-        eint(byte, htonll(Val), &len);
+	    eint(byte, Val, &len);
         encode_constrained_number(bytes, len, 1,5);
         setoctets(bytes, len, byte);
 

@@ -796,7 +796,7 @@ static uint8_t TASK_MME_S1___Forge_InitCtxSetupReq(Signal *signal){
     ie->freeValue = mmeUEId->freeIE;
     s1msg->pdu->value->addIe(s1msg->pdu->value, ie);
     ie->id = id_MME_UE_S1AP_ID;
-    ie->presence = optional;
+    ie->presence = mandatory;
     ie->criticality = reject;
     if(PDATA->user_ctx->mME_UE_S1AP_ID==0){
         log_msg(LOG_ERR, 0, "S1AP: MME UE S1AP ID not available");
