@@ -861,6 +861,7 @@ static uint8_t TASK_MME_S1___Forge_InitCtxSetupReq(Signal *signal){
     ie->criticality = reject;
     eRABitem->eRAB_ID.id = PDATA->user_ctx->ebearer[0].id;
     eRABitem->eRABlevelQoSParameters->qCI = PDATA->user_ctx->ebearer[0].qos.qci;
+    eRABitem->eRABlevelQoSParameters->allocationRetentionPriority->priorityLevel=15; /*No priority*/
     eRABitem->eRABlevelQoSParameters->allocationRetentionPriority->pre_emptionCapability = shall_not_trigger_pre_emption;
     eRABitem->eRABlevelQoSParameters->allocationRetentionPriority->pre_emptionVulnerability = not_pre_emptable;
 
