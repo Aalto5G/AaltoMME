@@ -364,14 +364,14 @@ void HSS_UpdateLocation(Signal *signal){
     user->msisdn = strtoull(row[0], NULL, 0);
     user->ue_ambr_ul = strtoull(row[1], NULL, 0);
     user->ue_ambr_dl = strtoull(row[2], NULL, 0);
-    user->qos.pci = *row[15];
-    user->qos.pl  = atoi(row[14]);
-    user->qos.pvi = *row[16];
-    user->qos.qci = atoi(row[13]);
-    user->qos.mbr_ul = 0;
-    user->qos.mbr_dl = 0;
-    user->qos.gbr_ul = 0;
-    user->qos.gbr_dl = 0;
+    user->ebearer[0].qos.qci = atoi(row[13]);
+    user->ebearer[0].qos.pl  = atoi(row[14]);
+    user->ebearer[0].qos.pci = *row[15];
+    user->ebearer[0].qos.pvi = *row[16];
+    user->ebearer[0].qos.mbr_ul = 0;
+    user->ebearer[0].qos.mbr_dl = 0;
+    user->ebearer[0].qos.gbr_ul = 0;
+    user->ebearer[0].qos.gbr_dl = 0;
 
 
     user->pdn_type = atoi(row[9]);

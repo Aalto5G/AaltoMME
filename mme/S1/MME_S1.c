@@ -861,9 +861,9 @@ static uint8_t TASK_MME_S1___Forge_InitCtxSetupReq(Signal *signal){
     ie->criticality = reject;
     eRABitem->eRAB_ID.id = PDATA->user_ctx->ebearer[0].id;
     eRABitem->eRABlevelQoSParameters->qCI = PDATA->user_ctx->ebearer[0].qos.qci;
-    eRABitem->eRABlevelQoSParameters->allocationRetentionPriority->priorityLevel=15; /*No priority*/
-    eRABitem->eRABlevelQoSParameters->allocationRetentionPriority->pre_emptionCapability = shall_not_trigger_pre_emption;
-    eRABitem->eRABlevelQoSParameters->allocationRetentionPriority->pre_emptionVulnerability = not_pre_emptable;
+    eRABitem->eRABlevelQoSParameters->allocationRetentionPriority->priorityLevel=PDATA->user_ctx->ebearer[0].qos.pl;
+    eRABitem->eRABlevelQoSParameters->allocationRetentionPriority->pre_emptionCapability = PDATA->user_ctx->ebearer[0].qos.pci;
+    eRABitem->eRABlevelQoSParameters->allocationRetentionPriority->pre_emptionVulnerability = PDATA->user_ctx->ebearer[0].qos.pvi;
 
     /*eRABitem->eRABlevelQoSParameters->gbrQosInformation;*/
     memcpy(eRABitem->transportLayerAddress->addr, &(PDATA->user_ctx->ebearer[0].s1u_sgw.addr.addrv4), sizeof(uint32_t));
