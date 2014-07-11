@@ -248,6 +248,10 @@ static void HSS_newAuthVec(struct user_ctx_t *user){
     if (mysql_query(HSSConnection, query)){
         log_msg(LOG_ERR, mysql_errno(HSSConnection), "%s", mysql_error(HSSConnection));
     }
+
+    /*The last query is a multiple statement query, so it is needed to get
+      all free all potential results to avoid sync errors.*/
+    for(; mysql_next_result(HSSConnection) == 0;)/* do nothing */;
 }
 
 static void HSS_recoverAuthVec(struct user_ctx_t *user){
