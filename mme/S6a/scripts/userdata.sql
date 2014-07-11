@@ -57,7 +57,7 @@ UNLOCK TABLES;
 
 LOCK TABLES `subscriber_profile` WRITE;
 /*!40000 ALTER TABLE `subscriber_profile` DISABLE KEYS */;
-INSERT INTO `subscriber_profile` VALUES (244,7,'\0\0',358507777001,'\0\"3DUfwˆ™ª»ÌÝîÿ',NULL,'I7• \0',NULL,NULL,NULL,100000,100000,NULL,NULL);
+INSERT INTO `subscriber_profile` VALUES (244,7,'\0\0',358507777001,'\0\"3DUfwˆ™ª»ÌÝîÿ',NULL,'I7• \0','\0\0\0\0\0\0',NULL,NULL,NULL,100000,100000,NULL,NULL);
 /*!40000 ALTER TABLE `subscriber_profile` ENABLE KEYS */;
 UNLOCK TABLES;
 /*!40103 SET TIME_ZONE=@OLD_TIME_ZONE */;

@@ -108,6 +108,7 @@ CREATE TABLE `subscriber_profile` (
   `msisdn` bigint(16) NOT NULL,
   `k` binary(16) DEFAULT NULL,
   `opc` binary(16) DEFAULT NULL,
+  `sqn` binary(6) DEFAULT NULL,
   `imsisv` binary(8) DEFAULT NULL,
   `mmec` tinyint(3) unsigned DEFAULT NULL,
   `mmegi` smallint(5) unsigned DEFAULT NULL,

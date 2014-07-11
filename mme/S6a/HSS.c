@@ -165,11 +165,9 @@ static void HSS_newAuthVec(struct user_ctx_t *user){
     MYSQL_ROW row;
     my_ulonglong num_rows;
 
-    uint8_t op[16], amf[2], k[16], opc[16], ik[16], ck[16];
+    uint8_t op[16], amf[2], k[16], opc[16], ik[16], ck[16], sqn[6];
     uint8_t str_ik[16*2+1], str_ck[16*2+1], str_rand[16*2+1], str_autn[16*2+1], str_kasme[16*2+1], str_opc[16*2+1];
     uint8_t str_res[8*2+1], str_sqn[6*2+1];
-
-    uint8_t sqn[] = {   0x00, 0x00, 0x00, 0x00, 0x00, 0xa1};
 
     uint8_t i;
     size_t resLen=8;
@@ -202,8 +200,9 @@ static void HSS_newAuthVec(struct user_ctx_t *user){
     row = mysql_fetch_row(result);
 
     memcpy(k, row[0], 16); /* k*/
-    memcpy(op, row[2], 16); /* op*/
-    memcpy(amf, row[3], 2); /* amf*/
+    memcpy(sqn, row[2], 6); /* sqn*/
+    memcpy(op, row[3], 16); /* op*/
+    memcpy(amf, row[4], 2); /* amf*/
 
     if(row[1]==NULL){
         getOPC(op, k, opc);
@@ -238,6 +237,7 @@ static void HSS_newAuthVec(struct user_ctx_t *user){
             bin_to_strhex(sqn,6,  str_sqn),
             bin_to_strhex(user->sec_ctx.kASME,16, str_kasme),
             "00000000000000000000000000000000",   /*AK not stored for the moment*/
+            str_sqn,
             bin_to_strhex(opc,16, str_opc),
             mcc,
             mnc,
@@ -296,7 +296,7 @@ static void HSS_recoverAuthVec(struct user_ctx_t *user){
 /* ============================================================== */
 
 void HSS_getAuthVec(Signal *signal){
-
+	/*
     MYSQL_RES *result;
     MYSQL_ROW row;
 
@@ -306,8 +306,8 @@ void HSS_getAuthVec(Signal *signal){
     uint8_t mnc;
 
     mcc = user->imsi/1000000000000;
-    mnc = (user->imsi/10000000000)%100;
-    /*Chech if there is any Auth vector already stored*/
+    mnc = (user->imsi/10000000000)%100;*/
+	/*Chech if there is any Auth vector already stored*//*
     sprintf(query, exists_auth_vec, mcc, mnc, user->imsi%10000000000);
 
     if (mysql_query(HSSConnection, query)){
@@ -315,16 +315,19 @@ void HSS_getAuthVec(Signal *signal){
         return;
     }
     result = mysql_store_result(HSSConnection);
-    row = mysql_fetch_row(result);
+    row = mysql_fetch_row(result);*/
     /*log_msg(LOG_DEBUG, 0, "%s", query);*/
-    /*log_msg(LOG_DEBUG, 0, "row[0] %d %d",*row[0], (int)*row[0] );*/
+	/*log_msg(LOG_DEBUG, 0, "row[0] %d %d",*row[0], (int)*row[0] );*//*
     if(*row[0] == '1'){
         HSS_recoverAuthVec(user);
     }else{
         HSS_newAuthVec(user);
     }
 
-    mysql_free_result(result);
+    mysql_free_result(result);*/
+	struct user_ctx_t *user = PDATA->user_ctx;
+	HSS_newAuthVec(user);
+
 }
 
 void HSS_UpdateLocation(Signal *signal){
