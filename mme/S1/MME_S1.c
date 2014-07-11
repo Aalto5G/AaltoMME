@@ -207,7 +207,7 @@ static int STATE_S1_handle(Signal *signal)
 
         if(s1msg->pdu->procedureCode == id_initialUEMessage && s1msg->choice == initiating_message){
             log_msg(LOG_DEBUG, 0, "S1AP: New user");
-            S1_newUserSession(PROC->engine, s1ep, s1msg);
+            S1_newUserSession(PROC->engine, s1ep, s1msg, 1);
             return 0;
         }else if(s1msg->pdu->procedureCode == id_PathSwitchRequest && s1msg->choice == initiating_message){
             mmeUEId = s1ap_findIe(s1msg, id_SourceMME_UE_S1AP_ID);
@@ -232,7 +232,7 @@ static int STATE_S1_handle(Signal *signal)
 
         if(s1msg->pdu->procedureCode == id_initialUEMessage && s1msg->choice == initiating_message){
 	        log_msg(LOG_DEBUG, 0, "S1AP: New user");
-	        S1_newUserSession(PROC->engine, s1ep, s1msg);
+	        S1_newUserSession(PROC->engine, s1ep, s1msg, sndrcvinfo->sinfo_stream);
 	        return 0;
         }
 
@@ -1624,7 +1624,7 @@ struct t_process *S1_Setup(struct t_engine_data *self, struct t_process *owner, 
     return session->sessionHandler;
 }
 
-void S1_newUserSession(struct t_engine_data *engine, struct EndpointStruct_t* ep_S1, S1AP_Message_t *s1msg){
+void S1_newUserSession(struct t_engine_data *engine, struct EndpointStruct_t* ep_S1, S1AP_Message_t *s1msg, uint16_t sid){
     Signal *output;
     struct t_process proc;
     struct  SessionStruct_t *usersession;
@@ -1642,7 +1642,7 @@ void S1_newUserSession(struct t_engine_data *engine, struct EndpointStruct_t* ep
     usersession->s1 = ep_S1;
 
     /* Choose SCTP stream ID*/
-    usersession->sid = 1;
+    usersession->sid = sid;
 
     /*Create a new process to manage the S1 state machine. The older session handler is stored as parent
      * to return once the S11 state machine ends*/

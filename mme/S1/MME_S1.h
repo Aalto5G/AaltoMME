@@ -80,10 +80,11 @@ struct t_process *S1_Setup(struct t_engine_data *self, struct t_process *owner, 
  * @param [in] engine   Engine reference
  * @param [in] ep_S1    Peer Endpoint
  * @param [in] s1msg    S1AP message received
+ * @param [in] sid      sctp stream id for the UE associated signaling connection
  *
  * Used to create a session structure on S1 State machine due to new user info message.
  */
-void S1_newUserSession(struct t_engine_data *engine, struct EndpointStruct_t* ep_S1, S1AP_Message_t *s1msg);
+void S1_newUserSession(struct t_engine_data *engine, struct EndpointStruct_t* ep_S1, S1AP_Message_t *s1msg, uint16_t sid);
 
 /**@brief Trigger UE context Release
  * @param [in] session Session struct of the current user
