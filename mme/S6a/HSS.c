@@ -165,9 +165,10 @@ static void HSS_newAuthVec(struct user_ctx_t *user){
     MYSQL_ROW row;
     my_ulonglong num_rows;
 
-    uint8_t op[16], amf[2], k[16], opc[16], ik[16], ck[16], sqn[6];
+    uint8_t op[16], amf[2], k[16], opc[16], ik[16], ck[16], sqn_b[6];
     uint8_t str_ik[16*2+1], str_ck[16*2+1], str_rand[16*2+1], str_autn[16*2+1], str_kasme[16*2+1], str_opc[16*2+1];
     uint8_t str_res[8*2+1], str_sqn[6*2+1];
+    uint64_t sqn;
 
     uint8_t i;
     size_t resLen=8;
@@ -200,9 +201,17 @@ static void HSS_newAuthVec(struct user_ctx_t *user){
     row = mysql_fetch_row(result);
 
     memcpy(k, row[0], 16); /* k*/
-    memcpy(sqn, row[2], 6); /* sqn*/
+    memcpy(sqn_b, row[2], 6); /* sqn*/
     memcpy(op, row[3], 16); /* op*/
     memcpy(amf, row[4], 2); /* amf*/
+
+    /*Increase SQN*/
+    /* Using annex C.1.1.2 of TS 33.102
+	 * Generation of sequence numbers which are not time-based*/
+	bin_to_strhex(sqn_b,6,  str_sqn);
+   	sqn = strtoll(str_sqn, NULL, 16);
+	sqn = ((sqn/32+1)<<5)|(sqn%32); /* SQN_HE = SEQ_HE (43 bits)|| IND_HE (5 bits)*/
+
 
     if(row[1]==NULL){
         getOPC(op, k, opc);
@@ -218,7 +227,7 @@ static void HSS_newAuthVec(struct user_ctx_t *user){
 
     get_random(user->sec_ctx.rAND, 16);
 
-    milenage_generate(opc, amf, k, sqn, user->sec_ctx.rAND, user->sec_ctx.aUTN, ik, ck, user->sec_ctx.xRES, &resLen);
+    milenage_generate(opc, amf, k, sqn_b, user->sec_ctx.rAND, user->sec_ctx.aUTN, ik, ck, user->sec_ctx.xRES, &resLen);
 
     /* The first 6 bytes of AUTN are SQN^Ak*/
     generate_Kasme(ck, ik, user->tAI.sn, user->sec_ctx.aUTN, user->sec_ctx.kASME);
@@ -234,10 +243,10 @@ static void HSS_newAuthVec(struct user_ctx_t *user){
             bin_to_strhex(user->sec_ctx.rAND,16, str_rand),
             bin_to_strhex(user->sec_ctx.xRES,8, str_res),
             bin_to_strhex(user->sec_ctx.aUTN,16, str_autn),
-            bin_to_strhex(sqn,6,  str_sqn),
+            sqn,
             bin_to_strhex(user->sec_ctx.kASME,16, str_kasme),
             "00000000000000000000000000000000",   /*AK not stored for the moment*/
-            str_sqn,
+            sqn,
             bin_to_strhex(opc,16, str_opc),
             mcc,
             mnc,
