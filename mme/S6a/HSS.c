@@ -211,7 +211,9 @@ static void HSS_newAuthVec(struct user_ctx_t *user){
 	bin_to_strhex(sqn_b,6,  str_sqn);
    	sqn = strtoll(str_sqn, NULL, 16);
 	sqn = ((sqn/32+1)<<5)|(sqn%32); /* SQN_HE = SEQ_HE (43 bits)|| IND_HE (5 bits)*/
-
+	/* Copy back to buffer*/
+	sqn = htobe64(sqn<<16);
+	memcpy(sqn_b, &sqn, 6);
 
     if(row[1]==NULL){
         getOPC(op, k, opc);
