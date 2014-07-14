@@ -97,6 +97,9 @@ static uint32_t TASK_AttachReqParse(uint8_t *returnbuffer, uint32_t *bsize, Gene
 static uint32_t TASK_AttachReqCont(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg_t *msg, Signal *signal);
 static uint32_t TASK_AttachComplete(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg_t *msg, Signal *signal);
 
+static uint32_t TASK_IdentityReq(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg_t *msg, Signal *signal);
+static uint32_t TASK_IdentityRespParse(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg_t *msg, Signal *signal);
+
 static uint32_t TASK_InitSec(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg_t *msg, Signal *signal);
 static uint32_t TASK_SecModeCommand(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg_t *msg, Signal *signal);
 
@@ -271,14 +274,23 @@ void stateEMM_Deregistered(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg
     }
 
     /* Get procedure & Create response message */
-    if (msg->plain.eMM.messageType == AttachRequest){
+    if (msg->plain.eMM.messageType == AttachRequest || msg->plain.eMM.messageType == IdentityResponse){
         if(signal->name == NAS_AttachReqCont){
             TASK_AttachReqCont(returnbuffer, bsize, msg, signal);
 
-        }else{
+        }else if(msg->plain.eMM.messageType == AttachRequest){
             MME_RESET_TIME
             log_msg(LOG_DEBUG, 0, "NAS: Recv Attach Request, Initiated time measurement.");
             TASK_AttachReqParse(returnbuffer, bsize, msg, signal);
+            if(PDATA->user_ctx->imsi == 0ULL){
+	            TASK_IdentityReq(returnbuffer, bsize, NULL, signal);
+	            addToPendingResponse(PDATA);
+	            MME_MEASURE_PROC_TIME
+	            log_msg(LOG_DEBUG, 0, "NAS: Sent Identity Request time = %u us", SELF_ON_SIG->procTime);
+	            return;
+            }
+        }else if(msg->plain.eMM.messageType == IdentityResponse){
+	        TASK_IdentityRespParse(returnbuffer, bsize, msg, signal);
         }
         if(user->ksi.id==7){
             MME_MEASURE_PROC_TIME
@@ -557,6 +569,60 @@ uint32_t TASK_AttachComplete(uint8_t *returnbuffer, uint32_t *bsize, GenericNASM
 
     return 0;
 }
+
+
+uint32_t TASK_IdentityReq(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg_t *msg, Signal *signal){
+
+	uint8_t *pointer;
+
+    log_msg(LOG_DEBUG, 0, "Forging Identity Request");
+
+    pointer = returnbuffer;
+    newNASMsg_EMM(&pointer, EPSMobilityManagementMessages, PlainNAS);
+
+    encaps_EMM(&pointer, IdentityRequest);
+
+    /* Selected NAS security algorithms */
+    nasIe_v_t1_l(&pointer,1); /*Get Imsi*/
+    pointer++; /*Spare half octet*/
+
+    *bsize = pointer-returnbuffer;
+
+    return 0;
+}
+
+uint32_t TASK_IdentityRespParse(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg_t *msg, Signal *signal) {
+	uint8_t esmBuf[500], res[1000], *pointer, t3412, mobId[20];
+    uint32_t i;
+    uint64_t mobid=0ULL;
+
+    log_msg(LOG_DEBUG, 0, "Enter");
+
+    ie_lv_t4_t *mobileId_ie = (ie_lv_t4_t*)  msg+2;
+
+    /*ePSMobileId*/
+    /*printf("ePSMobileId : %u, mobid = %llu\n", attachMsg->ePSMobileId.l, mobid);*/
+
+    if(((ePSMobileId_header_t*)mobileId_ie->v)->type == 1 ){  /* IMSI*/
+        for(i=0; i<mobileId_ie->l-1; i++){
+	        mobid = mobid*10 + ((mobileId_ie->v[i])>>4);
+            mobid = mobid*10 + ((mobileId_ie->v[i+1])&0x0F);
+            /*printf("imsi : %llu, %x %x\n", mobid, (attachMsg->ePSMobileId.v[i])>>4, (attachMsg->ePSMobileId.v[i+1])&0x0F);*/
+        }
+        if(((ePSMobileId_header_t*)mobileId_ie->v)->parity == 1){
+            mobid = mobid*10 + ((mobileId_ie->v[i])>>4);
+        }
+    }else{
+	    log_msg(LOG_ERR, 0, "Identifier not implemented");
+	    return 0;
+    }
+    PDATA->user_ctx->imsi = mobid;
+    /*printf("imsi : %llu, %x\n", mobid, ((attachMsg->ePSMobileId.v[i+1])>>4));*/
+    log_msg(LOG_DEBUG, 0,"imsi : %llu", mobid);
+
+    return 0;
+}
+
 
 uint32_t TASK_InitSec(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg_t *msg, Signal *signal){
     uint8_t *pointer, ksi, randv[8];
