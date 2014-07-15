@@ -302,7 +302,8 @@ void stateEMM_Deregistered(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg
             }
         }else if(msg->plain.eMM.messageType == IdentityResponse){
 	        TASK_IdentityRespParse(returnbuffer, bsize, msg, signal);
-	        //   sendFirstStoredSignal(signal->processTo);
+	        sendFirstStoredSignal(signal->processTo);
+	        return;
         }
         if(user->ksi.id==7){
             MME_MEASURE_PROC_TIME
