@@ -289,7 +289,7 @@ void stateEMM_Deregistered(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg
 	            log_msg(LOG_DEBUG, 0, "NAS: Sent Identity Request time = %u us", SELF_ON_SIG->procTime);
 	            /* Create a new signal to finish the process of the message*/
 	            continueAttach = new_signal(signal->processTo);
-	            continueAttach->name = NAS_AttachReqCont;
+	            continueAttach->name = NAS_data_available;
 	            continueAttach->priority = signal->priority;
 
 	            /* Pass the data to the new signal*/
