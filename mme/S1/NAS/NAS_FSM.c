@@ -287,10 +287,22 @@ void stateEMM_Deregistered(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg
 	            addToPendingResponse(PDATA);
 	            MME_MEASURE_PROC_TIME
 	            log_msg(LOG_DEBUG, 0, "NAS: Sent Identity Request time = %u us", SELF_ON_SIG->procTime);
+	            /* Create a new signal to finish the process of the message*/
+	            continueAttach = new_signal(signal->processTo);
+	            continueAttach->name = NAS_AttachReqCont;
+	            continueAttach->priority = signal->priority;
+
+	            /* Pass the data to the new signal*/
+	            continueAttach->data =  signal->data;
+	            signal->data = NULL;
+	            continueAttach->freedataFunc = signal->freedataFunc;
+	            signal->freedataFunc=NULL;
+	            save_signal(continueAttach);    /* Signal to continue with the Attach procedure*/
 	            return;
             }
         }else if(msg->plain.eMM.messageType == IdentityResponse){
 	        TASK_IdentityRespParse(returnbuffer, bsize, msg, signal);
+	        //   sendFirstStoredSignal(signal->processTo);
         }
         if(user->ksi.id==7){
             MME_MEASURE_PROC_TIME
