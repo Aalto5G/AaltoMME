@@ -19,6 +19,14 @@
 #include <netinet/in.h>
 
 /* ********************** EMM ********************** */
+void dec_IdentityResponse(IdentityResponse_t *msg, uint8_t *buffer, uint32_t size) {
+	/*EPSMobileId*/
+    msg->mobileId.l = *buffer;
+    memcpy(msg->mobileId.v, ++buffer, msg->mobileId.l);
+    buffer+=msg->mobileId.l;
+    nas_msg(NAS_DEBUG, 0, "DEC : ePSMobileId len = %u, v = %#x%x", msg->mobileId.l, msg->mobileId.v[0], msg->mobileId.v[1]);
+}
+
 void dec_AttachAccept(AttachAccept_t *msg, uint8_t *buffer, uint32_t size){
 
     /*EPSAttachType and NASKeySetId*/

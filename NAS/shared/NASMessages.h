@@ -31,7 +31,7 @@ typedef struct EMM_PlainMessage_c{
     ie_v_t1_l_t protocolDiscriminator;
     ie_v_t1_h_t securityHeaderType;
     ie_t_t2_t   messageType;
-    union nAS_ie_member *ie[30];
+    union nAS_ie_member ie[30];
 }EMM_Message_t;
 
 /** ESM Plain message */
@@ -64,6 +64,16 @@ typedef union GenericNASMsg_c{
     NASPlainMsg_t           plain;
     SecurityProtectedMsg_t  ciphered;
 }GenericNASMsg_t;
+
+/**Identity Response : UE to nework : dual*/
+typedef struct IdentityResponse_c{
+	ie_v_t1_l_t protocolDiscriminator;
+	ie_v_t1_h_t	securityHeaderType;
+	ie_t_t2_t	messageType;
+	ie_lv_t4_t 	mobileId;
+}IdentityResponse_t;
+
+void dec_IdentityResponse(IdentityResponse_t *msg, uint8_t *buffer, uint32_t size);
 
 /* ** Specific Procedures Messages ** */
 

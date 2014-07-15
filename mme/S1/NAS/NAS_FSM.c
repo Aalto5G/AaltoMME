@@ -598,23 +598,18 @@ uint32_t TASK_IdentityRespParse(uint8_t *returnbuffer, uint32_t *bsize, GenericN
 
     log_msg(LOG_DEBUG, 0, "Enter");
 
-    ie_lv_t4_t *mobileId_ie = (ie_lv_t4_t*)  msg+2;
+    IdentityResponse_t *idRsp = (IdentityResponse_t*)&(msg->plain.eMM);
 
-    /*ePSMobileId*/
-    /*printf("ePSMobileId : %u, mobid = %llu\n", attachMsg->ePSMobileId.l, mobid);*/
-
-    if(((ePSMobileId_header_t*)mobileId_ie->v)->type == 1 ){  /* IMSI*/
-        for(i=0; i<mobileId_ie->l-1; i++){
-	        mobid = mobid*10 + ((mobileId_ie->v[i])>>4);
-            mobid = mobid*10 + ((mobileId_ie->v[i+1])&0x0F);
+    if(((ePSMobileId_header_t*)idRsp->mobileId.v)->type == 1 ){  /* IMSI*/
+        for(i=0; i<idRsp->mobileId.l-1; i++){
+            mobid = mobid*10 + ((idRsp->mobileId.v[i])>>4);
+            mobid = mobid*10 + ((idRsp->mobileId.v[i+1])&0x0F);
             /*printf("imsi : %llu, %x %x\n", mobid, (attachMsg->ePSMobileId.v[i])>>4, (attachMsg->ePSMobileId.v[i+1])&0x0F);*/
         }
-        if(((ePSMobileId_header_t*)mobileId_ie->v)->parity == 1){
-            mobid = mobid*10 + ((mobileId_ie->v[i])>>4);
+        if(((ePSMobileId_header_t*)idRsp->mobileId.v)->parity == 1){
+            mobid = mobid*10 + ((idRsp->mobileId.v[i])>>4);
         }
-    }else{
-	    log_msg(LOG_ERR, 0, "Identifier not implemented");
-	    return 0;
+
     }
     PDATA->user_ctx->imsi = mobid;
     /*printf("imsi : %llu, %x\n", mobid, ((attachMsg->ePSMobileId.v[i+1])>>4));*/

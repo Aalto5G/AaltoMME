@@ -86,7 +86,7 @@ void dec_EMM(EMM_Message_t *msg, uint8_t *buf, uint32_t size){
         nas_msg(NAS_DEBUG, 0, "DEC : messageType decoder Not available: messageType %#x", msg->messageType);
         break;
     case IdentityResponse:
-        nas_msg(NAS_DEBUG, 0, "DEC : messageType decoder Not available: messageType %#x", msg->messageType);
+	    dec_IdentityResponse((IdentityResponse_t*)msg, buf, size);
         break;
     case SecurityModeCommand:
         nas_msg(NAS_DEBUG, 0, "DEC : messageType decoder Not available: messageType %#x", msg->messageType);
