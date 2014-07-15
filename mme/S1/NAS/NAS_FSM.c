@@ -540,10 +540,11 @@ uint32_t TASK_AttachReqParse(uint8_t *returnbuffer, uint32_t *bsize, GenericNASM
             mobid = mobid*10 + ((attachMsg->ePSMobileId.v[i])>>4);
         }
 
+    
+        PDATA->user_ctx->imsi = mobid;
+        /*printf("${1:format string}"${2: ,a0,a1});intf("imsi : %llu, %x\n", mobid, ((attachMsg->ePSMobileId.v[i+1])>>4));*/
+        log_msg(LOG_DEBUG, 0,"imsi : %llu", mobid);
     }
-    PDATA->user_ctx->imsi = mobid;
-    /*printf("imsi : %llu, %x\n", mobid, ((attachMsg->ePSMobileId.v[i+1])>>4));*/
-    log_msg(LOG_DEBUG, 0,"imsi : %llu", mobid);
 
     /*uENetworkCapability*/
 
