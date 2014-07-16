@@ -168,7 +168,7 @@ static void HSS_newAuthVec(struct user_ctx_t *user){
     uint8_t op[16], amf[2], k[16], opc[16], ik[16], ck[16], sqn_b[6];
     uint8_t str_ik[16*2+1], str_ck[16*2+1], str_rand[16*2+1], str_autn[16*2+1], str_kasme[16*2+1], str_opc[16*2+1];
     uint8_t str_res[8*2+1], str_sqn[6*2+1];
-    uint64_t sqn;
+    uint64_t sqn, sqn_tmp;
 
     uint8_t i;
     size_t resLen=8;
@@ -210,10 +210,16 @@ static void HSS_newAuthVec(struct user_ctx_t *user){
 	 * Generation of sequence numbers which are not time-based*/
 	bin_to_strhex(sqn_b,6,  str_sqn);
    	sqn = strtoll(str_sqn, NULL, 16);
-	sqn = ((sqn/32+1)<<5)|(sqn%32); /* SQN_HE = SEQ_HE (43 bits)|| IND_HE (5 bits)*/
+	//sqn = ((sqn/32+1)<<5)|(sqn%32); /* SQN_HE = SEQ_HE (43 bits)|| IND_HE (5 bits)*/
 	/* Copy back to buffer*/
-	sqn = htobe64(sqn<<16);
-	memcpy(sqn_b, &sqn, 6);
+	/*sqn = htobe64(sqn<<16);
+	  memcpy(sqn_b, &sqn, 6);*/
+	sqn+=0x20;
+	sqn_tmp = sqn;
+	for(i=5; i>=0;i--){
+		sqn_b[i] = sqn_tmp&0xFF;
+		sqn_tmp>>=8;
+	}
 
     if(row[1]==NULL){
         getOPC(op, k, opc);

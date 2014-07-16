@@ -802,10 +802,10 @@ uint32_t TASK_DetachReqParse(uint8_t *returnbuffer, uint32_t *bsize, GenericNASM
     /*detachMsg->detachType.v;*/
 
     /*nASKeySetId*/
-    if(detachMsg->nASKeySetId.v != PDATA->user_ctx->ksi.id){
+    /*if(detachMsg->nASKeySetId.v != PDATA->user_ctx->ksi.id){
 	    log_msg(LOG_ERR, 0, "Incorrect KSI: %u Ignoring detach", detachMsg->nASKeySetId.v);
         return 1;
-    }
+     }*/
 
     /*EPSMobileId*/
     if(((ePSMobileId_header_t*)detachMsg->ePSMobileId.v)->type == 1 ){  /* IMSI*/
