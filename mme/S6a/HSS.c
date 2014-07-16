@@ -171,6 +171,7 @@ static void HSS_newAuthVec(struct user_ctx_t *user){
     uint64_t sqn, sqn_tmp;
 
     uint8_t i;
+    int j;
     size_t resLen=8;
 
     char query[1000];
@@ -216,8 +217,8 @@ static void HSS_newAuthVec(struct user_ctx_t *user){
 	  memcpy(sqn_b, &sqn, 6);*/
 	sqn+=0x20;
 	sqn_tmp = sqn;
-	for(i=5; i>=0;i--){
-		sqn_b[i] = sqn_tmp&0xFF;
+	for(j=5; j>=0;j--){
+		sqn_b[j] = sqn_tmp&0xFF;
 		sqn_tmp>>=8;
 	}
 
