@@ -318,7 +318,7 @@ int mme_main(){
     struct sigaction new_action, old_action;
 
     /*Init syslog entity*/
-    init_logger("MME", LOG_DEBUG);
+    init_logger("MME", LOG_INFO);
 
     mme = malloc(sizeof(struct mme_t));
     memset(mme, 0, sizeof(struct mme_t));
