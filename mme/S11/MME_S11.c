@@ -305,6 +305,12 @@ void TASK_MME_S11___CreateContextResp(Signal *signal){
     /* APN Restriction*/
 
     /* Protocol Configuration Options PCO*/
+    gtp2ie_gettliv(ie, GTPV2C_IE_PCO, 0, value, &vsize);
+    if(value!= NULL && vsize>0){
+        memcpy(&(PDATA->user_ctx->pco[2]), value, vsize);
+        PDATA->user_ctx->pco[1]= (uint8_t) ntoh16(vsize);
+        log_msg(LOG_DEBUG, 0, "PDN Allocated Addr type %u", PDATA->user_ctx->pAA.type);
+    }
 
     /* Bearer Context*/
     gtp2ie_gettliv(ie, GTPV2C_IE_BEARER_CONTEXT, 0, value, &vsize);
@@ -430,8 +436,8 @@ void TASK_MME_S11___newCtx(Signal *signal){
     struct sockaddr_in  *peer;
     union gtpie_member ie[13], ie_bearer_ctx[3];
     int hlen, sock, a;
-    uint32_t length, ielen;
-    uint8_t bytefield[30];
+    uint32_t length, ielen, ienum=0;
+    uint8_t bytefield[30], *tmp;
     struct nodeinfo_t pgwInfo;
 
     log_msg(LOG_DEBUG, 0, "Enter");
@@ -443,84 +449,105 @@ void TASK_MME_S11___newCtx(Signal *signal){
     length = get_default_gtp(2, GTP2_CREATE_SESSION_REQ, &packet);
 
     /*IMSI*/
-    ie[0].tliv.i=0;
-    ie[0].tliv.t=GTPV2C_IE_IMSI;
-    dec2tbcd(ie[0].tliv.v, &ielen, PDATA->user_ctx->imsi);
-    ie[0].tliv.l=hton16(ielen);
+    ie[ienum].tliv.i=0;
+    ie[ienum].tliv.t=GTPV2C_IE_IMSI;
+    dec2tbcd(ie[ienum].tliv.v, &ielen, PDATA->user_ctx->imsi);
+    ie[ienum].tliv.l=hton16(ielen);
+    ienum++;
     /*MSISDN*/
-    ie[1].tliv.i=0;
-    ie[1].tliv.t=GTPV2C_IE_MSISDN;
-    dec2tbcd(ie[1].tliv.v, &ielen, PDATA->user_ctx->msisdn);
-    ie[1].tliv.l=hton16(ielen);
+    ie[ienum].tliv.i=0;
+    ie[ienum].tliv.t=GTPV2C_IE_MSISDN;
+    dec2tbcd(ie[ienum].tliv.v, &ielen, PDATA->user_ctx->msisdn);
+    ie[ienum].tliv.l=hton16(ielen);
+    ienum++;
     /*MEI*/
-    ie[2].tliv.i=0;
-    ie[2].tliv.t=GTPV2C_IE_MEI;
-    dec2tbcd(ie[2].tliv.v, &ielen, PDATA->user_ctx->imsi);
-    ie[2].tliv.l=hton16(ielen);
+    ie[ienum].tliv.i=0;
+    ie[ienum].tliv.t=GTPV2C_IE_MEI;
+    dec2tbcd(ie[ienum].tliv.v, &ielen, PDATA->user_ctx->imsi);
+    ie[ienum].tliv.l=hton16(ielen);
+    ienum++;
     /*RAT type*/
-    ie[3].tliv.i=0;
-    ie[3].tliv.l=hton16(1);
-    ie[3].tliv.t=GTPV2C_IE_RAT_TYPE;
-    ie[3].tliv.v[0]=6;                  /*Type 6= EUTRAN*/
+    ie[ienum].tliv.i=0;
+    ie[ienum].tliv.l=hton16(1);
+    ie[ienum].tliv.t=GTPV2C_IE_RAT_TYPE;
+    ie[ienum].tliv.v[0]=6;                  /*Type 6= EUTRAN*/
+    ienum++;
     /*F-TEID*/
-    ie[4].tliv.i=0;
-    ie[4].tliv.l=hton16(9);
-    ie[4].tliv.t=GTPV2C_IE_FTEID;
+    ie[ienum].tliv.i=0;
+    ie[ienum].tliv.l=hton16(9);
+    ie[ienum].tliv.t=GTPV2C_IE_FTEID;
     fteid.ipv4=1;
     fteid.ipv6=0;
     fteid.iface= hton8(S11_MME);
     fteid.teid = hton32(PDATA->user_ctx->S11MMETeid);
     fteid.addr.addrv4 = SELF_ON_SIG->ipv4;
-    ie[4].tliv.l=hton16(FTEID_IP4_SIZE);
-    memcpy(ie[4].tliv.v, &fteid, FTEID_IP4_SIZE);
+    ie[ienum].tliv.l=hton16(FTEID_IP4_SIZE);
+    memcpy(ie[ienum].tliv.v, &fteid, FTEID_IP4_SIZE);
+    ienum++;
     /*F-TEID PGW S5/S8 Address for Control Plane or PMIP */
-    ie[5].tliv.i=1;
-    ie[5].tliv.l=hton16(FTEID_IP4_SIZE);
-    ie[5].tliv.t=GTPV2C_IE_FTEID;
+    ie[ienum].tliv.i=1;
+    ie[ienum].tliv.l=hton16(FTEID_IP4_SIZE);
+    ie[ienum].tliv.t=GTPV2C_IE_FTEID;
     fteid.ipv4=1;
     fteid.ipv6=0;
     fteid.iface= hton8(S5S8C_PGW);
     fteid.teid = hton32(0);
     getNode(&pgwInfo, PGW, PDATA->user_ctx);
     fteid.addr.addrv4 = pgwInfo.addrv4.s_addr;
-    memcpy(ie[5].tliv.v, &fteid, FTEID_IP4_SIZE);
+    memcpy(ie[ienum].tliv.v, &fteid, FTEID_IP4_SIZE);
+    ienum++;
     /*APN*/
-    ie[6].tliv.i=0;
-    ie[6].tliv.l=hton16(strlen(user->aPname));
-    ie[6].tliv.t=GTPV2C_IE_APN;
-    sprintf(ie[6].tliv.v, user->aPname, strlen(user->aPname));
+    ie[ienum].tliv.i=0;
+    ie[ienum].tliv.l=hton16(strlen(user->aPname));
+    ie[ienum].tliv.t=GTPV2C_IE_APN;
+    sprintf(ie[ienum].tliv.v, user->aPname, strlen(user->aPname));
+    ienum++;
     
     /*PAA*/
-    ie[7].tliv.i=0;
-    ie[7].tliv.l=hton16(5);
-    ie[7].tliv.t=GTPV2C_IE_PAA;
+    ie[ienum].tliv.i=0;
+    ie[ienum].tliv.l=hton16(5);
+    ie[ienum].tliv.t=GTPV2C_IE_PAA;
     bytefield[0]=0x01;  /*PDN Type  IPv4 */
     memset(bytefield+1, 0, 4);   /*IP = 0.0.0.0*/
-    memcpy(ie[7].tliv.v, bytefield, 5);
+    memcpy(ie[ienum].tliv.v, bytefield, 5);
+    ienum++;
     /*Serving Network*/
-    ie[8].tliv.i=0;
-    ie[8].tliv.l=hton16(3);
-    ie[8].tliv.t=GTPV2C_IE_SERVING_NETWORK;
-    memcpy(ie[8].tliv.v, PDATA->user_ctx->tAI.sn, 3);
+    ie[ienum].tliv.i=0;
+    ie[ienum].tliv.l=hton16(3);
+    ie[ienum].tliv.t=GTPV2C_IE_SERVING_NETWORK;
+    memcpy(ie[ienum].tliv.v, PDATA->user_ctx->tAI.sn, 3);
+    ienum++;
     /*PDN type*/
-    ie[9].tliv.i=0;
-    ie[9].tliv.l=hton16(1);
-    ie[9].tliv.t=GTPV2C_IE_PDN_TYPE;
+    ie[ienum].tliv.i=0;
+    ie[ienum].tliv.l=hton16(1);
+    ie[ienum].tliv.t=GTPV2C_IE_PDN_TYPE;
     bytefield[0]=user->pdn_type; /* PDN type IPv4*/
-    memcpy(ie[9].tliv.v, bytefield, 1);
+    memcpy(ie[ienum].tliv.v, bytefield, 1);
+    ienum++;
     /*APN restriction*/
-    ie[10].tliv.i=0;
-    ie[10].tliv.l=hton16(1);
-    ie[10].tliv.t=GTPV2C_IE_APN_RESTRICTION;
+    ie[ienum].tliv.i=0;
+    ie[ienum].tliv.l=hton16(1);
+    ie[ienum].tliv.t=GTPV2C_IE_APN_RESTRICTION;
     bytefield[0]=0x00; /* APN restriction*/
-    memcpy(ie[10].tliv.v, bytefield, 1);
+    memcpy(ie[ienum].tliv.v, bytefield, 1);
+    ienum++;
     /*Selection Mode*/
-    ie[11].tliv.i=0;
-    ie[11].tliv.l=hton16(1);
-    ie[11].tliv.t=GTPV2C_IE_SELECTION_MODE;
+    ie[ienum].tliv.i=0;
+    ie[ienum].tliv.l=hton16(1);
+    ie[ienum].tliv.t=GTPV2C_IE_SELECTION_MODE;
     bytefield[0]=0x01; /* Selection Mode*/
-    memcpy(ie[11].tliv.v, bytefield, 1);
+    memcpy(ie[ienum].tliv.v, bytefield, 1);
+    ienum++;
 
+    /*Protocol Configuration Options*/
+    if(user->pco[0]==0x27){
+	    ie[ienum].tliv.i=0;
+	    ie[ienum].tliv.l=hton16(user->pco[1]);
+	    ie[ienum].tliv.t=GTPV2C_IE_PCO;
+	    tmp = user->pco+2;
+	    memcpy(ie[ienum].tliv.v, tmp, user->pco[1]);
+	    ienum++;
+    }
     /*Bearer contex*/
         /*EPS Bearer ID */
         ie_bearer_ctx[0].tliv.i=0;
@@ -541,8 +568,9 @@ void TASK_MME_S11___newCtx(Signal *signal){
         bytefield[2]=0x01;
         memcpy(ie_bearer_ctx[2].tliv.v, bytefield, 3);
     gtp2ie_encaps_group(GTPV2C_IE_BEARER_CONTEXT, 0, &ie[12], ie_bearer_ctx, 3);*/
-    gtp2ie_encaps_group(GTPV2C_IE_BEARER_CONTEXT, 0, &ie[12], ie_bearer_ctx, 2);
-    gtp2ie_encaps(ie, 13, &packet, &length);
+    gtp2ie_encaps_group(GTPV2C_IE_BEARER_CONTEXT, 0, &ie[ienum], ie_bearer_ctx, 2);
+    ienum++;
+    gtp2ie_encaps(ie, ienum, &packet, &length);
 
     /*Packet header modifications*/
     packet.gtp2l.h.seq = hton24(getNextSeq(SELF_ON_SIG));

@@ -153,8 +153,8 @@ void getNodeByAddr6(const struct in6_addr *addr, const enum nodeType type, struc
 }
 
 void loadMMEinfo(struct mme_t *mme){
-    config_setting_t *mmeNAMEconf, *mmeIp4, *gUMMEIsconf, *gummeiconf, *pLMNsconf, *gIDsconf, *mMECsconf, *pLMNconf, *relCapconf;
-    const char *name, *mmeIpv4str;
+	config_setting_t *mmeNAMEconf, *mmeIp4, *gUMMEIsconf, *gummeiconf, *pLMNsconf, *gIDsconf, *mMECsconf, *pLMNconf, *relCapconf, *uE_DNS;
+	const char *name, *mmeIpv4str, *uE_DNSstr;
     uint32_t iGUMMEI, lGUMMEI, iPLMN, lPLMN, iGID, lGID, iMMEC, lMMEC;
     int tmp;
     ServedGUMMEIsItem_t *item;
@@ -173,6 +173,14 @@ void loadMMEinfo(struct mme_t *mme){
     mmeIpv4str = config_setting_get_string(mmeIp4);
     if(mmeIpv4str != NULL && mmeIpv4str[0]!= '\0'){
         inet_pton(AF_INET, mmeIpv4str, &(mme->ipv4));
+    }
+
+    uE_DNS = config_lookup(&cfg, "mme.UE_DNS");
+    if( uE_DNS != NULL) {
+	        uE_DNSstr = config_setting_get_string(uE_DNS);
+	        if(uE_DNSstr != NULL && uE_DNSstr[0]!= '\0'){
+		        inet_pton(AF_INET, uE_DNSstr, &(mme->uE_DNS));
+	        }
     }
 
     mme->servedGUMMEIs = new_ServedGUMMEIs();
