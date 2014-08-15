@@ -826,7 +826,7 @@ uint32_t TASK_ESM_ForgeActivateDefaultBearerContextReq(uint8_t *returnbuffer, ui
     /*Optionals */
     /* Protocol Configuration Options*/
     if(PDATA->user_ctx->pco[0]==0x27){
-        if(user->uE_DNS==0){
+        if(PROC->engine->mme->uE_DNS==0){
             nasIe_tlv_t4(&pointer, 0x27, PDATA->user_ctx->pco+2, PDATA->user_ctx->pco[1]+2);
         }
 
