@@ -644,8 +644,8 @@ uint32_t TASK_IdentityRespParse(uint8_t *returnbuffer, uint32_t *bsize, GenericN
 
 
 uint32_t TASK_PDNConnectivityReqParse(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg_t *msg, Signal *signal){
-	uint8_t  *pointer, numOp=0;
-	ie_tlv_t4_t *temp;
+    uint8_t  *pointer, numOp=0;
+    ie_tlv_t4_t *temp;
 
     log_msg(LOG_DEBUG, 0, "Enter");
 
@@ -653,22 +653,22 @@ uint32_t TASK_PDNConnectivityReqParse(uint8_t *returnbuffer, uint32_t *bsize, Ge
 
     /*Optionals*/
     if(pdnReq->optionals[numOp].iei&0xF0 == 0xD0){
-	    /*ESM information transfer flag*/
-	    numOp++;
+        /*ESM information transfer flag*/
+        numOp++;
     }
     if(pdnReq->optionals[numOp].iei == 0x28){
-	    /*Access point name*/
-	    numOp++;
+        /*Access point name*/
+        numOp++;
     }
     if(pdnReq->optionals[numOp].iei == 0x27){
-	    /*Protocol configuration options*/
-	    temp =  & (pdnReq->optionals[numOp].tlv_t4);
-	    memcpy(PDATA->user_ctx->pco, temp, temp->l+2);
-	    numOp++;
+        /*Protocol configuration options*/
+        temp =  & (pdnReq->optionals[numOp].tlv_t4);
+        memcpy(PDATA->user_ctx->pco, temp, temp->l+2);
+        numOp++;
     }
     if(pdnReq->optionals[numOp].iei&0xF0 == 0x0C0){
-	    /*Device properties*/
-	    numOp++;
+        /*Device properties*/
+        numOp++;
     }
     return 0;
 }
@@ -794,7 +794,7 @@ uint32_t TASK_EMM_ForgeAttachAccept(uint8_t *returnbuffer, uint32_t *bsize, Sign
 }
 
 uint32_t TASK_ESM_ForgeActivateDefaultBearerContextReq(uint8_t *returnbuffer, uint32_t *bsize, Signal *signal){
-    uint8_t *pointer, aPN[100];
+    uint8_t *pointer, aPN[100],pco[14];
     uint32_t len;
 
     /* Forge Activate Default Bearer Context Req*/
@@ -827,8 +827,24 @@ uint32_t TASK_ESM_ForgeActivateDefaultBearerContextReq(uint8_t *returnbuffer, ui
     /* Protocol Configuration Options*/
     if(PDATA->user_ctx->pco[0]==0x27){
         if(PROC->engine->mme->uE_DNS==0){
-            nasIe_tlv_t4(&pointer, 0x27, PDATA->user_ctx->pco+2, PDATA->user_ctx->pco[1]+2);
-        }
+            log_msg(LOG_DEBUG, 0, "Writting PCO IE. Lenght: %d, first byte %#x", PDATA->user_ctx->pco[1]+2, *(PDATA->user_ctx->pco+2));
+            nasIe_tlv_t4(&pointer, 0x27, PDATA->user_ctx->pco+2, PDATA->user_ctx->pco[1]);
+	    *(pointer-1-PDATA->user_ctx->pco[1]) = PDATA->user_ctx->pco[1];
+        }else{
+	    pco[0]=0x80;
+	    pco[1]=0x80;
+	    pco[2]=0x21;
+	    pco[3]=0x0a;
+	    pco[4]=0x01;
+	    pco[5]=0x00;
+	    pco[6]=0x00;
+	    pco[7]=0x0a;
+	    pco[8]=0x81;
+	    pco[9]=0x06;
+	    memcpy(pco+10, &(PROC->engine->mme->uE_DNS), 4);
+	    nasIe_tlv_t4(&pointer, 0x27, pco, 14);
+	    *(pointer-15) = 14;
+	}
 
     }
 

@@ -55,6 +55,8 @@ struct gtp2_header_short { /*    Descriptions from 3GPP 29274 */
 static int gtpie_getie(union gtpie_member* ie[], int type, int instance) {
   int j;
   for (j=0; j< GTPIE_SIZE; j++) {
+      if(ie[j]==NULL)
+            break;
       if ((ie[j] != 0) && (ie[j]->t == type)) {
           if (instance-- == 0){
               if (GTPIE_DEBUG) printf("IE found, IE #%d\n", j);
@@ -148,6 +150,7 @@ int gtp2ie_decap(union gtpie_member* ie[], void *pack, unsigned len) {
   if (p==end) {
     if (GTPIE_DEBUG) printf("GTPIE normal return. %lx %lx\n",
                             (unsigned long) p, (unsigned long) end);
+    ie[j]=NULL;
     return 0; /* We landed at the end of the packet: OK */
   }
   else if (!(j<GTPIE_SIZE)) {

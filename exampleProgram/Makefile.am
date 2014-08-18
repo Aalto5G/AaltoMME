@@ -28,7 +28,7 @@ loadWithAttach_SOURCES = loadWithAttach.c
 eping_LDFLAGS = $(top_srcdir)/libgtp/libgtp.la
 exampleProgram_LDFLAGS = $(top_srcdir)/libgtp/libgtp.la
 # eNBemulator_LDFLAGS = $(top_srcdir)/S1AP/src/libs1ap.la $(top_srcdir)/NAS/src/libnas.la
-loadWithAttach_LDFLAGS = $(top_srcdir)/S1AP/src/libs1ap.la $(top_srcdir)/NAS/src/libnas.la `mysql_config --libs` 
+loadWithAttach_LDFLAGS = $(top_srcdir)/S1AP/src/libs1ap.la $(top_srcdir)/NAS/src/libnas.la `mysql_config --libs_r` 
 #
 exampleProgram_LDADD = -levent
 eping_LDADD = -levent

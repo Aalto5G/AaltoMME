@@ -304,6 +304,7 @@ void TASK_MME_S11___CreateContextResp(Signal *signal){
     }
     /* APN Restriction*/
 
+    vsize=0;
     /* Protocol Configuration Options PCO*/
     gtp2ie_gettliv(ie, GTPV2C_IE_PCO, 0, value, &vsize);
     if(value!= NULL && vsize>0){
