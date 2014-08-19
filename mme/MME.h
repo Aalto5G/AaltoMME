@@ -201,6 +201,7 @@ struct user_ctx_t{
     struct qos_t qos;
 	uint64_t ue_ambr_dl;
 	uint64_t ue_ambr_ul;
+	uint8_t pco[0xff+2];   /* TLV Protocol Configuration Options*/
 };
 
 
@@ -259,6 +260,7 @@ struct mme_t{
     uint32_t                seq : 24 ;
     struct timeval          start;   /* Test Variable*/
     uint32_t                procTime;
+	uint32_t                uE_DNS;  /*IP address to be used on the PDN by the UEs*/
 };
 
 #define INIT_TIME_MEASUREMENT_ENVIRONMENT \

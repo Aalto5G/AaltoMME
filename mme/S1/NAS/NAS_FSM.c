@@ -100,6 +100,8 @@ static uint32_t TASK_AttachComplete(uint8_t *returnbuffer, uint32_t *bsize, Gene
 static uint32_t TASK_IdentityReq(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg_t *msg, Signal *signal);
 static uint32_t TASK_IdentityRespParse(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg_t *msg, Signal *signal);
 
+static uint32_t TASK_PDNConnectivityReqParse(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg_t *msg, Signal *signal);
+
 static uint32_t TASK_InitSec(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg_t *msg, Signal *signal);
 static uint32_t TASK_SecModeCommand(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg_t *msg, Signal *signal);
 
@@ -151,15 +153,23 @@ void stateESM_BearerContextInactive(uint8_t *returnbuffer, uint32_t *bsize, Gene
     /* ACTIVATE DEFAULT EPS BEARER CONTEXT REQUEST
      * ACTIVATE DEDICATED EPS BEARER CONTEXT REQUEST*/
     struct user_ctx_t *user = PDATA->user_ctx;
+    PDNConnectivityRequest_t *pdn_req;
 
     switch(signal->name){
     case NAS_ESM_Continue:
-        TASK_ESM_ForgeActivateDefaultBearerContextReq(returnbuffer, bsize, signal);
-        PDATA->user_ctx->stateNAS_ESM = ESM_Bearer_Context_Active_Pending;
+	    if(user->ebearer[0].id>=5){
+		    TASK_ESM_ForgeActivateDefaultBearerContextReq(returnbuffer, bsize, signal);
+		    PDATA->user_ctx->stateNAS_ESM = ESM_Bearer_Context_Active_Pending;
+	    }else{
+		    log_msg(LOG_ERR, 0, "Not a valid EPS bearer was created");
+	    }
+
         break;
     default:
         if( msg->plain.eSM.messageType == PDNConnectivityRequest ){
             PDATA->s11 = &(SELF_ON_SIG->s11);   /*Select SGW endpoint structure before entering to S11 state machine*/
+            TASK_PDNConnectivityReqParse(returnbuffer, bsize, msg, signal);
+
             S11_newUserAttach(PROC->engine, PDATA);   /*Enter S11 State Machine to set user context*/
         }
         break;
@@ -633,6 +643,37 @@ uint32_t TASK_IdentityRespParse(uint8_t *returnbuffer, uint32_t *bsize, GenericN
 }
 
 
+uint32_t TASK_PDNConnectivityReqParse(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg_t *msg, Signal *signal){
+    uint8_t  *pointer, numOp=0;
+    ie_tlv_t4_t *temp;
+
+    log_msg(LOG_DEBUG, 0, "Enter");
+
+    PDNConnectivityRequest_t *pdnReq = (PDNConnectivityRequest_t*)&(msg->plain.eSM);
+
+    /*Optionals*/
+    if(pdnReq->optionals[numOp].iei&0xF0 == 0xD0){
+        /*ESM information transfer flag*/
+        numOp++;
+    }
+    if(pdnReq->optionals[numOp].iei == 0x28){
+        /*Access point name*/
+        numOp++;
+    }
+    if(pdnReq->optionals[numOp].iei == 0x27){
+        /*Protocol configuration options*/
+        temp =  & (pdnReq->optionals[numOp].tlv_t4);
+        memcpy(PDATA->user_ctx->pco, temp, temp->l+2);
+        numOp++;
+    }
+    if(pdnReq->optionals[numOp].iei&0xF0 == 0x0C0){
+        /*Device properties*/
+        numOp++;
+    }
+    return 0;
+}
+
+
 uint32_t TASK_InitSec(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg_t *msg, Signal *signal){
     uint8_t *pointer, ksi, randv[8];
     struct user_ctx_t *user = PDATA->user_ctx;
@@ -753,7 +794,7 @@ uint32_t TASK_EMM_ForgeAttachAccept(uint8_t *returnbuffer, uint32_t *bsize, Sign
 }
 
 uint32_t TASK_ESM_ForgeActivateDefaultBearerContextReq(uint8_t *returnbuffer, uint32_t *bsize, Signal *signal){
-    uint8_t *pointer, aPN[100];
+    uint8_t *pointer, aPN[100],pco[14];
     uint32_t len;
 
     /* Forge Activate Default Bearer Context Req*/
@@ -782,6 +823,31 @@ uint32_t TASK_ESM_ForgeActivateDefaultBearerContextReq(uint8_t *returnbuffer, ui
     }
     nasIe_lv_t4(&pointer, (uint8_t*)&(PDATA->user_ctx->pAA), len);
 
+    /*Optionals */
+    /* Protocol Configuration Options*/
+    if(PDATA->user_ctx->pco[0]==0x27){
+        if(PROC->engine->mme->uE_DNS==0){
+            log_msg(LOG_DEBUG, 0, "Writting PCO IE. Lenght: %d, first byte %#x", PDATA->user_ctx->pco[1]+2, *(PDATA->user_ctx->pco+2));
+            nasIe_tlv_t4(&pointer, 0x27, PDATA->user_ctx->pco+2, PDATA->user_ctx->pco[1]);
+	    *(pointer-1-PDATA->user_ctx->pco[1]) = PDATA->user_ctx->pco[1];
+        }else{
+	    pco[0]=0x80;
+	    pco[1]=0x80;
+	    pco[2]=0x21;
+	    pco[3]=0x0a;
+	    pco[4]=0x01;
+	    pco[5]=0x00;
+	    pco[6]=0x00;
+	    pco[7]=0x0a;
+	    pco[8]=0x81;
+	    pco[9]=0x06;
+	    memcpy(pco+10, &(PROC->engine->mme->uE_DNS), 4);
+	    nasIe_tlv_t4(&pointer, 0x27, pco, 14);
+	    *(pointer-15) = 14;
+	}
+
+    }
+
     *bsize = pointer-returnbuffer;
     return 0;
 
@@ -803,7 +869,7 @@ uint32_t TASK_DetachReqParse(uint8_t *returnbuffer, uint32_t *bsize, GenericNASM
 
     /*nASKeySetId*/
     /*if(detachMsg->nASKeySetId.v != PDATA->user_ctx->ksi.id){
-	    log_msg(LOG_ERR, 0, "Incorrect KSI: %u Ignoring detach", detachMsg->nASKeySetId.v);
+        log_msg(LOG_ERR, 0, "Incorrect KSI: %u Ignoring detach", detachMsg->nASKeySetId.v);
         return 1;
      }*/
 

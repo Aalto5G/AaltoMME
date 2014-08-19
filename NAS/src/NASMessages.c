@@ -275,11 +275,59 @@ void dec_PDNConnectivityReject(PDNConnectivityReject_t *msg, uint8_t *buffer, ui
 }
 
 void dec_PDNConnectivityRequest(PDNConnectivityRequest_t *msg, uint8_t *buffer, uint32_t size){
+	uint8_t  opT, numOp=0;
+	ie_tlv_t4_t *temp;
     /*EPSAttachType and NASKeySetId*/
     msg->requestType.v = (*buffer)&0x0F;
     msg->PDNType.v = ((*buffer)&0xF0)>>4;
     buffer++;
     nas_msg(NAS_DEBUG, 0, "DEC : requestType = %#x, DEC : PDNType = %#x", msg->requestType.v, msg->PDNType.v);
+
+    size--;
+    if(size == 0)
+	    return;
+
+    /*Optionals*/
+    opT = *buffer;
+    if(opT&0xF0 == 0xD0){
+        /*ESM information transfer flag*/
+        buffer++;
+        size--;
+        numOp++;
+        if(size == 0)
+            return;
+	opT = *buffer;
+    }
+    if(opT == 0x28){
+	/*Access point name*/
+	temp = (ie_tlv_t4_t *)buffer;
+	buffer += temp->l;
+	size -= 2;
+	size -= temp->l;
+	numOp++;
+	if(size == 0)
+	    return;
+	opT = *buffer;
+    }
+    if(opT == 0x27){
+	/*Protocol configuration options*/
+	temp = (ie_tlv_t4_t *)buffer;
+        memcpy( msg->optionals +numOp, temp, temp->l+2);
+
+	buffer += temp->l;
+	size -= 2;
+	size -= temp->l;
+	numOp++;
+	if(size == 0)
+	    return;
+	opT = *buffer;
+    }
+    if(opT&0xF0 == 0x0C0){
+        /*Device properties*/
+        numOp++;
+	buffer++;
+	size--;
+    }
 }
 
 
