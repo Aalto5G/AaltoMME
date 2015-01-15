@@ -286,6 +286,7 @@ extern void s11_accept(evutil_socket_t listener, short event, void *arg);
 extern void s1_accept_new_eNB(evutil_socket_t listener, short event, void *arg);
 extern void s1_accept(evutil_socket_t listener, short event, void *arg);
 extern void ctrl_accept(evutil_socket_t listener, short event, void *arg);
+extern void kill_handler(evutil_socket_t listener, short event, void *arg);
 
 /**@brief store pendent response
  * @param [in] session Session structure pointer

@@ -218,6 +218,7 @@ int mme_run(struct mme_t *self){
     struct event            *listener_S1;                   /*< S1 Interface event*/
     struct event            *listener_Ctrl;                 /*< listener_Ctrl Interface event*/
     struct event            *listener_command;              /*< Command Interface event*/
+    struct event            *kill_event;                    /*< Kill Posix signal event*/
 
     int i = 0, allocated = 0;
 
@@ -261,7 +262,7 @@ int mme_run(struct mme_t *self){
     listener_S11 = event_new(self->evbase, self->s11.fd, EV_READ|EV_PERSIST, s11_accept, self); /*mme possible arg in the future*/
     listener_S1 = event_new(self->evbase, self->s1.fd, EV_READ|EV_PERSIST, s1_accept_new_eNB, self); /*mme possible arg in the future*/
     listener_Ctrl = event_new(self->evbase, self->ctrl.fd, EV_READ|EV_PERSIST, ctrl_accept, self); /*mme possible arg in the future*/
-
+    kill_event = evsignal_new(self->evbase, SIGINT, kill_handler, self);
 
 
     /*Make socket non blocking*/
@@ -276,7 +277,7 @@ int mme_run(struct mme_t *self){
     event_add(listener_S11, NULL);
     event_add(listener_S1, NULL);
     event_add(listener_Ctrl, NULL);
-
+    event_add(kill_event, NULL);
 
     engine_main(self);
 
@@ -295,6 +296,7 @@ int mme_run(struct mme_t *self){
     event_free(listener_S11);
     event_free(listener_S1);
     event_free(listener_Ctrl);
+    event_free(kill_event);
     event_base_free(self->evbase);
 
     mme_close_ifaces(self);
@@ -328,14 +330,14 @@ int mme_main(){
     mme_run_flag = 1;
 
     /* Configure SIGINT */
-    new_action.sa_handler = termination_handler;
+    /*new_action.sa_handler = termination_handler;
     sigemptyset (&new_action.sa_mask);
     new_action.sa_flags = 0;
 
     sigaction (SIGINT, NULL, &old_action);
     if (old_action.sa_handler != SIG_IGN){
         sigaction (SIGINT, &new_action, NULL);
-    }
+    }*/
 
     /* run MME*/
     mme_run(mme);
@@ -653,6 +655,23 @@ void ctrl_accept(evutil_socket_t listener, short event, void *arg){
     output->data = (void *)msg;
     output->freedataFunc = freeMsg;
     signal_send(output);
+}
+
+/**/
+void kill_handler(evutil_socket_t listener, short event, void *arg){
+  struct mme_t *mme = (struct mme_t *)arg;
+  struct timeval delay = { 1, 0 };  
+
+  if(mme_run!=NULL){
+    mme_run_flag=0;
+    log_msg(LOG_INFO, 0, "SIGINT detected. Closing MME");
+  }else{
+    log_msg(LOG_INFO, 0, "SIGINT detected.");
+    exit(0);
+  }
+
+  event_base_loopexit(mme->evbase, &delay);
+  
 }
 
 

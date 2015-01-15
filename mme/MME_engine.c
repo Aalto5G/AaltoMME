@@ -416,7 +416,7 @@ static void engine_loop(struct t_engine_data *self){
 
         /*Event base loop, because of EVLOOP_NONBLOCK flag,
          * it only checks if there is any active file descriptor. If so, run the callbacks*/
-        event_base_loop(self->evbase, EVLOOP_ONCE | EVLOOP_NONBLOCK);
+        event_base_loop(self->evbase, EVLOOP_ONCE );//| EVLOOP_NONBLOCK);
         /*****wait for messages from application and then run specific function associated to the message****/
         switch(CommandSignal.name){
             case engine_start:
