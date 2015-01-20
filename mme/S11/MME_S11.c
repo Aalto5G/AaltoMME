@@ -503,7 +503,7 @@ void TASK_MME_S11___newCtx(Signal *signal){
     ie[ienum].tliv.t=GTPV2C_IE_APN;
     sprintf(ie[ienum].tliv.v, user->aPname, strlen(user->aPname));
     ienum++;
-    
+
     /*PAA*/
     ie[ienum].tliv.i=0;
     ie[ienum].tliv.l=hton16(5);
@@ -559,7 +559,7 @@ void TASK_MME_S11___newCtx(Signal *signal){
         ie_bearer_ctx[1].tliv.i=0;
         ie_bearer_ctx[1].tliv.l=hton16(sizeof(struct qos_t));
         ie_bearer_ctx[1].tliv.t=GTPV2C_IE_BEARER_LEVEL_QOS;
-        memcpy(ie_bearer_ctx[1].tliv.v, &(user->qos), sizeof(struct qos_t));
+        memcpy(ie_bearer_ctx[1].tliv.v, qos, sizeof(struct qos_t));
         /*EPS Bearer TFT */
         /*ie_bearer_ctx[2].tliv.i=0;
         ie_bearer_ctx[2].tliv.l=hton16(3);
@@ -856,10 +856,10 @@ void TASK_MME_S11___Forge_CreateIndirectDataForwardingTunnel(Signal *signal){
         ie_bearer_ctx[2].tliv.t=GTPV2C_IE_FTEID;
         ie_bearer_ctx[2].tliv.l=hton16(fteid_size);
         memcpy(ie_bearer_ctx[2].tliv.v, &ul_fteid, fteid_size);
-        
+
     gtp2ie_encaps_group(GTPV2C_IE_BEARER_CONTEXT, 0, &ie[0], ie_bearer_ctx, 3);
     gtp2ie_encaps(ie, 1, (void*)&packet, &length);
-    
+
     /*Packet header modifications*/
     packet.gtp2l.h.seq = hton24(getNextSeq(SELF_ON_SIG));
     packet.gtp2l.h.tei = user->s11.teid;
@@ -1038,7 +1038,3 @@ void S11_CreateIndirectDataForwardingTunnel(struct t_engine_data *engine, struct
     signal_send(output);
 
 }
-
-
-
-
