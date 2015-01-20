@@ -515,7 +515,7 @@ static int STATE_S1_ProcessUeMsg(Signal *signal){
         /* Process NAS PDU*/
         NAS_process(nasResult, &bsize, nAS_in->str, nAS_in->len, signal);
         TASK_MME_S1___Forge_TransparentNAS(nasResult, bsize, signal);
-        signal->processTo->next_state = STATE_S1_SetupOfUEContext;        
+        signal->processTo->next_state = STATE_S1_SetupOfUEContext;
         signal->name = S1_ContinueAttach;
         return 1;
     }
@@ -1070,7 +1070,7 @@ static uint8_t TASK_MME_S1___Forge_UEContextReleaseCommand(Signal *signal, cause
     }
     /*MMEMEASUREPROCTIME*/
     /* Send Response*/
-    s1_sendmsg(ep_S1, mme_id, s1msg);
+    s1_sendmsg(ep_S1, PDATA->sid, s1msg);
     /*MMEMEASUREPROCTIME*/
     s1msg->freemsg(s1msg);
     return 0;
@@ -1367,7 +1367,7 @@ static uint8_t TASK_MME_S1___Forge_HandoverReq(Signal *signal){
 
 
     /* Send Response*/
-    s1_sendmsg(&(PDATA->user_ctx->hoCtx.target_s1), PDATA->user_ctx->mME_UE_S1AP_ID, s1msg);
+    s1_sendmsg(&(PDATA->user_ctx->hoCtx.target_s1), PDATA->sid, s1msg);
 
     s1msg->freemsg(s1msg);
 
@@ -1519,7 +1519,7 @@ static uint8_t TASK_MME_S1___Replay_StatusTransfer(Signal *signal){
     s1msg->pdu->procedureCode = id_MMEStatusTransfer;
 
     /* Send Response*/
-    s1_sendmsg(&(user->hoCtx.target_s1), user->mME_UE_S1AP_ID, s1msg);
+    s1_sendmsg(&(user->hoCtx.target_s1), PDATA->sid, s1msg);
 
     return 0;
 }
@@ -1669,4 +1669,3 @@ void S1_UEContextRelease(struct SessionStruct_t *session){
     signal_send(output);
 
 }
-
