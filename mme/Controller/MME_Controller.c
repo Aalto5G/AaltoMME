@@ -234,7 +234,7 @@ static void TASK_MME_Controller___userAttach(Signal *signal){
 	struct nodeinfo_t ctrlInfo;
 	uint8_t packet_str[PACKET_MAX], tmp_str[PACKET_MAX];
 	uint8_t straddr[INET6_ADDRSTRLEN];
-	struct in_addr ipv4addr;
+	struct in_addr ipv4addr, ipv4gw;
 
 	const uint8_t *packet_pattern = "{"
 	  "\"version\": \"%d\","
@@ -284,6 +284,7 @@ static void TASK_MME_Controller___userAttach(Signal *signal){
 	}
 
 	ipv4addr.s_addr = user->ebearer[0].s1u_sgw.addr.addrv4;
+  ipv4gw.s_addr = user->ebearer[0].s1u_sgw.addr.addrv4;
 
 	sprintf(packet_str, packet_pattern,
           1,                            /* Version*/
@@ -293,7 +294,7 @@ static void TASK_MME_Controller___userAttach(Signal *signal){
           tmp_str,
           inet_ntoa(ipv4addr),                             /*SPGW endpoint IP Address*/
           user->ebearer[0].s1u_sgw.teid,                   /*UL TEID*/
-          inet_ntoa(((struct sockaddr_in *)&SELF_ON_SIG->s1apUsersbyLocalID[PDATA->user_ctx->mME_UE_S1AP_ID]->s1->peerAddr)->sin_addr),   /*eNB endpoint IP Address*/
+          inet_ntoa(ipv4gw),                               /*eNB endpoint IP Address*/
           user->ebearer[0].s1u_eNB.teid,                   /*DL TEID*/
           user->ebearer[0].qos.qci                         /*QCI*/
         );
