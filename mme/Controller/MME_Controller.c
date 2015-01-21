@@ -250,7 +250,7 @@ static void TASK_MME_Controller___userAttach(Signal *signal){
 	    "\"gtp_enb_ipv4addr\": \"%s\","
 	    "\"gtp_teid_dl\": \"%u\","
 	    "\"gtp_qci\": \"%u\""
-	    "}"
+	    "},"
 	  "\"notes\": \"Attach of a UE to the network\"}"
 
 	  ;
