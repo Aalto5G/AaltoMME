@@ -321,8 +321,7 @@ static void TASK_MME_Controller___userAttach(Signal *signal){
 		return;
 	}
 	log_msg(LOG_DEBUG, 0, "Sent the new user attach message to SDN Controller");
-	print_packet(&packet, length);
-
+	/*print_packet(&packet, length);*/
 
 }
 
