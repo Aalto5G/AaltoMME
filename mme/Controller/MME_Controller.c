@@ -273,31 +273,31 @@ static void TASK_MME_Controller___userAttach(Signal *signal){
 		log_msg(LOG_DEBUG, 0, "UE: Only IPv4 address is present %d",user->pAA.addr.ipv4);
 		break;
 	case 2: /* IPv6*/
-     	        inet_ntop(AF_INET6, &user->pAA.addr.ipv6, straddr, sizeof(straddr));
+		inet_ntop(AF_INET6, &user->pAA.addr.ipv6, straddr, sizeof(straddr));
 		sprintf(tmp_str, "\"ue_ipv6addr\": \"%s\",", straddr);
 		log_msg(LOG_DEBUG, 0, "UE: Only IPv6 address is present");
 		break;
 	case 3: /*IPv4v6*/
-	        /*sprintf(tmp_str, "\"ue_ipv4addr\": \"%s\",\"ue_ipv6addr\": \"%s\",", inet_ntoa(user->pAA.addr.ipv4), inet_ntoa(user->pAA.addr.ipv6));*/
+		/*sprintf(tmp_str, "\"ue_ipv4addr\": \"%s\",\"ue_ipv6addr\": \"%s\",", inet_ntoa(user->pAA.addr.ipv4), inet_ntoa(user->pAA.addr.ipv6));*/
 		log_msg(LOG_DEBUG, 0, "UE: Both Ipv4 & IPv6 addresses are present. Not Implemented");
 		break;
 	}
 
-	ipv4addr.s_addr = user->ebearer[0].s1u_sgw.addr.addrv4;
-  ipv4gw.s_addr = user->ebearer[0].s1u_sgw.addr.addrv4;
+	ipv4addr.s_addr = user->ebearer[0].s1u_eNB.addr.addrv4;
+	ipv4gw.s_addr = user->ebearer[0].s1u_sgw.addr.addrv4;
 
 	sprintf(packet_str, packet_pattern,
-          1,                            /* Version*/
-          user->imsi/1000000000000,     /*MCC*/
-          (user->imsi/10000000000)%100, /*MNC*/
-          user->msisdn,                                    /*MSISDN*/
-          tmp_str,
-          inet_ntoa(ipv4addr),                             /*SPGW endpoint IP Address*/
-          user->ebearer[0].s1u_sgw.teid,                   /*UL TEID*/
-          inet_ntoa(ipv4gw),                               /*eNB endpoint IP Address*/
-          user->ebearer[0].s1u_eNB.teid,                   /*DL TEID*/
-          user->ebearer[0].qos.qci                         /*QCI*/
-        );
+			1,												/* Version*/
+			user->imsi/1000000000000,						/*MCC*/
+			(user->imsi/10000000000)%100,					/*MNC*/
+			user->msisdn,									/*MSISDN*/
+			tmp_str,
+			inet_ntoa(ipv4gw),								/*SPGW endpoint IP Address*/
+			user->ebearer[0].s1u_sgw.teid,					/*UL TEID*/
+			inet_ntoa(ipv4addr),							/*eNB endpoint IP Address*/
+			user->ebearer[0].s1u_eNB.teid,					/*DL TEID*/
+			user->ebearer[0].qos.qci						/*QCI*/
+			);
 
 
 	log_msg(LOG_DEBUG, 0, "Uplink   Tunnel Id: %"PRIu32,ntohl(packet.uL_gtp_teid));
