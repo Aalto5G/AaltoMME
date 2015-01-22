@@ -237,23 +237,21 @@ static void TASK_MME_Controller___userAttach(Signal *signal){
 	struct in_addr ipv4addr, ipv4gw;
 
 	const uint8_t *packet_pattern = "{"
-	  "\"version\": \"%d\","
-	  "\"msg_type\": \"attach\","
-	  "\"msg\": {"
-	    "\"plmn\": \"%u%.2u\","
-	    "\"ue_msisdn\": \"%u\","
-	    "%s"
-	    /*"\"ue_ipv4addr\": \"10.10.255.254\","*/
-	    /*"\"ue_ipv6addr\": \"2001:0db8:85a3:0042:1000:8a2e:0370:7334\","*/
-	    "\"gtp_spgw_ipv4addr\": \"%s\","
-	    "\"gtp_teid_ul\": \"%u\","
-	    "\"gtp_enb_ipv4addr\": \"%s\","
-	    "\"gtp_teid_dl\": \"%u\","
-	    "\"gtp_qci\": \"%u\""
-	    "},"
-	  "\"notes\": \"Attach of a UE to the network\"}"
-
-	  ;
+		"\"version\": \"%d\","
+		"\"msg_type\": \"attach\","
+		"\"msg\": {"
+			"\"plmn\": \"%u%.2u\","
+			"\"ue_msisdn\": \"%u\","
+			"%s"
+			/*"\"ue_ipv4addr\": \"10.10.255.254\","*/
+			/*"\"ue_ipv6addr\": \"2001:0db8:85a3:0042:1000:8a2e:0370:7334\","*/
+			"\"gtp_spgw_ipv4addr\": \"%s\","
+			"\"gtp_teid_ul\": \"%u\","
+			"\"gtp_enb_ipv4addr\": \"%s\","
+			"\"gtp_teid_dl\": \"%u\","
+			"\"gtp_qci\": \"%u\""
+			"},"
+		"\"notes\": \"Attach of a UE to the network\"}";
 
 	log_msg(LOG_DEBUG, 0, "Entered the task for sending user Attach to SDN Controller");
 
@@ -265,11 +263,11 @@ static void TASK_MME_Controller___userAttach(Signal *signal){
 	 * ====================================================================== */
 
 
-	/* 6. UE IP - IP address of the User Equipment. This is fetched from the PAA (PDN Allocated Address) */
+	/* UE IP - IP address of the User Equipment. This is fetched from the PAA (PDN Allocated Address) */
 	switch(user->pAA.type){
 	case  1: /* IPv4*/
-	  ipv4addr.s_addr = user->pAA.addr.ipv4;
-	  sprintf(tmp_str, "\"ue_ipv4addr\": \"%s\",", inet_ntoa(ipv4addr));
+		ipv4addr.s_addr = user->pAA.addr.ipv4;
+		sprintf(tmp_str, "\"ue_ipv4addr\": \"%s\",", inet_ntoa(ipv4addr));
 		log_msg(LOG_DEBUG, 0, "UE: Only IPv4 address is present %d",user->pAA.addr.ipv4);
 		break;
 	case 2: /* IPv6*/
@@ -293,9 +291,9 @@ static void TASK_MME_Controller___userAttach(Signal *signal){
 			user->msisdn,									/*MSISDN*/
 			tmp_str,
 			inet_ntoa(ipv4gw),								/*SPGW endpoint IP Address*/
-			user->ebearer[0].s1u_sgw.teid,					/*UL TEID*/
+			ntohl(user->ebearer[0].s1u_sgw.teid),			/*UL TEID*/
 			inet_ntoa(ipv4addr),							/*eNB endpoint IP Address*/
-			user->ebearer[0].s1u_eNB.teid,					/*DL TEID*/
+			ntohl(user->ebearer[0].s1u_eNB.teid),			/*DL TEID*/
 			user->ebearer[0].qos.qci						/*QCI*/
 			);
 
@@ -340,6 +338,26 @@ static void TASK_MME_Controller___userDetach(Signal *signal){
 	size_t peerlen;
 	uint32_t length;
 	struct nodeinfo_t ctrlInfo;
+	uint8_t packet_str[PACKET_MAX], tmp_str[PACKET_MAX];
+	uint8_t straddr[INET6_ADDRSTRLEN];
+	struct in_addr ipv4addr, ipv4gw;    
+
+	const uint8_t *packet_pattern = "{"
+		"\"version\": \"%d\","
+		"\"msg_type\": \"detach\","
+		"\"msg\": {"
+			"\"plmn\": \"%u%.2u\","
+			"\"ue_msisdn\": \"%u\","
+			"%s"
+			/*"\"ue_ipv4addr\": \"10.10.255.254\","*/
+			/*"\"ue_ipv6addr\": \"2001:0db8:85a3:0042:1000:8a2e:0370:7334\","*/
+			"\"gtp_spgw_ipv4addr\": \"%s\","
+			"\"gtp_teid_ul\": \"%u\","
+			"\"gtp_enb_ipv4addr\": \"%s\","
+			"\"gtp_teid_dl\": \"%u\","
+			"\"gtp_qci\": \"%u\""
+			"},"
+		"\"notes\": \"Attach of a UE to the network\"}";
 
 	log_msg(LOG_DEBUG, 0, "Entered the task for sending user Detach to SDN Controller");
 
@@ -350,63 +368,44 @@ static void TASK_MME_Controller___userDetach(Signal *signal){
 	 * Setting values in the packet
 	 * ====================================================================== */
 
-	/* 1.Setting the version */
-	packet.version = 1;
-	/* 2.Setting the operation Attach (0x1) */
-	packet.operation = 2;
-	/* 3. MSISDN field can be fetched from user context */
-	packet.msisdn = hton64(user->msisdn);
-	/* 4. GTP Tunnel Endpoint ID at eNB */
-	packet.uL_gtp_teid = user->ebearer[0].s1u_sgw.teid;
-	/* 5. GTP Tunnel Endpoint ID at PGW */
-	packet.dL_gtp_teid = user->ebearer[0].s1u_eNB.teid;
+    	/* UE IP - IP address of the User Equipment. This is fetched from the PAA (PDN Allocated Address) */
+	switch(user->pAA.type){
+	case  1: /* IPv4*/
+		ipv4addr.s_addr = user->pAA.addr.ipv4;
+		sprintf(tmp_str, "\"ue_ipv4addr\": \"%s\",", inet_ntoa(ipv4addr));
+		log_msg(LOG_DEBUG, 0, "UE: Only IPv4 address is present %d",user->pAA.addr.ipv4);
+		break;
+	case 2: /* IPv6*/
+		inet_ntop(AF_INET6, &user->pAA.addr.ipv6, straddr, sizeof(straddr));
+		sprintf(tmp_str, "\"ue_ipv6addr\": \"%s\",", straddr);
+		log_msg(LOG_DEBUG, 0, "UE: Only IPv6 address is present");
+		break;
+	case 3: /*IPv4v6*/
+		/*sprintf(tmp_str, "\"ue_ipv4addr\": \"%s\",\"ue_ipv6addr\": \"%s\",", inet_ntoa(user->pAA.addr.ipv4), inet_ntoa(user->pAA.addr.ipv6));*/
+		log_msg(LOG_DEBUG, 0, "UE: Both Ipv4 & IPv6 addresses are present. Not Implemented");
+		break;
+	}
+
+	ipv4addr.s_addr = user->ebearer[0].s1u_eNB.addr.addrv4;
+	ipv4gw.s_addr = user->ebearer[0].s1u_sgw.addr.addrv4;
+
+	sprintf(packet_str, packet_pattern,
+			1,												/* Version*/
+			user->imsi/1000000000000,						/*MCC*/
+			(user->imsi/10000000000)%100,					/*MNC*/
+			user->msisdn,									/*MSISDN*/
+			tmp_str,
+			inet_ntoa(ipv4gw),								/*SPGW endpoint IP Address*/
+			ntohl(user->ebearer[0].s1u_sgw.teid),			/*UL TEID*/
+			inet_ntoa(ipv4addr),							/*eNB endpoint IP Address*/
+			ntohl(user->ebearer[0].s1u_eNB.teid),			/*DL TEID*/
+			user->ebearer[0].qos.qci						/*QCI*/
+			);
+
 
 	log_msg(LOG_DEBUG, 0, "Uplink   Tunnel Id: %"PRIu32,ntohl(packet.uL_gtp_teid));
 	log_msg(LOG_DEBUG, 0, "Downlink Tunnel Id: %"PRIu32,ntohl(packet.dL_gtp_teid));
 
-
-	/* 6. UE IP - IP address of the User Equipment. This is fetched from the PAA (PDN Allocated Address) */
-	packet.UE.spare = 0x0;
-	switch(user->pAA.type){
-	case  1: /* IPv4*/
-		packet.UE.ipv4 = 0x1;
-		packet.eNB.ipv6 = 0x0;
-		packet.UE.ipAddr.addr_v4 = user->pAA.addr.ipv4;
-		log_msg(LOG_DEBUG, 0, "UE: Only IPv4 address is present");
-		break;
-	case 2: /* IPv6*/
-		packet.UE.ipv4 = 0x0;
-		packet.eNB.ipv6 = 0x1;
-		memcpy(&packet.UE.ipAddr.addr_v6, &user->pAA.addr.ipv6, sizeof user->pAA.addr.ipv6);
-		log_msg(LOG_DEBUG, 0, "UE: Only IPv6 address is present");
-		break;
-	case 3: /*IPv4v6*/
-		packet.UE.ipv4 = 0x1;
-		packet.eNB.ipv6 = 0x1;
-		memcpy(&packet.UE.ipAddr.both, &user->pAA.addr.both, sizeof user->pAA.addr.both);
-		log_msg(LOG_DEBUG, 0, "UE: Both Ipv4 & IPv6 addresses are present");
-		break;
-	}
-	/* 7. eNB IP - IP address of the eNB to which the UE is connected  */
-	packet.eNB.spare = 0x0;
-	packet.eNB.ipv4 = 0x1;
-	packet.eNB.ipv6 = 0x0;
-	packet.eNB.ipAddr.addr_v4 = packet.eNB.ipAddr.addr_v4 = ((struct sockaddr_in *)&SELF_ON_SIG->s1apUsersbyLocalID[PDATA->user_ctx->mME_UE_S1AP_ID]->s1->peerAddr)->sin_addr.s_addr;
-
-	/* 8. SGW IP - IP address of the concerned SGW  */
-	packet.SGW.spare = 0x0;
-	packet.SGW.ipv4 = user->ebearer[0].s1u_sgw.ipv4;
-	packet.SGW.ipv6 = user->ebearer[0].s1u_sgw.ipv6;
-	if(user->ebearer[0].s1u_sgw.ipv4 & !user->ebearer[0].s1u_sgw.ipv6){
-		log_msg(LOG_DEBUG, 0, "SGW: Only Ipv4 addresses is present");
-		packet.SGW.ipAddr.addr_v4 = user->ebearer[0].s1u_sgw.addr.addrv4;
-	} else if(!user->ebearer[0].s1u_sgw.ipv4 & user->ebearer[0].s1u_sgw.ipv6){
-		log_msg(LOG_DEBUG, 0, "SGW: Only Ipv6 addresses is present");
-		memcpy(&packet.SGW.ipAddr.addr_v6, &user->ebearer[0].s1u_sgw.addr.addrv6, sizeof user->ebearer[0].s1u_sgw.addr.addrv6);
-	} else if(user->ebearer[0].s1u_sgw.ipv4 & user->ebearer[0].s1u_sgw.ipv6){
-		log_msg(LOG_DEBUG, 0, "SGW: Both Ipv4 & IPv6 addresses are present");
-		memcpy(&packet.SGW.ipAddr.both, &user->ebearer[0].s1u_sgw.addr.both, sizeof user->ebearer[0].s1u_sgw.addr.both);
-	}
 
 	/* ======================================================================
 	 * Sending packet
@@ -418,14 +417,15 @@ static void TASK_MME_Controller___userDetach(Signal *signal){
 	peer->sin_port = htons(CONTROLLER_PORT);
 	peer->sin_addr.s_addr = ctrlInfo.addrv4.s_addr;
 	peerlen = sizeof(struct sockaddr_in);
-	length = sizeof(packet);
-	if (sendto(sock, &packet, length, 0, (struct sockaddr *)peer, peerlen) < 0) {
+	length = strlen(packet_str);
+	if (sendto(sock, &packet_str, length, 0, (struct sockaddr *)peer, peerlen) < 0) {
 		log_errpack(LOG_ERR, errno, (struct sockaddr_in *)peer, &packet, length,
 				"Sendto(fd=%d, msg=%lx, len=%d) failed", sock, (unsigned long) &packet, length);
 		return;
 	}
 	log_msg(LOG_DEBUG, 0, "Sent the user detach message to SDN Controller");
-	print_packet(&packet, length);}
+	/*print_packet(&packet, length);*/
+}
 
 /* TODO: Get the correct GTP-TEIDs */
 static void TASK_MME_Controller___userHandover(Signal *signal){
