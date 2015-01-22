@@ -340,7 +340,7 @@ static void TASK_MME_Controller___userDetach(Signal *signal){
 	struct nodeinfo_t ctrlInfo;
 	uint8_t packet_str[PACKET_MAX], tmp_str[PACKET_MAX];
 	uint8_t straddr[INET6_ADDRSTRLEN];
-	struct in_addr ipv4addr, ipv4gw;    
+	struct in_addr ipv4addr, ipv4gw;
 
 	const uint8_t *packet_pattern = "{"
 		"\"version\": \"%d\","
@@ -357,7 +357,7 @@ static void TASK_MME_Controller___userDetach(Signal *signal){
 			"\"gtp_teid_dl\": \"%u\","
 			"\"gtp_qci\": \"%u\""
 			"},"
-		"\"notes\": \"Attach of a UE to the network\"}";
+		"\"notes\": \"Detach of a UE from the network\"}";
 
 	log_msg(LOG_DEBUG, 0, "Entered the task for sending user Detach to SDN Controller");
 
@@ -368,7 +368,7 @@ static void TASK_MME_Controller___userDetach(Signal *signal){
 	 * Setting values in the packet
 	 * ====================================================================== */
 
-    	/* UE IP - IP address of the User Equipment. This is fetched from the PAA (PDN Allocated Address) */
+	/* UE IP - IP address of the User Equipment. This is fetched from the PAA (PDN Allocated Address) */
 	switch(user->pAA.type){
 	case  1: /* IPv4*/
 		ipv4addr.s_addr = user->pAA.addr.ipv4;
