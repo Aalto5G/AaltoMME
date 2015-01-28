@@ -162,6 +162,7 @@ struct user_ctx_t{
 	    E_RAB_ID_t                      eRAB_ID;
 	    struct EndpointStruct_t         target_s1;
         struct EndpointStruct_t         source_s1;
+        Bearer_Ctx_t	                old_ebearers[1];
         GTP_TEID_t                      GTP_TEID;
         TransportLayerAddress_t         transportLayerAddress;
 	    GTP_TEID_t                      dL_Forward_GTP_TEID;

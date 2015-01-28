@@ -60,7 +60,7 @@ static uint8_t TASK_MME_S1___Forge_HandoverReq(Signal *signal);
 static uint8_t TASK_MME_S1___Validate_HandoverReqAck(Signal *signal);
 static uint8_t TASK_MME_S1___Forge_HandoverCommand(Signal *signal);
 static uint8_t TASK_MME_S1___Replay_StatusTransfer(Signal *signal);
-static uint8_t TASK_MME_S1___Validate_HandoverCommand(Signal *signal);
+static uint8_t TASK_MME_S1___Validate_HandoverNotify(Signal *signal);
 
 
 /* ======================================================================
@@ -361,6 +361,7 @@ static int STATE_S1_Active(Signal *signal){
     }else if(signal->name == S1_PathSwitchRequest){
         if(TASK_MME_S1___Validate_PathSwitchRequest(signal)==0){
             S11_Attach_ModifyBearerReq(PROC->engine, PDATA);
+            Controller_newHandover(PROC->engine, PDATA);
             signal->name = S1_PathSwitchACK;
             save = 1;
         }else{
@@ -410,13 +411,14 @@ static int STATE_S1_Active(Signal *signal){
         }else if(s1msg->pdu->procedureCode == id_eNBStatusTransfer){
             TASK_MME_S1___Replay_StatusTransfer(signal);
         }else if(s1msg->pdu->procedureCode == id_HandoverNotification){
-            if(TASK_MME_S1___Validate_HandoverCommand(signal)==0){
+            if(TASK_MME_S1___Validate_HandoverNotify(signal)==0){
                 output = new_signal(PDATA->sessionHandler);
                 output->name = S1_UE_Context_Release;
                 output->priority = MAXIMUM_PRIORITY/2;
                 set_timeout(output, 0, 500000);
 
                 S11_Attach_ModifyBearerReq(PROC->engine, PDATA);
+                Controller_newHandover(PROC->engine, PDATA);
             }
 
         }
@@ -1120,6 +1122,11 @@ static uint8_t TASK_MME_S1___Validate_PathSwitchRequest(Signal *signal){
         return 1;
     }
 
+    /* Store source parameters*/
+    user->hoCtx.source_eNB_id = enb_id->eNB_id;
+    memcpy(&(user->hoCtx.source_s1), PDATA->s1, sizeof(struct EndpointStruct_t));
+    memcpy(user->hoCtx.old_ebearers, user->ebearer, sizeof(Bearer_Ctx_t));
+    /* Store current parameters*/
     memcpy(&(user->ebearer[0].s1u_eNB.teid), &(item->gTP_TEID.teid), 4);
     if (item->transportLayerAddress->len == 32){
         user->ebearer[0].s1u_eNB.ipv4=1;
@@ -1524,7 +1531,7 @@ static uint8_t TASK_MME_S1___Replay_StatusTransfer(Signal *signal){
     return 0;
 }
 
-static uint8_t TASK_MME_S1___Validate_HandoverCommand(Signal *signal){
+static uint8_t TASK_MME_S1___Validate_HandoverNotify(Signal *signal){
     S1AP_Message_t      *s1msg;
     MME_UE_S1AP_ID_t    *mme_id;
     ENB_UE_S1AP_ID_t    *enb_id;
@@ -1582,6 +1589,7 @@ static uint8_t TASK_MME_S1___Validate_HandoverCommand(Signal *signal){
     /* Store source parameters*/
     user->hoCtx.source_eNB_id = enb_id->eNB_id;
     memcpy(&(user->hoCtx.source_s1), PDATA->s1, sizeof(struct EndpointStruct_t));
+    memcpy(user->hoCtx.old_ebearers, user->ebearer, sizeof(Bearer_Ctx_t));
     /*refresh endpoint and bearer parameters*/
     enb_id->eNB_id = user->hoCtx.target_eNB_id;
     PDATA->s1 = &(user->hoCtx.target_s1);

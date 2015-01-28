@@ -437,7 +437,7 @@ void s11_accept(evutil_socket_t listener, short event, void *arg){
     session = getPendingResponseByTEID(mme, teid);
 
     if (session){
-        log_msg(LOG_INFO, 0, "s11_accept() Session found");
+        log_msg(LOG_DEBUG, 0, "s11_accept() Session found");
         if(session->sessionHandler->firstSignal!=NULL){
             /*removePendentResponse(session);*/
             log_msg(LOG_DEBUG, 0, "Found an associated signal.");
