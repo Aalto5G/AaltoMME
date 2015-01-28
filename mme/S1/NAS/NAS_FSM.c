@@ -374,7 +374,7 @@ void stateEMM_Registered(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg_t
         error = TASK_DetachReqParse(NULL, NULL, msg, signal);
         /*MMEENDTIME*/
         if(error){
-            log_msg(LOG_ERROR, 0, "NAS: Detach Request Parse Error")
+            log_msg(LOG_ERR, 0, "NAS: Detach Request Parse Error")
         }else{
             /* Create a new signal to start the Auth Procedure*/
             continueDetach = new_signal(signal->processTo);
@@ -884,13 +884,13 @@ uint32_t TASK_DetachReqParse(uint8_t *returnbuffer, uint32_t *bsize, GenericNASM
             mobid = mobid*10 + ((detachMsg->ePSMobileId.v[i])>>4);
         }
         if(PDATA->user_ctx->imsi != mobid){
-            log_msg(LOG_ERROR, 0, "received IMSI doesn't match.");
+            log_msg(LOG_ERR, 0, "received IMSI doesn't match.");
             return 1;
         }
     }else if(((ePSMobileId_header_t*)detachMsg->ePSMobileId.v)->type == 1 ){    /*GUTI*/
         guti = (guti_t  *)(detachMsg->ePSMobileId.v+1);
         if(memcmp(guti, &(PDATA->user_ctx->guti), 10)!=0){
-            log_msg(LOG_ERROR, 0, "GUTI incorrect. GUTI reallocation not implemented yet.");
+            log_msg(LOG_ERR, 0, "GUTI incorrect. GUTI reallocation not implemented yet.");
             return 1;
         }
     }
