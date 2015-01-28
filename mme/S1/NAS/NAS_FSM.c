@@ -374,7 +374,7 @@ void stateEMM_Registered(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg_t
         error = TASK_DetachReqParse(NULL, NULL, msg, signal);
         /*MMEENDTIME*/
         if(error){
-            log_msg(LOG_ERR, 0, "NAS: Detach Request Parse Error")
+            log_msg(LOG_ERR, 0, "NAS: Detach Request Parse Error");
         }else{
             /* Create a new signal to start the Auth Procedure*/
             continueDetach = new_signal(signal->processTo);
