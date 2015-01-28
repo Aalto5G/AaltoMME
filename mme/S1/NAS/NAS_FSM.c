@@ -374,7 +374,7 @@ void stateEMM_Registered(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg_t
         error = TASK_DetachReqParse(NULL, NULL, msg, signal);
         /*MMEENDTIME*/
         if(error){
-
+            log_msg(LOG_ERROR, 0, "NAS: Detach Request Parse Error")
         }else{
             /* Create a new signal to start the Auth Procedure*/
             continueDetach = new_signal(signal->processTo);
@@ -829,22 +829,22 @@ uint32_t TASK_ESM_ForgeActivateDefaultBearerContextReq(uint8_t *returnbuffer, ui
         if(PROC->engine->mme->uE_DNS==0){
             log_msg(LOG_DEBUG, 0, "Writting PCO IE. Lenght: %d, first byte %#x", PDATA->user_ctx->pco[1]+2, *(PDATA->user_ctx->pco+2));
             nasIe_tlv_t4(&pointer, 0x27, PDATA->user_ctx->pco+2, PDATA->user_ctx->pco[1]);
-	    *(pointer-1-PDATA->user_ctx->pco[1]) = PDATA->user_ctx->pco[1];
+        *(pointer-1-PDATA->user_ctx->pco[1]) = PDATA->user_ctx->pco[1];
         }else{
-	    pco[0]=0x80;
-	    pco[1]=0x80;
-	    pco[2]=0x21;
-	    pco[3]=0x0a;
-	    pco[4]=0x01;
-	    pco[5]=0x00;
-	    pco[6]=0x00;
-	    pco[7]=0x0a;
-	    pco[8]=0x81;
-	    pco[9]=0x06;
-	    memcpy(pco+10, &(PROC->engine->mme->uE_DNS), 4);
-	    nasIe_tlv_t4(&pointer, 0x27, pco, 14);
-	    *(pointer-15) = 14;
-	}
+        pco[0]=0x80;
+        pco[1]=0x80;
+        pco[2]=0x21;
+        pco[3]=0x0a;
+        pco[4]=0x01;
+        pco[5]=0x00;
+        pco[6]=0x00;
+        pco[7]=0x0a;
+        pco[8]=0x81;
+        pco[9]=0x06;
+        memcpy(pco+10, &(PROC->engine->mme->uE_DNS), 4);
+        nasIe_tlv_t4(&pointer, 0x27, pco, 14);
+        *(pointer-15) = 14;
+    }
 
     }
 
@@ -884,12 +884,13 @@ uint32_t TASK_DetachReqParse(uint8_t *returnbuffer, uint32_t *bsize, GenericNASM
             mobid = mobid*10 + ((detachMsg->ePSMobileId.v[i])>>4);
         }
         if(PDATA->user_ctx->imsi != mobid){
+            log_msg(LOG_ERROR, 0, "received IMSI doesn't match.");
             return 1;
         }
     }else if(((ePSMobileId_header_t*)detachMsg->ePSMobileId.v)->type == 1 ){    /*GUTI*/
         guti = (guti_t  *)(detachMsg->ePSMobileId.v+1);
         if(memcmp(guti, &(PDATA->user_ctx->guti), 10)!=0){
-            log_msg(LOG_DEBUG, 0, "GUTI incorrect. GUTI reallocation not implemented yet.");
+            log_msg(LOG_ERROR, 0, "GUTI incorrect. GUTI reallocation not implemented yet.");
             return 1;
         }
     }

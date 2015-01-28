@@ -341,14 +341,15 @@ static void TASK_MME_Controller___userDetach(Signal *signal){
 	struct nodeinfo_t ctrlInfo;
 	uint8_t packet_str[PACKET_MAX], tmp_str[PACKET_MAX];
 	uint8_t straddr[INET6_ADDRSTRLEN];
-	struct in_addr ipv4addr, ipv4gw;
+	struct in_addr ipv4enb, ipv4gw, ipv4addr;
+    uint8_t ip_enb[INET_ADDRSTRLEN], ip_sgw[INET_ADDRSTRLEN];
 
 	const uint8_t *packet_pattern = "{"
 		"\"version\": \"%d\","
 		"\"msg_type\": \"detach\","
 		"\"msg\": {"
 			"\"plmn\": \"%u%.2u\","
-			"\"ue_msisdn\": \"%u\","
+			"\"ue_msisdn\": \"%llu\","
 			"%s"
 			/*"\"ue_ipv4addr\": \"10.10.255.254\","*/
 			/*"\"ue_ipv6addr\": \"2001:0db8:85a3:0042:1000:8a2e:0370:7334\","*/
@@ -387,7 +388,7 @@ static void TASK_MME_Controller___userDetach(Signal *signal){
 		break;
 	}
 
-	ipv4addr.s_addr = user->ebearer[0].s1u_eNB.addr.addrv4;
+	ipv4enb.s_addr = user->ebearer[0].s1u_eNB.addr.addrv4;
 	ipv4gw.s_addr = user->ebearer[0].s1u_sgw.addr.addrv4;
 
 	sprintf(packet_str, packet_pattern,
@@ -396,9 +397,9 @@ static void TASK_MME_Controller___userDetach(Signal *signal){
 			(user->imsi/10000000000)%100,					/*MNC*/
 			user->msisdn,									/*MSISDN*/
 			tmp_str,
-			inet_ntoa(ipv4gw),								/*SPGW endpoint IP Address*/
+			inet_ntop(AF_INET, &ipv4gw, ip_sgw, INET_ADDRSTRLEN),							/*SPGW endpoint IP Address*/
 			ntohl(user->ebearer[0].s1u_sgw.teid),			/*UL TEID*/
-			inet_ntoa(ipv4addr),							/*eNB endpoint IP Address*/
+			inet_ntop(AF_INET, &ipv4enb, ip_enb, INET_ADDRSTRLEN),							/*eNB endpoint IP Address*/
 			ntohl(user->ebearer[0].s1u_eNB.teid),			/*DL TEID*/
 			user->ebearer[0].qos.qci						/*QCI*/
 			);
