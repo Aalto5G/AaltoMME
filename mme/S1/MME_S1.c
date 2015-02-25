@@ -209,17 +209,6 @@ static int STATE_S1_handle(Signal *signal)
             log_msg(LOG_DEBUG, 0, "S1AP: New user");
             S1_newUserSession(PROC->engine, s1ep, s1msg, 1);
             return 0;
-        }else if(s1msg->pdu->procedureCode == id_PathSwitchRequest && s1msg->choice == initiating_message){
-            mmeUEId = s1ap_findIe(s1msg, id_SourceMME_UE_S1AP_ID);
-            usersession = SELF_ON_SIG->s1apUsersbyLocalID[mmeUEId->mme_id];
-            if(usersession == NULL){
-                log_msg(LOG_ERR, 0, "SourceMME-UE-S1AP-ID %u not valid", mmeUEId->mme_id);
-                return 0;
-            }
-            output = new_signal(usersession->sessionHandler);
-            usersession->s1=s1ep;          /*This change should be after the validation of the message, not before as it is now*/
-            output->name = S1_PathSwitchRequest;
-            output->priority = MAXIMUM_PRIORITY;
         }else{
             log_msg(LOG_INFO, 0, "Procedure %s not recognized on stream 0", elementaryProcedureName[s1msg->pdu->procedureCode]);
             return 0;
@@ -237,6 +226,10 @@ static int STATE_S1_handle(Signal *signal)
         }
 
         mmeUEId = s1ap_findIe(s1msg, id_MME_UE_S1AP_ID);
+
+	if(s1msg->pdu->procedureCode == id_PathSwitchRequest){
+            mmeUEId = s1ap_findIe(s1msg, id_SourceMME_UE_S1AP_ID);
+	}
 
         if(mmeUEId==NULL){
             log_msg(LOG_WARNING, 0, "MME_UE_S1AP_ID not found ignoring message");
@@ -303,6 +296,10 @@ static int STATE_S1_handle(Signal *signal)
         }else if(s1msg->pdu->procedureCode == id_HandoverNotification && s1msg->choice == initiating_message){
             log_msg(LOG_DEBUG, 0, "Received an id_HandoverNotification Msg");
             /*output->name = ;*/
+            output->priority = MAXIMUM_PRIORITY;
+        }else if(s1msg->pdu->procedureCode == id_PathSwitchRequest && s1msg->choice == initiating_message){
+            usersession->s1=s1ep;          /*This change should be after the validation of the message, not before as it is now*/
+            output->name = S1_PathSwitchRequest;
             output->priority = MAXIMUM_PRIORITY;
         }else{
           log_msg(LOG_WARNING, 0, "Message not expected, ignoring. Procedure %s, choice %u",  elementaryProcedureName[s1msg->pdu->procedureCode], s1msg->choice);
