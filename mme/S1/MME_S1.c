@@ -202,7 +202,7 @@ static int STATE_S1_handle(Signal *signal)
 
     switch(sndrcvinfo->sinfo_stream){
     case 0:
-	    log_msg(LOG_DEBUG, 0, "Stream %d", sndrcvinfo->sinfo_stream);
+        log_msg(LOG_DEBUG, 0, "Stream %d", sndrcvinfo->sinfo_stream);
         /*printfbuffer(msg->packet.raw, msg->length);*/
 
         if(s1msg->pdu->procedureCode == id_initialUEMessage && s1msg->choice == initiating_message){
@@ -220,16 +220,16 @@ static int STATE_S1_handle(Signal *signal)
         /*printfbuffer(msg->packet.raw, msg->length);*/
 
         if(s1msg->pdu->procedureCode == id_initialUEMessage && s1msg->choice == initiating_message){
-	        log_msg(LOG_DEBUG, 0, "S1AP: New user");
-	        S1_newUserSession(PROC->engine, s1ep, s1msg, sndrcvinfo->sinfo_stream);
-	        return 0;
+            log_msg(LOG_DEBUG, 0, "S1AP: New user");
+            S1_newUserSession(PROC->engine, s1ep, s1msg, sndrcvinfo->sinfo_stream);
+            return 0;
         }
 
         mmeUEId = s1ap_findIe(s1msg, id_MME_UE_S1AP_ID);
 
-	if(s1msg->pdu->procedureCode == id_PathSwitchRequest){
+        if(s1msg->pdu->procedureCode == id_PathSwitchRequest){
             mmeUEId = s1ap_findIe(s1msg, id_SourceMME_UE_S1AP_ID);
-	}
+        }
 
         if(mmeUEId==NULL){
             log_msg(LOG_WARNING, 0, "MME_UE_S1AP_ID not found ignoring message");
@@ -243,14 +243,15 @@ static int STATE_S1_handle(Signal *signal)
              return 0;
         }
 
-        if(usersession->sid != sndrcvinfo->sinfo_stream){
+        if(usersession->sid != sndrcvinfo->sinfo_stream
+           && s1msg->pdu->procedureCode != id_PathSwitchRequest){
             log_msg(LOG_WARNING, 0, "MME_UE_S1AP_ID not corresponds to the expected stream. Ignoring message");
             return 0;
         }
 
         output = new_signal(usersession->sessionHandler);
         if(s1msg->choice != initiating_message ||
-                (s1msg->choice == initiating_message && s1msg->pdu->procedureCode == id_uplinkNASTransport)){
+           (s1msg->choice == initiating_message && s1msg->pdu->procedureCode == id_uplinkNASTransport)){
 
             /* Search session on hash table (key = stream, value = session pointer)*/
             if(usersession->pendingRsp == 1){
@@ -299,10 +300,11 @@ static int STATE_S1_handle(Signal *signal)
             output->priority = MAXIMUM_PRIORITY;
         }else if(s1msg->pdu->procedureCode == id_PathSwitchRequest && s1msg->choice == initiating_message){
             usersession->s1=s1ep;          /*This change should be after the validation of the message, not before as it is now*/
+            usersession->sid = sndrcvinfo->sinfo_stream;
             output->name = S1_PathSwitchRequest;
             output->priority = MAXIMUM_PRIORITY;
         }else{
-          log_msg(LOG_WARNING, 0, "Message not expected, ignoring. Procedure %s, choice %u",  elementaryProcedureName[s1msg->pdu->procedureCode], s1msg->choice);
+            log_msg(LOG_WARNING, 0, "Message not expected, ignoring. Procedure %s, choice %u",  elementaryProcedureName[s1msg->pdu->procedureCode], s1msg->choice);
             return 0;
         }
         break;
@@ -714,7 +716,7 @@ static uint8_t TASK_MME_S1___initUEMsg(Signal *signal)
     /*eNB UE S1AP ID */
     eNB_ID = (ENB_UE_S1AP_ID_t*)s1ap_findIe(s1msg, id_eNB_UE_S1AP_ID);
     if(eNB_ID != NULL){
-		user->eNB_UE_S1AP_ID = eNB_ID->eNB_id;
+        user->eNB_UE_S1AP_ID = eNB_ID->eNB_id;
     }
     /*NAS-PDU */
     nASPDU = (Unconstrained_Octed_String_t*)s1ap_findIe(s1msg, id_NAS_PDU);
@@ -725,11 +727,11 @@ static uint8_t TASK_MME_S1___initUEMsg(Signal *signal)
     /*TAI */
     tAI = (TAI_t*)s1ap_findIe(s1msg, id_TAI);
     if(tAI != NULL){
-		user->tAI.MCC = tAI->pLMNidentity->MCC;
-		user->tAI.MNC = tAI->pLMNidentity->MNC;
-		memcpy(user->tAI.sn, tAI->pLMNidentity->tbc.s, 3);
-		memcpy(&(user->tAI.tAC), tAI->tAC->s,2);
-		user->tAI.tAC = ntohs(user->tAI.tAC);
+        user->tAI.MCC = tAI->pLMNidentity->MCC;
+        user->tAI.MNC = tAI->pLMNidentity->MNC;
+        memcpy(user->tAI.sn, tAI->pLMNidentity->tbc.s, 3);
+        memcpy(&(user->tAI.tAC), tAI->tAC->s,2);
+        user->tAI.tAC = ntohs(user->tAI.tAC);
     }else{
 
     }
@@ -737,9 +739,9 @@ static uint8_t TASK_MME_S1___initUEMsg(Signal *signal)
     /*E-UTRAN CGI */
     eCGI = (EUTRAN_CGI_t*)s1ap_findIe(s1msg, id_EUTRAN_CGI);
     if(eCGI != NULL){
-		user->ECGI.MCC = eCGI->pLMNidentity->MCC;
-		user->ECGI.MNC = eCGI->pLMNidentity->MNC;
-		user->ECGI.cellID = eCGI->cell_ID.id;
+        user->ECGI.MCC = eCGI->pLMNidentity->MCC;
+        user->ECGI.MNC = eCGI->pLMNidentity->MNC;
+        user->ECGI.cellID = eCGI->cell_ID.id;
     }else{
 
     }
