@@ -930,8 +930,9 @@ uint32_t TASK_Validate_TAUReq(uint8_t *returnbuffer, uint32_t *bsize, GenericNAS
     }
 
     /*nASKeySetId*/
-    if(tau_msg->nASKeySetId.v != PDATA->user_ctx->ksi.id){
-        log_msg(LOG_WARNING, 0, "Key Set invalid. New authentication procedure must be triggered. Not implemented yet");
+    if(tau_msg->nASKeySetId.v != PDATA->user_ctx->ksi.id && tau_msg->nASKeySetId.v != 7){
+	    log_msg(LOG_WARNING, 0, "Key Set invalid (tau: %u != ctx: %u). New authentication procedure must be triggered. Not implemented yet",
+	            tau_msg->nASKeySetId.v, PDATA->user_ctx->ksi.id);
         return 1;
     }
 
@@ -951,7 +952,9 @@ uint32_t TASK_Validate_TAUReq(uint8_t *returnbuffer, uint32_t *bsize, GenericNAS
 
 uint32_t TASK_EMM_ForgeTAUAccept(uint8_t *returnbuffer, uint32_t *bsize, Signal *signal){
 
-    uint8_t *pointer;
+    NAS_tai_list_t tAIl;
+    uint8_t *pointer, t3412, guti[11];
+    uint32_t tbcd_plmn;
 
     /* Forge TAU Accept*/
     pointer = returnbuffer;
@@ -961,8 +964,33 @@ uint32_t TASK_EMM_ForgeTAUAccept(uint8_t *returnbuffer, uint32_t *bsize, Signal 
 
     /*EPS update result*/
     nasIe_v_t1_h(&pointer, 0); /* TA updated */
-    pointer++;
+    //pointer++;
 
+    /* T3412 value */
+    /*t3412 = 0x23;
+      nasIe_v_t3(&pointer, &t3412, 1); *//* EPS only */
+
+    /* GUTI */
+    /*    memcpy(&tbcd_plmn, SELF_ON_SIG->servedGUMMEIs->item[0]->servedPLMNs->item[0]->tbc.s, 3);
+    PDATA->user_ctx->guti.tbcd_plmn = tbcd_plmn;
+    memcpy(&(PDATA->user_ctx->guti.mmegi), SELF_ON_SIG->servedGUMMEIs->item[0]->servedGroupIDs->item[0]->s, 2);
+    memcpy(&(PDATA->user_ctx->guti.mmec), SELF_ON_SIG->servedGUMMEIs->item[0]->servedMMECs->item[0]->s, 1);
+    PDATA->user_ctx->guti.mtmsi = 0x80000001;*/
+
+    /*guti[0]=0xF6;*/   /*1111 0 110 - spare, odd/even , GUTI id*/
+    /*memcpy(guti+1, &(PDATA->user_ctx->guti), 10);
+
+    nasIe_tlv_t4(&pointer, 0x50, guti, 11);
+    *(pointer-12) = 11;*/
+
+    /* TAI list *//*
+    memset(&tAIl,0,sizeof(NAS_tai_list_t));
+    tAIl.numOfElem = 0;*/ /* 1 - 1*//*
+    tAIl.type = 0;
+    tAIl.list.singlePLMNnonconsec.plmn = encapPLMN(PDATA->user_ctx->tAI.MCC, PDATA->user_ctx->tAI.MNC);
+    tAIl.list.singlePLMNnonconsec.tAC[0] = PDATA->user_ctx->tAI.tAC;
+    nasIe_lv_t4(&pointer, (uint8_t*)&tAIl, 6);
+                                    */
     *bsize = pointer-returnbuffer;
     return 0;
 }
