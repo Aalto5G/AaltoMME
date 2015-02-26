@@ -209,6 +209,10 @@ static int STATE_S1_handle(Signal *signal)
             log_msg(LOG_DEBUG, 0, "S1AP: New user");
             S1_newUserSession(PROC->engine, s1ep, s1msg, 1);
             return 0;
+        }else if(s1msg->pdu->procedureCode == id_eNBStatusTransfer && s1msg->choice == initiating_message){
+            log_msg(LOG_DEBUG, 0, "Received an id_eNBStatusTransfer Msg");
+            TASK_MME_S1___Replay_StatusTransfer(signal);
+            return 0;
         }else{
             log_msg(LOG_INFO, 0, "Procedure %s not recognized on stream 0", elementaryProcedureName[s1msg->pdu->procedureCode]);
             return 0;
