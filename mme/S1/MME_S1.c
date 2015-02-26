@@ -293,6 +293,12 @@ static int STATE_S1_handle(Signal *signal)
         }else if(s1msg->pdu->procedureCode == id_eNBStatusTransfer && s1msg->choice == initiating_message){
             log_msg(LOG_DEBUG, 0, "Received an id_eNBStatusTransfer Msg");
             /*output->name = ;*/
+            /*output->priority = MAXIMUM_PRIORITY;*/
+            TASK_MME_S1___Replay_StatusTransfer(signal);
+            return 0;
+        }else if(s1msg->pdu->procedureCode == id_UEContextReleaseRequest && s1msg->choice == initiating_message){
+            log_msg(LOG_DEBUG, 0, "Received an id_UEContextReleaseRequest Msg");
+            /*output->name = ;*/
             output->priority = MAXIMUM_PRIORITY;
         }else if(s1msg->pdu->procedureCode == id_HandoverNotification && s1msg->choice == initiating_message){
             log_msg(LOG_DEBUG, 0, "Received an id_HandoverNotification Msg");
@@ -409,6 +415,15 @@ static int STATE_S1_Active(Signal *signal){
             }
         }else if(s1msg->pdu->procedureCode == id_eNBStatusTransfer){
             TASK_MME_S1___Replay_StatusTransfer(signal);
+        }else if(s1msg->pdu->procedureCode == id_UEContextReleaseRequest){
+          //if (TASK_MME_S1___Validate_UEContextReleaseRequest(signal)==0){
+                output = new_signal(PDATA->sessionHandler);
+                output->name = S1_UE_Context_Release;
+                output->priority = MAXIMUM_PRIORITY/2;
+                set_timeout(output, 0, 500000);
+                S11_ReleaseAccessBearers(PROC->engine, PDATA);
+                //}
+
         }else if(s1msg->pdu->procedureCode == id_HandoverNotification){
             if(TASK_MME_S1___Validate_HandoverNotify(signal)==0){
                 output = new_signal(PDATA->sessionHandler);
