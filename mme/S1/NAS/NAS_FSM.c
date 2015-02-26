@@ -924,7 +924,7 @@ uint32_t TASK_Validate_TAUReq(uint8_t *returnbuffer, uint32_t *bsize, GenericNAS
     log_msg(LOG_DEBUG, 0, "Enter");
 
     /*EPS update type */
-    if(tau_msg->ePSUpdateType.v != 0){
+    if((tau_msg->ePSUpdateType.v &0x07) != 0){
         log_msg(LOG_WARNING, 0, "Not a TA update, ignoring. (ePSUpdateType = %u)", tau_msg->ePSUpdateType.v);
         return 1;
     }
