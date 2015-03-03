@@ -1194,9 +1194,9 @@ static uint8_t TASK_MME_S1___Forge_PathSwitchAck(Signal *signal){
 
     /* uEaggregateMaximumBitrate*/ /* HSS*/
     bitrate = s1ap_newIE(s1msg, id_uEaggregateMaximumBitrate, optional, ignore);
-    bitrate->uEaggregateMaximumBitRateDL.rate = 0ULL;
-    bitrate->uEaggregateMaximumBitRateUL.rate = 0ULL;
-
+    bitrate->uEaggregateMaximumBitRateDL.rate = user->ue_ambr_dl;
+    bitrate->uEaggregateMaximumBitRateUL.rate = user->ue_ambr_ul;
+    
     /* E-RAB To Be Switched in Uplink List */
     eRABlist = s1ap_newIE(s1msg, id_E_RABToBeSwitchedULList, optional, ignore);
 
@@ -1344,8 +1344,8 @@ static uint8_t TASK_MME_S1___Forge_HandoverReq(Signal *signal){
 
     /* UE Aggregate Maximum Bit Rate */
     bitrate = s1ap_newIE(s1msg, id_uEaggregateMaximumBitrate, mandatory, reject);
-    bitrate->uEaggregateMaximumBitRateDL.rate = 0ULL;
-    bitrate->uEaggregateMaximumBitRateUL.rate = 0ULL;
+    bitrate->uEaggregateMaximumBitRateDL.rate = user->ue_ambr_dl;
+    bitrate->uEaggregateMaximumBitRateUL.rate = user->ue_ambr_ul;
 
     /* E-RABs To Be Setup List */
     eRABlist = s1ap_newIE(s1msg, id_E_RABToBeSetupListHOReq, mandatory, reject);
@@ -1371,6 +1371,7 @@ static uint8_t TASK_MME_S1___Forge_HandoverReq(Signal *signal){
     memcpy(eRABitem->gTP_TEID.teid, &(PDATA->user_ctx->ebearer[0].s1u_sgw.teid), sizeof(uint32_t));
 
     eRABitem->eRABLevelQoSParameters->qCI = PDATA->user_ctx->ebearer[0].qos.qci;
+    eRABitem->eRABLevelQoSParameters->allocationRetentionPriority->priorityLevel=PDATA->user_ctx->ebearer[0].qos.pl;
     eRABitem->eRABLevelQoSParameters->allocationRetentionPriority->pre_emptionCapability = shall_not_trigger_pre_emption;
     eRABitem->eRABLevelQoSParameters->allocationRetentionPriority->pre_emptionVulnerability = not_pre_emptable;
     /*GBR_QosInformation_t                *gbrQosInformation; OPTIONAL*/
