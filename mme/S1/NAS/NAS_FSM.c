@@ -766,7 +766,7 @@ uint32_t TASK_EMM_ForgeAttachAccept(uint8_t *returnbuffer, uint32_t *bsize, Sign
     tAIl.numOfElem = 0; /* 1 - 1*/
     tAIl.type = 0;
     tAIl.list.singlePLMNnonconsec.plmn = encapPLMN(PDATA->user_ctx->tAI.MCC, PDATA->user_ctx->tAI.MNC);
-    tAIl.list.singlePLMNnonconsec.tAC[0] = PDATA->user_ctx->tAI.tAC;
+    tAIl.list.singlePLMNnonconsec.tAC[0] = htons(PDATA->user_ctx->tAI.tAC);
     nasIe_lv_t4(&pointer, (uint8_t*)&tAIl, 6);
 
     signal->name = NAS_ESM_Continue;
