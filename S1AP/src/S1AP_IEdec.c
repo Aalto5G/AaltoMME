@@ -2046,7 +2046,7 @@ void dec_E_RABAdmittedItem(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
     decode_octet_string(v->gTP_TEID.teid, bytes, 4);
 
     /*attribute number 4 with type TransportLayerAddress*/
-    if((v->opt&0x20)==0x20){
+    if((v->opt&0x80)==0x80){
         v->dL_transportLayerAddress = dec_TransportLayerAddress(bytes);
     }
 
