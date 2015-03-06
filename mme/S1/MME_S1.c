@@ -209,10 +209,11 @@ static int STATE_S1_handle(Signal *signal)
             log_msg(LOG_DEBUG, 0, "S1AP: New user");
             S1_newUserSession(PROC->engine, s1ep, s1msg, 1);
             return 0;
+            /*            
         }else if(s1msg->pdu->procedureCode == id_eNBStatusTransfer && s1msg->choice == initiating_message){
             log_msg(LOG_DEBUG, 0, "Received an id_eNBStatusTransfer Msg");
             TASK_MME_S1___Replay_StatusTransfer(signal);
-            return 0;
+            return 0;*/
         }else{
             log_msg(LOG_INFO, 0, "Procedure %s not recognized on stream 0", elementaryProcedureName[s1msg->pdu->procedureCode]);
             return 0;
@@ -297,9 +298,9 @@ static int STATE_S1_handle(Signal *signal)
         }else if(s1msg->pdu->procedureCode == id_eNBStatusTransfer && s1msg->choice == initiating_message){
             log_msg(LOG_DEBUG, 0, "Received an id_eNBStatusTransfer Msg");
             /*output->name = ;*/
-            /*output->priority = MAXIMUM_PRIORITY;*/
-            TASK_MME_S1___Replay_StatusTransfer(signal);
-            return 0;
+            output->priority = MAXIMUM_PRIORITY;
+            /*TASK_MME_S1___Replay_StatusTransfer(signal, s1msg);*/
+            /*return 0;*/
         }else if(s1msg->pdu->procedureCode == id_UEContextReleaseRequest && s1msg->choice == initiating_message){
             log_msg(LOG_DEBUG, 0, "Received an id_UEContextReleaseRequest Msg");
             /*output->name = ;*/
@@ -1299,6 +1300,12 @@ static uint8_t TASK_MME_S1___Validate_HandoverRequired(Signal *signal){
 
     /* Get target eNB Endpoint*/
     memcpy(&(PDATA->user_ctx->hoCtx.target_s1), SELF_ON_SIG->s1ap[ep_index], sizeof(struct EndpointStruct_t));
+    /* Store source parameters*/
+    PDATA->user_ctx->hoCtx.source_eNB_id = enb_id->eNB_id;
+    memcpy(&(PDATA->user_ctx->hoCtx.source_s1), PDATA->s1, sizeof(struct EndpointStruct_t));
+    memcpy(PDATA->user_ctx->hoCtx.old_ebearers, PDATA->user_ctx->ebearer, sizeof(Bearer_Ctx_t));
+    log_msg(LOG_DEBUG, 0, "Stored source parameters: source UE-eNB-S1AP %u", PDATA->user_ctx->hoCtx.source_eNB_id);
+
 
     return 0;
 }
@@ -1425,21 +1432,36 @@ static uint8_t TASK_MME_S1___Validate_HandoverReqAck(Signal *signal){
     /* E-RABs Subject to Forwarding List */
     admList = s1ap_findIe(s1msg, id_E_RABAdmittedList);
     admItem = (E_RABAdmittedItem_t*)admList->item[0]->value;
-
     memcpy(&(user->hoCtx.eRAB_ID), &(admItem->eRAB_ID), sizeof(E_RAB_ID_t));
     memcpy(&(user->hoCtx.GTP_TEID), &(admItem->gTP_TEID), sizeof(GTP_TEID_t));
-    memcpy(&(user->hoCtx.transportLayerAddress), admItem->transportLayerAddress, sizeof(TransportLayerAddress_t));
-    memcpy(&(user->hoCtx.dL_Forward_GTP_TEID), &(admItem->dL_GTP_TEID), sizeof(GTP_TEID_t));
-    memcpy(&(user->hoCtx.dL_Forward_transportLayerAddress), admItem->dL_transportLayerAddress, sizeof(TransportLayerAddress_t));
-    memcpy(&(user->hoCtx.uL_Forward_GTP_TEID), &(admItem->uL_GTP_TEID), sizeof(GTP_TEID_t));
-    memcpy(&(user->hoCtx.uL_Forward_transportLayerAddress), admItem->uL_transportLayerAddress, sizeof(TransportLayerAddress_t));
+    memcpy(&(user->hoCtx.transportLayerAddress), admItem->transportLayerAddress,
+           sizeof(TransportLayerAddress_t));
+    if (admItem->opt & 0x80 ){
+        memcpy(&(user->hoCtx.dL_Forward_transportLayerAddress),
+               admItem->dL_transportLayerAddress,
+               sizeof(TransportLayerAddress_t));
+    }
+    if (admItem->opt & 0x40) {
+        memcpy(&(user->hoCtx.dL_Forward_GTP_TEID), &(admItem->dL_GTP_TEID),
+               sizeof(GTP_TEID_t));
+    }
+    if (admItem->opt & 0x20){
+        memcpy(&(user->hoCtx.uL_Forward_transportLayerAddress),
+               admItem->uL_transportLayerAddress,
+               sizeof(TransportLayerAddress_t));
+    }
+    if (admItem->opt & 0x10){
+        memcpy(&(user->hoCtx.uL_Forward_GTP_TEID), &(admItem->uL_GTP_TEID),
+               sizeof(GTP_TEID_t));
+    }
 
     /* id_Target_ToSource_TransparentContainer */
     container = s1ap_findIe(s1msg, id_Target_ToSource_TransparentContainer);
     CHECKIEPRESENCE(container)
     user->hoCtx.target2sourceTransparentContainer.len = container->len;
     user->hoCtx.target2sourceTransparentContainer.str = malloc(container->len);
-    memcpy(user->hoCtx.target2sourceTransparentContainer.str, container->str, container->len);
+    memcpy(user->hoCtx.target2sourceTransparentContainer.str, container->str,
+           container->len);
 
     return 0;
 }
@@ -1605,13 +1627,10 @@ static uint8_t TASK_MME_S1___Validate_HandoverNotify(Signal *signal){
 
     /* S1 HO completed.*/
 
-    /* Store source parameters*/
-    user->hoCtx.source_eNB_id = enb_id->eNB_id;
-    memcpy(&(user->hoCtx.source_s1), PDATA->s1, sizeof(struct EndpointStruct_t));
-    memcpy(user->hoCtx.old_ebearers, user->ebearer, sizeof(Bearer_Ctx_t));
     /*refresh endpoint and bearer parameters*/
     enb_id->eNB_id = user->hoCtx.target_eNB_id;
     PDATA->s1 = &(user->hoCtx.target_s1);
+    PDATA->user_ctx->eNB_UE_S1AP_ID = user->hoCtx.target_eNB_id;
     user->ebearer[0].id = user->hoCtx.eRAB_ID.id;
     memcpy(&(user->ebearer[0].s1u_eNB.teid), user->hoCtx.GTP_TEID.teid, 4);
     if(user->hoCtx.transportLayerAddress.len == 32){
