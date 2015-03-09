@@ -75,6 +75,28 @@ typedef struct IdentityResponse_c{
 
 void dec_IdentityResponse(IdentityResponse_t *msg, uint8_t *buffer, uint32_t size);
 
+/** Authentication Response : UE to network : dual*/
+typedef struct AuthenticationResponse_c{
+	ie_v_t1_l_t protocolDiscriminator;
+	ie_v_t1_h_t	securityHeaderType;
+	ie_t_t2_t	messageType;
+	ie_lv_t4_t 	authParam;
+}AuthenticationResponse_t;
+
+void dec_AuthenticationResponse(AuthenticationResponse_t *msg, uint8_t *buffer, uint32_t size);
+
+/** Authentication Failure : UE to network : dual*/
+typedef struct AuthenticationFailure_c{
+	ie_v_t1_l_t protocolDiscriminator;
+	ie_v_t1_h_t	securityHeaderType;
+	ie_t_t2_t	messageType;
+	uint8_t 	eMMCause;
+	union nAS_ie_member optionals[1];
+}AuthenticationFailure_t;
+
+void dec_AuthenticationFailure(AuthenticationFailure_t *msg, uint8_t *buffer, uint32_t size);
+
+
 /* ** Specific Procedures Messages ** */
 
 /**ATTACH ACCEPT : network to UE : dual*/
@@ -107,7 +129,7 @@ typedef struct AttachReject_c{
 	ie_v_t1_l_t protocolDiscriminator;
 	ie_v_t1_h_t	securityHeaderType;
 	ie_t_t2_t	messageType;
-	ie_v_t3_t	eMMCause;
+	uint8_t 	eMMCause;
 	union nAS_ie_member optionals[3];
 }AttachReject_t;
 
@@ -189,7 +211,7 @@ typedef struct TrackingAreaUpdateReject_c{
     ie_v_t1_l_t protocolDiscriminator;
     ie_v_t1_h_t securityHeaderType;
     ie_t_t2_t   messageType;
-    ie_v_t3_t   eMMCause;
+	uint8_t     eMMCause;
     union nAS_ie_member optionals[1];
 }TrackingAreaUpdateReject_t;
 
@@ -229,7 +251,7 @@ typedef struct ActivateDefaultEPSBearerContextReject_c{
     ie_v_t1_h_t securityHeaderType;
     uint8_t     procedureTransactionIdentity;
     ie_t_t2_t   messageType;
-    ie_v_t3_t   eSMCause;
+    uint8_t     eSMCause;
     union nAS_ie_member optionals[1];
 }ActivateDefaultEPSBearerContextReject_t;
 
@@ -267,7 +289,7 @@ typedef struct ActivateDedicatedEPSBearerContextReject_c{
     ie_v_t1_h_t securityHeaderType;
     uint8_t     procedureTransactionIdentity;
     ie_t_t2_t   messageType;
-    ie_v_t3_t   eSMCause;
+    uint8_t     eSMCause;
     union nAS_ie_member optionals[1];
 }ActivateDedicatedEPSBearerContextReject_t;
 
@@ -305,7 +327,7 @@ typedef struct ModifyEPSBearerContextReject_c{
     ie_v_t1_h_t securityHeaderType;
     uint8_t     procedureTransactionIdentity;
     ie_t_t2_t   messageType;
-    ie_v_t3_t   eSMCause;
+    uint8_t     eSMCause;
     union nAS_ie_member optionals[1];
 }ModifyEPSBearerContextReject_t;
 
@@ -340,7 +362,7 @@ typedef struct DeactivateEPSBearerContextRequest_c{
     ie_v_t1_h_t securityHeaderType;
     uint8_t     procedureTransactionIdentity;
     ie_t_t2_t   messageType;
-    ie_v_t3_t   eSMCause;
+    uint8_t     eSMCause;
     union nAS_ie_member optionals[2];
 }DeactivateEPSBearerContextRequest_t;
 
@@ -353,7 +375,7 @@ typedef struct PDNConnectivityReject_c{
     ie_v_t1_h_t securityHeaderType;
     uint8_t     procedureTransactionIdentity;
     ie_t_t2_t   messageType;
-    ie_v_t3_t   eSMCause;
+    uint8_t     eSMCause;
     union nAS_ie_member optionals[2];
 }PDNConnectivityReject_t;
 
@@ -379,7 +401,7 @@ typedef struct PDNDisconnectReject_c{
     ie_v_t1_h_t securityHeaderType;
     uint8_t     procedureTransactionIdentity;
     ie_t_t2_t   messageType;
-    ie_v_t3_t   eSMCause;
+    uint8_t     eSMCause;
     union nAS_ie_member optionals[1];
 }PDNDisconnectReject_t;
 
@@ -404,7 +426,7 @@ typedef struct BearerResourceAllocationReject_c{
     ie_v_t1_h_t securityHeaderType;
     uint8_t     procedureTransactionIdentity;
     ie_t_t2_t   messageType;
-    ie_v_t3_t   eSMCause;
+    uint8_t     eSMCause;
     union nAS_ie_member optionals[2];
 }BearerResourceAllocationReject_t;
 
@@ -431,7 +453,7 @@ typedef struct BearerResourceModificationReject_c{
     ie_v_t1_h_t securityHeaderType;
     uint8_t     procedureTransactionIdentity;
     ie_t_t2_t   messageType;
-    ie_v_t3_t   eSMCause;
+    uint8_t     eSMCause;
     union nAS_ie_member optionals[2];
 }BearerResourceModificationReject_t;
 

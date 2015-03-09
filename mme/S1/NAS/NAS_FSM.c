@@ -451,6 +451,9 @@ void stateEMM_SpecificProcedureInitiated(uint8_t *returnbuffer, uint32_t *bsize,
  * A common EMM procedure has been started and the MME is waiting for a response from the UE */
 void stateEMM_CommonProcedureInitiated(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg_t *msg, Signal *signal){
     struct user_ctx_t *user = PDATA->user_ctx;
+    Signal *continueAuth;
+    AuthenticationFailure_t *authFail;
+    AuthenticationResponse_t * authRsp;
 
     INIT_TIME_MEASUREMENT_ENVIRONMENT
 
@@ -461,10 +464,19 @@ void stateEMM_CommonProcedureInitiated(uint8_t *returnbuffer, uint32_t *bsize, G
 
         MME_MEASURE_PROC_TIME
         log_msg(LOG_DEBUG, 0, "NAS: Received a Authentication Response - time = %u us", SELF_ON_SIG->procTime);
-        /* @TODO Parse auth response*/
+        authRsp = (AuthenticationResponse_t*)&(msg->plain.eMM);
 
-        /* @TODO Check XRES == RES*/
-
+        /* Check XRES == RES*/
+        if(authRsp->authParam.l == 8){
+	        if(memcmp(authRsp->authParam.v, user->sec_ctx.xRES, 8)!=0){
+		        log_msg(LOG_WARNING, 0, "NAS: Authentication Failed for user: %llu",user->imsi);
+		        return;
+	        }
+        }else{
+	        log_msg(LOG_WARNING, 0, "NAS: Authentication Parameter has a wrong lenght");
+	        return;
+        }
+        
         /*Continue the attach procedure after authentication
          * @TODO Comment the following line and uncomment the next ones to activate the Security Mode Procedure*/
         sendFirstStoredSignal(signal->processTo);
@@ -476,7 +488,20 @@ void stateEMM_CommonProcedureInitiated(uint8_t *returnbuffer, uint32_t *bsize, G
         user->stateNAS_EMM = EMM_Deregistered;
 
     }else if(msg->plain.eMM.messageType ==AuthenticationFailure){
-        log_msg(LOG_WARNING, 0, "Received a NAS AuthenticationFailure");
+	    authFail = (AuthenticationFailure_t*)&(msg->plain.eMM);
+
+	    log_msg(LOG_WARNING, 0, "Received a NAS AuthenticationFailure, cause : %u", authFail->eMMCause);
+	    if(authFail->eMMCause == EMM_SynchFailure){
+		    log_msg(LOG_DEBUG, 0, "Starting NAS SQNms Resynch with HSS");
+		    s6a_SynchAuthVector(PROC->engine, PDATA, authFail->optionals[0].tlv_t4.v);
+
+		    /* Create a new signal to start the Auth Procedure*/
+		    continueAuth = new_signal(signal->processTo);
+		    continueAuth->name = NAS_AuthVectorAvailable;
+		    continueAuth->priority = signal->priority;
+		    
+		    save_signal(continueAuth);      /* Signal to continue with the authentication to S11*/
+	    }        
 
     }else if(msg->plain.eMM.messageType == AuthenticationReject){
         log_msg(LOG_WARNING, 0, "Received a NAS AuthenticationReject");

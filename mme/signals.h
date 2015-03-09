@@ -69,6 +69,7 @@ enum t_signal_name{
     other signals related to S6a interface are here
     ***********************************************/
     S6a_getAuthVector,
+    S6a_SynchAuthVector,
 
     /**********************************************
     other signals related to SDN Controller interface are here
