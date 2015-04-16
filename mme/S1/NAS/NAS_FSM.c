@@ -318,14 +318,22 @@ void stateEMM_Deregistered(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg
         if(user->ksi.id==7){
             MME_MEASURE_PROC_TIME
             log_msg(LOG_DEBUG, 0, "NAS: Time Before S6a = %u us", SELF_ON_SIG->procTime);
-            s6a_GetAuthVector(PROC->engine, PDATA);
 
+            PDATA->sessionHandler = process_create(PROC->engine,
+                                                   PROC->next_state,
+                                                   (void *)PDATA,
+                                                   PDATA->sessionHandler);
+    
             /* Create a new signal to start the Auth Procedure*/
-            continueAuth = new_signal(signal->processTo);
+            continueAuth = new_signal(PDATA->sessionHandler);
             continueAuth->name = NAS_AuthVectorAvailable;
             continueAuth->priority = signal->priority;
 
             save_signal(continueAuth);      /* Signal to continue with the authentication to S11*/
+
+
+            s6a_GetAuthVector(PROC->engine, PDATA);
+
 
             /* Create a new signal to finish the process of the message*/
             continueAttach = new_signal(signal->processTo);
@@ -479,7 +487,8 @@ void stateEMM_CommonProcedureInitiated(uint8_t *returnbuffer, uint32_t *bsize, G
         
         /*Continue the attach procedure after authentication
          * @TODO Comment the following line and uncomment the next ones to activate the Security Mode Procedure*/
-        sendFirstStoredSignal(signal->processTo);
+        run_parent(signal);
+        /*sendFirstStoredSignal(signal->processTo);*/
 
         /*Send security Mode command*/
         /* TASK_SecModeCommand(returnbuffer, bsize, msg, signal);
