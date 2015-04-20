@@ -27,8 +27,8 @@ const char authparams[] = "SELECT  subscriber_profile.k, subscriber_profile.opc,
         "AND subscriber_profile.msin = x'%.10llu'";
 
 const char insertAuthVector[] = "REPLACE INTO auth_vec values (%u, %u, x'%.10llu', %u, "
-  "x'%s', x'%s', x'%s', x'%s', x'%s', x'%.12llx', x'%s', x'%s'); "
-  "UPDATE subscriber_profile SET sqn=x'%.12llx', opc=x'%s' WHERE (mcc, mnc, msin) = (%u, %u, x'%.10llu')";
+  "x'%s', x'%s', x'%s', x'%s', x'%s', x'%s', x'%s', x'%s'); "
+  "UPDATE subscriber_profile SET sqn=x'%s', opc=x'%s' WHERE (mcc, mnc, msin) = (%u, %u, x'%.10llu')";
 
 /*hex(ik) | hex(ck) | hex(rand) | hex(xres) | hex(autn) | hex(sqn) | hex(kasme) |hex(ak)*/
 

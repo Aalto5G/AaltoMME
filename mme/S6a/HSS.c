@@ -52,6 +52,28 @@ static char *bin_to_strhex(uint8_t *hexbuf, uint32_t size, char *result){
     return result;
 }
 
+void increaseSQN(uint8_t *sqn_b){
+	uint64_t sqn, sqn_tmp;
+	uint8_t str_sqn[6*2+1];
+	int j;
+    /*Increase SQN*/
+    /* Using annex C.1.1.2 of TS 33.102
+	 * Generation of sequence numbers which are not time-based*/
+
+	bin_to_strhex(sqn_b,6,  str_sqn);
+   	sqn = strtoll(str_sqn, NULL, 16);
+	//sqn = ((sqn/32+1)<<5)|(sqn%32); /* SQN_HE = SEQ_HE (43 bits)|| IND_HE (5 bits)*/
+	/* Copy back to buffer*/
+	/*sqn = htobe64(sqn<<16);
+	  memcpy(sqn_b, &sqn, 6);*/
+	sqn+=0x20;
+	sqn_tmp = sqn;
+	for(j=5; j>=0;j--){
+		sqn_b[j] = sqn_tmp&0xFF;
+		sqn_tmp>>=8;
+	}
+}
+
 int init_hss(){
     MYSQL      *MySQLConRet;
 
@@ -206,21 +228,7 @@ static void HSS_newAuthVec(struct user_ctx_t *user){
     memcpy(op, row[3], 16); /* op*/
     memcpy(amf, row[4], 2); /* amf*/
 
-    /*Increase SQN*/
-    /* Using annex C.1.1.2 of TS 33.102
-	 * Generation of sequence numbers which are not time-based*/
-	bin_to_strhex(sqn_b,6,  str_sqn);
-   	sqn = strtoll(str_sqn, NULL, 16);
-	//sqn = ((sqn/32+1)<<5)|(sqn%32); /* SQN_HE = SEQ_HE (43 bits)|| IND_HE (5 bits)*/
-	/* Copy back to buffer*/
-	/*sqn = htobe64(sqn<<16);
-	  memcpy(sqn_b, &sqn, 6);*/
-	sqn+=0x20;
-	sqn_tmp = sqn;
-	for(j=5; j>=0;j--){
-		sqn_b[j] = sqn_tmp&0xFF;
-		sqn_tmp>>=8;
-	}
+    increaseSQN(sqn_b);
 
     if(row[1]==NULL){
         getOPC(op, k, opc);
@@ -252,10 +260,10 @@ static void HSS_newAuthVec(struct user_ctx_t *user){
             bin_to_strhex(user->sec_ctx.rAND,16, str_rand),
             bin_to_strhex(user->sec_ctx.xRES,8, str_res),
             bin_to_strhex(user->sec_ctx.aUTN,16, str_autn),
-            sqn,
+            bin_to_strhex(sqn_b, 6, str_sqn),
             bin_to_strhex(user->sec_ctx.kASME,16, str_kasme),
             "00000000000000000000000000000000",   /*AK not stored for the moment*/
-            sqn,
+            bin_to_strhex(sqn_b, 6, str_sqn),
             bin_to_strhex(opc,16, str_opc),
             mcc,
             mnc,
@@ -358,7 +366,7 @@ void HSS_syncAuthVec(Signal *signal){
 
     uint8_t op[16], amf[2], k[16], opc[16], ik[16], ck[16], sqn_b[6];
     uint8_t str_ik[16*2+1], str_ck[16*2+1], str_rand[16*2+1], str_autn[16*2+1], str_kasme[16*2+1], str_opc[16*2+1];
-    uint8_t str_res[8*2+1], str_sqn[6*2+1];
+    uint8_t str_res[8*2+1], str_sqn[6*2+1], sqn_old[6*2+1], sqn_new[6*2+1];
 
     uint8_t i;
     int j;
@@ -408,6 +416,11 @@ void HSS_syncAuthVec(Signal *signal){
 	
     if(milenage_auts(opc, k, user->sec_ctx.rAND, auts, sqn) == 0){
 	    if (memcmp(sqn, sqn_b, 6) != 0){
+
+		    increaseSQN(sqn);
+		    log_msg(LOG_INFO, 0, "SQN sync old:0x%s, new:0x%s",
+		            bin_to_strhex(sqn_b, 6, sqn_old), bin_to_strhex(sqn, 6, sqn_new));
+
 		    /* KSI*/
 		    user->ksi.id = 0;
 		    user->ksi.tsc = 0;
@@ -430,10 +443,10 @@ void HSS_syncAuthVec(Signal *signal){
 		            bin_to_strhex(user->sec_ctx.rAND,16, str_rand),
 		            bin_to_strhex(user->sec_ctx.xRES,8, str_res),
 		            bin_to_strhex(user->sec_ctx.aUTN,16, str_autn),
-		            sqn,
+		            bin_to_strhex(sqn, 6, sqn_new),
 		            bin_to_strhex(user->sec_ctx.kASME,16, str_kasme),
 		            "00000000000000000000000000000000",   /*AK not stored for the moment*/
-		            sqn,
+		            bin_to_strhex(sqn, 6, sqn_new),
 		            bin_to_strhex(opc,16, str_opc),
 		            mcc,
 		            mnc,
