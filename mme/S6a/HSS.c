@@ -54,6 +54,7 @@ static char *bin_to_strhex(uint8_t *hexbuf, uint32_t size, char *result){
 
 int init_hss(){
     MYSQL      *MySQLConRet;
+    int reconnect;
 
     /*SQL */
     HSSConnection = NULL;
@@ -77,6 +78,9 @@ int init_hss(){
         disconnect_hss();
         return 1;
     }
+
+    reconnect = 1;
+    mysql_options(HSSConnection, MYSQL_OPT_RECONNECT, &reconnect);
     return 0;
 }
 
