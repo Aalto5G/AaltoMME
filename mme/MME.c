@@ -81,7 +81,7 @@ int init_udp_srv(int port){
 /**@brief Simple SCTP creation
  * @param [in] port server SCTP port
  * @returns file descriptor*/
-int init_sctp_srv(int port){
+int init_sctp_srv(int port, int addr){
     int listenSock, on=0, status, optval;
     struct sockaddr_in servaddr;
 
@@ -96,7 +96,7 @@ int init_sctp_srv(int port){
     /* Accept connections from any interface */
     bzero( (void *)&servaddr, sizeof(servaddr) );
     servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = htonl( INADDR_ANY );
+    servaddr.sin_addr.s_addr = addr;
     servaddr.sin_port = htons(port);
     
     /* Turn off bind address checking and allow port numbers to be reused*/
@@ -143,6 +143,7 @@ int mme_init_ifaces(struct mme_t *self){
     /*LibEvent structures*/
     struct event_base *base;
     struct event *listener_S11, *listener_command, *listener_S1, *listener_Ctrl;
+    uint32_t addr = 0;
 
     if (init_hss() != 0){
         return 1;
@@ -159,7 +160,7 @@ int mme_init_ifaces(struct mme_t *self){
     log_msg(LOG_INFO, 0, "Open S11 server on file descriptor %d, port %d", self->s11.fd, GTP2C_PORT);
 
     /*Init S1 server*/
-    self->s1.fd =init_sctp_srv(S1AP_PORT);
+    self->s1.fd =init_sctp_srv(S1AP_PORT, self->ipv4);
     self->s1.portState=opened;
     log_msg(LOG_INFO, 0, "Open S1 server on file descriptor %d, port %d", self->s1.fd, S1AP_PORT);
 
