@@ -318,14 +318,22 @@ void stateEMM_Deregistered(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg
         if(user->ksi.id==7){
             MME_MEASURE_PROC_TIME
             log_msg(LOG_DEBUG, 0, "NAS: Time Before S6a = %u us", SELF_ON_SIG->procTime);
-            s6a_GetAuthVector(PROC->engine, PDATA);
 
+            PDATA->sessionHandler = process_create(PROC->engine,
+                                                   PROC->next_state,
+                                                   (void *)PDATA,
+                                                   PDATA->sessionHandler);
+    
             /* Create a new signal to start the Auth Procedure*/
-            continueAuth = new_signal(signal->processTo);
+            continueAuth = new_signal(PDATA->sessionHandler);
             continueAuth->name = NAS_AuthVectorAvailable;
             continueAuth->priority = signal->priority;
 
             save_signal(continueAuth);      /* Signal to continue with the authentication to S11*/
+
+
+            s6a_GetAuthVector(PROC->engine, PDATA);
+
 
             /* Create a new signal to finish the process of the message*/
             continueAttach = new_signal(signal->processTo);
@@ -451,6 +459,9 @@ void stateEMM_SpecificProcedureInitiated(uint8_t *returnbuffer, uint32_t *bsize,
  * A common EMM procedure has been started and the MME is waiting for a response from the UE */
 void stateEMM_CommonProcedureInitiated(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg_t *msg, Signal *signal){
     struct user_ctx_t *user = PDATA->user_ctx;
+    Signal *continueAuth;
+    AuthenticationFailure_t *authFail;
+    AuthenticationResponse_t * authRsp;
 
     INIT_TIME_MEASUREMENT_ENVIRONMENT
 
@@ -461,13 +472,23 @@ void stateEMM_CommonProcedureInitiated(uint8_t *returnbuffer, uint32_t *bsize, G
 
         MME_MEASURE_PROC_TIME
         log_msg(LOG_DEBUG, 0, "NAS: Received a Authentication Response - time = %u us", SELF_ON_SIG->procTime);
-        /* @TODO Parse auth response*/
+        authRsp = (AuthenticationResponse_t*)&(msg->plain.eMM);
 
-        /* @TODO Check XRES == RES*/
-
+        /* Check XRES == RES*/
+        if(authRsp->authParam.l == 8){
+	        if(memcmp(authRsp->authParam.v, user->sec_ctx.xRES, 8)!=0){
+		        log_msg(LOG_WARNING, 0, "NAS: Authentication Failed for user: %llu",user->imsi);
+		        return;
+	        }
+        }else{
+	        log_msg(LOG_WARNING, 0, "NAS: Authentication Parameter has a wrong lenght");
+	        return;
+        }
+        
         /*Continue the attach procedure after authentication
          * @TODO Comment the following line and uncomment the next ones to activate the Security Mode Procedure*/
-        sendFirstStoredSignal(signal->processTo);
+        run_parent(signal);
+        /*sendFirstStoredSignal(signal->processTo);*/
 
         /*Send security Mode command*/
         /* TASK_SecModeCommand(returnbuffer, bsize, msg, signal);
@@ -476,7 +497,20 @@ void stateEMM_CommonProcedureInitiated(uint8_t *returnbuffer, uint32_t *bsize, G
         user->stateNAS_EMM = EMM_Deregistered;
 
     }else if(msg->plain.eMM.messageType ==AuthenticationFailure){
-        log_msg(LOG_WARNING, 0, "Received a NAS AuthenticationFailure");
+	    authFail = (AuthenticationFailure_t*)&(msg->plain.eMM);
+
+	    log_msg(LOG_WARNING, 0, "Received a NAS AuthenticationFailure, cause : %u", authFail->eMMCause);
+	    if(authFail->eMMCause == EMM_SynchFailure){
+		    log_msg(LOG_DEBUG, 0, "Starting NAS SQNms Resynch with HSS");
+		    s6a_SynchAuthVector(PROC->engine, PDATA, authFail->optionals[0].tlv_t4.v);
+
+		    /* Create a new signal to start the Auth Procedure*/
+		    continueAuth = new_signal(signal->processTo);
+		    continueAuth->name = NAS_AuthVectorAvailable;
+		    continueAuth->priority = signal->priority;
+		    
+		    save_signal(continueAuth);      /* Signal to continue with the authentication to S11*/
+	    }        
 
     }else if(msg->plain.eMM.messageType == AuthenticationReject){
         log_msg(LOG_WARNING, 0, "Received a NAS AuthenticationReject");
@@ -766,7 +800,7 @@ uint32_t TASK_EMM_ForgeAttachAccept(uint8_t *returnbuffer, uint32_t *bsize, Sign
     tAIl.numOfElem = 0; /* 1 - 1*/
     tAIl.type = 0;
     tAIl.list.singlePLMNnonconsec.plmn = encapPLMN(PDATA->user_ctx->tAI.MCC, PDATA->user_ctx->tAI.MNC);
-    tAIl.list.singlePLMNnonconsec.tAC[0] = PDATA->user_ctx->tAI.tAC;
+    tAIl.list.singlePLMNnonconsec.tAC[0] = htons(PDATA->user_ctx->tAI.tAC);
     nasIe_lv_t4(&pointer, (uint8_t*)&tAIl, 6);
 
     signal->name = NAS_ESM_Continue;
@@ -924,14 +958,15 @@ uint32_t TASK_Validate_TAUReq(uint8_t *returnbuffer, uint32_t *bsize, GenericNAS
     log_msg(LOG_DEBUG, 0, "Enter");
 
     /*EPS update type */
-    if(tau_msg->ePSUpdateType.v != 0){
+    if((tau_msg->ePSUpdateType.v &0x07) != 0){
         log_msg(LOG_WARNING, 0, "Not a TA update, ignoring. (ePSUpdateType = %u)", tau_msg->ePSUpdateType.v);
         return 1;
     }
 
     /*nASKeySetId*/
-    if(tau_msg->nASKeySetId.v != PDATA->user_ctx->ksi.id){
-        log_msg(LOG_WARNING, 0, "Key Set invalid. New authentication procedure must be triggered. Not implemented yet");
+    if(tau_msg->nASKeySetId.v != PDATA->user_ctx->ksi.id && tau_msg->nASKeySetId.v != 7){
+	    log_msg(LOG_WARNING, 0, "Key Set invalid (tau: %u != ctx: %u). New authentication procedure must be triggered. Not implemented yet",
+	            tau_msg->nASKeySetId.v, PDATA->user_ctx->ksi.id);
         return 1;
     }
 
@@ -951,7 +986,9 @@ uint32_t TASK_Validate_TAUReq(uint8_t *returnbuffer, uint32_t *bsize, GenericNAS
 
 uint32_t TASK_EMM_ForgeTAUAccept(uint8_t *returnbuffer, uint32_t *bsize, Signal *signal){
 
-    uint8_t *pointer;
+    NAS_tai_list_t tAIl;
+    uint8_t *pointer, t3412, guti[11];
+    uint32_t tbcd_plmn;
 
     /* Forge TAU Accept*/
     pointer = returnbuffer;
@@ -961,8 +998,33 @@ uint32_t TASK_EMM_ForgeTAUAccept(uint8_t *returnbuffer, uint32_t *bsize, Signal 
 
     /*EPS update result*/
     nasIe_v_t1_h(&pointer, 0); /* TA updated */
-    pointer++;
+    //pointer++;
 
+    /* T3412 value */
+    /*t3412 = 0x23;
+      nasIe_v_t3(&pointer, &t3412, 1); *//* EPS only */
+
+    /* GUTI */
+    /*    memcpy(&tbcd_plmn, SELF_ON_SIG->servedGUMMEIs->item[0]->servedPLMNs->item[0]->tbc.s, 3);
+    PDATA->user_ctx->guti.tbcd_plmn = tbcd_plmn;
+    memcpy(&(PDATA->user_ctx->guti.mmegi), SELF_ON_SIG->servedGUMMEIs->item[0]->servedGroupIDs->item[0]->s, 2);
+    memcpy(&(PDATA->user_ctx->guti.mmec), SELF_ON_SIG->servedGUMMEIs->item[0]->servedMMECs->item[0]->s, 1);
+    PDATA->user_ctx->guti.mtmsi = 0x80000001;*/
+
+    /*guti[0]=0xF6;*/   /*1111 0 110 - spare, odd/even , GUTI id*/
+    /*memcpy(guti+1, &(PDATA->user_ctx->guti), 10);
+
+    nasIe_tlv_t4(&pointer, 0x50, guti, 11);
+    *(pointer-12) = 11;*/
+
+    /* TAI list *//*
+    memset(&tAIl,0,sizeof(NAS_tai_list_t));
+    tAIl.numOfElem = 0;*/ /* 1 - 1*//*
+    tAIl.type = 0;
+    tAIl.list.singlePLMNnonconsec.plmn = encapPLMN(PDATA->user_ctx->tAI.MCC, PDATA->user_ctx->tAI.MNC);
+    tAIl.list.singlePLMNnonconsec.tAC[0] = PDATA->user_ctx->tAI.tAC;
+    nasIe_lv_t4(&pointer, (uint8_t*)&tAIl, 6);
+                                    */
     *bsize = pointer-returnbuffer;
     return 0;
 }

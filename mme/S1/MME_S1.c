@@ -202,24 +202,18 @@ static int STATE_S1_handle(Signal *signal)
 
     switch(sndrcvinfo->sinfo_stream){
     case 0:
-	    log_msg(LOG_DEBUG, 0, "Stream %d", sndrcvinfo->sinfo_stream);
+        log_msg(LOG_DEBUG, 0, "Stream %d", sndrcvinfo->sinfo_stream);
         /*printfbuffer(msg->packet.raw, msg->length);*/
 
         if(s1msg->pdu->procedureCode == id_initialUEMessage && s1msg->choice == initiating_message){
             log_msg(LOG_DEBUG, 0, "S1AP: New user");
             S1_newUserSession(PROC->engine, s1ep, s1msg, 1);
             return 0;
-        }else if(s1msg->pdu->procedureCode == id_PathSwitchRequest && s1msg->choice == initiating_message){
-            mmeUEId = s1ap_findIe(s1msg, id_SourceMME_UE_S1AP_ID);
-            usersession = SELF_ON_SIG->s1apUsersbyLocalID[mmeUEId->mme_id];
-            if(usersession == NULL){
-                log_msg(LOG_ERR, 0, "SourceMME-UE-S1AP-ID %u not valid", mmeUEId->mme_id);
-                return 0;
-            }
-            output = new_signal(usersession->sessionHandler);
-            usersession->s1=s1ep;          /*This change should be after the validation of the message, not before as it is now*/
-            output->name = S1_PathSwitchRequest;
-            output->priority = MAXIMUM_PRIORITY;
+            /*            
+        }else if(s1msg->pdu->procedureCode == id_eNBStatusTransfer && s1msg->choice == initiating_message){
+            log_msg(LOG_DEBUG, 0, "Received an id_eNBStatusTransfer Msg");
+            TASK_MME_S1___Replay_StatusTransfer(signal);
+            return 0;*/
         }else{
             log_msg(LOG_INFO, 0, "Procedure %s not recognized on stream 0", elementaryProcedureName[s1msg->pdu->procedureCode]);
             return 0;
@@ -231,12 +225,16 @@ static int STATE_S1_handle(Signal *signal)
         /*printfbuffer(msg->packet.raw, msg->length);*/
 
         if(s1msg->pdu->procedureCode == id_initialUEMessage && s1msg->choice == initiating_message){
-	        log_msg(LOG_DEBUG, 0, "S1AP: New user");
-	        S1_newUserSession(PROC->engine, s1ep, s1msg, sndrcvinfo->sinfo_stream);
-	        return 0;
+            log_msg(LOG_DEBUG, 0, "S1AP: New user");
+            S1_newUserSession(PROC->engine, s1ep, s1msg, sndrcvinfo->sinfo_stream);
+            return 0;
         }
 
         mmeUEId = s1ap_findIe(s1msg, id_MME_UE_S1AP_ID);
+
+        if(s1msg->pdu->procedureCode == id_PathSwitchRequest){
+            mmeUEId = s1ap_findIe(s1msg, id_SourceMME_UE_S1AP_ID);
+        }
 
         if(mmeUEId==NULL){
             log_msg(LOG_WARNING, 0, "MME_UE_S1AP_ID not found ignoring message");
@@ -250,14 +248,15 @@ static int STATE_S1_handle(Signal *signal)
              return 0;
         }
 
-        if(usersession->sid != sndrcvinfo->sinfo_stream){
+        if(usersession->sid != sndrcvinfo->sinfo_stream
+           && s1msg->pdu->procedureCode != id_PathSwitchRequest){
             log_msg(LOG_WARNING, 0, "MME_UE_S1AP_ID not corresponds to the expected stream. Ignoring message");
             return 0;
         }
 
         output = new_signal(usersession->sessionHandler);
         if(s1msg->choice != initiating_message ||
-                (s1msg->choice == initiating_message && s1msg->pdu->procedureCode == id_uplinkNASTransport)){
+           (s1msg->choice == initiating_message && s1msg->pdu->procedureCode == id_uplinkNASTransport)){
 
             /* Search session on hash table (key = stream, value = session pointer)*/
             if(usersession->pendingRsp == 1){
@@ -300,12 +299,23 @@ static int STATE_S1_handle(Signal *signal)
             log_msg(LOG_DEBUG, 0, "Received an id_eNBStatusTransfer Msg");
             /*output->name = ;*/
             output->priority = MAXIMUM_PRIORITY;
+            /*TASK_MME_S1___Replay_StatusTransfer(signal, s1msg);*/
+            /*return 0;*/
+        }else if(s1msg->pdu->procedureCode == id_UEContextReleaseRequest && s1msg->choice == initiating_message){
+            log_msg(LOG_DEBUG, 0, "Received an id_UEContextReleaseRequest Msg");
+            /*output->name = ;*/
+            output->priority = MAXIMUM_PRIORITY;
         }else if(s1msg->pdu->procedureCode == id_HandoverNotification && s1msg->choice == initiating_message){
             log_msg(LOG_DEBUG, 0, "Received an id_HandoverNotification Msg");
             /*output->name = ;*/
             output->priority = MAXIMUM_PRIORITY;
+        }else if(s1msg->pdu->procedureCode == id_PathSwitchRequest && s1msg->choice == initiating_message){
+            usersession->s1=s1ep;          /*This change should be after the validation of the message, not before as it is now*/
+            usersession->sid = sndrcvinfo->sinfo_stream;
+            output->name = S1_PathSwitchRequest;
+            output->priority = MAXIMUM_PRIORITY;
         }else{
-          log_msg(LOG_WARNING, 0, "Message not expected, ignoring. Procedure %s, choice %u",  elementaryProcedureName[s1msg->pdu->procedureCode], s1msg->choice);
+            log_msg(LOG_WARNING, 0, "Message not expected, ignoring. Procedure %s, choice %u",  elementaryProcedureName[s1msg->pdu->procedureCode], s1msg->choice);
             return 0;
         }
         break;
@@ -410,6 +420,15 @@ static int STATE_S1_Active(Signal *signal){
             }
         }else if(s1msg->pdu->procedureCode == id_eNBStatusTransfer){
             TASK_MME_S1___Replay_StatusTransfer(signal);
+        }else if(s1msg->pdu->procedureCode == id_UEContextReleaseRequest){
+          //if (TASK_MME_S1___Validate_UEContextReleaseRequest(signal)==0){
+                output = new_signal(PDATA->sessionHandler);
+                output->name = S1_UE_Context_Release;
+                output->priority = MAXIMUM_PRIORITY/2;
+                set_timeout(output, 0, 500000);
+                S11_ReleaseAccessBearers(PROC->engine, PDATA);
+                //}
+
         }else if(s1msg->pdu->procedureCode == id_HandoverNotification){
             if(TASK_MME_S1___Validate_HandoverNotify(signal)==0){
                 output = new_signal(PDATA->sessionHandler);
@@ -717,7 +736,7 @@ static uint8_t TASK_MME_S1___initUEMsg(Signal *signal)
     /*eNB UE S1AP ID */
     eNB_ID = (ENB_UE_S1AP_ID_t*)s1ap_findIe(s1msg, id_eNB_UE_S1AP_ID);
     if(eNB_ID != NULL){
-		user->eNB_UE_S1AP_ID = eNB_ID->eNB_id;
+        user->eNB_UE_S1AP_ID = eNB_ID->eNB_id;
     }
     /*NAS-PDU */
     nASPDU = (Unconstrained_Octed_String_t*)s1ap_findIe(s1msg, id_NAS_PDU);
@@ -728,11 +747,11 @@ static uint8_t TASK_MME_S1___initUEMsg(Signal *signal)
     /*TAI */
     tAI = (TAI_t*)s1ap_findIe(s1msg, id_TAI);
     if(tAI != NULL){
-		user->tAI.MCC = tAI->pLMNidentity->MCC;
-		user->tAI.MNC = tAI->pLMNidentity->MNC;
-		memcpy(user->tAI.sn, tAI->pLMNidentity->tbc.s, 3);
-		memcpy(&(user->tAI.tAC), tAI->tAC->s,2);
-		user->tAI.tAC = ntohs(user->tAI.tAC);
+        user->tAI.MCC = tAI->pLMNidentity->MCC;
+        user->tAI.MNC = tAI->pLMNidentity->MNC;
+        memcpy(user->tAI.sn, tAI->pLMNidentity->tbc.s, 3);
+        memcpy(&(user->tAI.tAC), tAI->tAC->s,2);
+        user->tAI.tAC = ntohs(user->tAI.tAC);
     }else{
 
     }
@@ -740,9 +759,9 @@ static uint8_t TASK_MME_S1___initUEMsg(Signal *signal)
     /*E-UTRAN CGI */
     eCGI = (EUTRAN_CGI_t*)s1ap_findIe(s1msg, id_EUTRAN_CGI);
     if(eCGI != NULL){
-		user->ECGI.MCC = eCGI->pLMNidentity->MCC;
-		user->ECGI.MNC = eCGI->pLMNidentity->MNC;
-		user->ECGI.cellID = eCGI->cell_ID.id;
+        user->ECGI.MCC = eCGI->pLMNidentity->MCC;
+        user->ECGI.MNC = eCGI->pLMNidentity->MNC;
+        user->ECGI.cellID = eCGI->cell_ID.id;
     }else{
 
     }
@@ -1176,9 +1195,9 @@ static uint8_t TASK_MME_S1___Forge_PathSwitchAck(Signal *signal){
 
     /* uEaggregateMaximumBitrate*/ /* HSS*/
     bitrate = s1ap_newIE(s1msg, id_uEaggregateMaximumBitrate, optional, ignore);
-    bitrate->uEaggregateMaximumBitRateDL.rate = 0ULL;
-    bitrate->uEaggregateMaximumBitRateUL.rate = 0ULL;
-
+    bitrate->uEaggregateMaximumBitRateDL.rate = user->ue_ambr_dl;
+    bitrate->uEaggregateMaximumBitRateUL.rate = user->ue_ambr_ul;
+    
     /* E-RAB To Be Switched in Uplink List */
     eRABlist = s1ap_newIE(s1msg, id_E_RABToBeSwitchedULList, optional, ignore);
 
@@ -1281,6 +1300,12 @@ static uint8_t TASK_MME_S1___Validate_HandoverRequired(Signal *signal){
 
     /* Get target eNB Endpoint*/
     memcpy(&(PDATA->user_ctx->hoCtx.target_s1), SELF_ON_SIG->s1ap[ep_index], sizeof(struct EndpointStruct_t));
+    /* Store source parameters*/
+    PDATA->user_ctx->hoCtx.source_eNB_id = enb_id->eNB_id;
+    memcpy(&(PDATA->user_ctx->hoCtx.source_s1), PDATA->s1, sizeof(struct EndpointStruct_t));
+    memcpy(PDATA->user_ctx->hoCtx.old_ebearers, PDATA->user_ctx->ebearer, sizeof(Bearer_Ctx_t));
+    log_msg(LOG_DEBUG, 0, "Stored source parameters: source UE-eNB-S1AP %u", PDATA->user_ctx->hoCtx.source_eNB_id);
+
 
     return 0;
 }
@@ -1326,8 +1351,8 @@ static uint8_t TASK_MME_S1___Forge_HandoverReq(Signal *signal){
 
     /* UE Aggregate Maximum Bit Rate */
     bitrate = s1ap_newIE(s1msg, id_uEaggregateMaximumBitrate, mandatory, reject);
-    bitrate->uEaggregateMaximumBitRateDL.rate = 0ULL;
-    bitrate->uEaggregateMaximumBitRateUL.rate = 0ULL;
+    bitrate->uEaggregateMaximumBitRateDL.rate = user->ue_ambr_dl;
+    bitrate->uEaggregateMaximumBitRateUL.rate = user->ue_ambr_ul;
 
     /* E-RABs To Be Setup List */
     eRABlist = s1ap_newIE(s1msg, id_E_RABToBeSetupListHOReq, mandatory, reject);
@@ -1353,6 +1378,7 @@ static uint8_t TASK_MME_S1___Forge_HandoverReq(Signal *signal){
     memcpy(eRABitem->gTP_TEID.teid, &(PDATA->user_ctx->ebearer[0].s1u_sgw.teid), sizeof(uint32_t));
 
     eRABitem->eRABLevelQoSParameters->qCI = PDATA->user_ctx->ebearer[0].qos.qci;
+    eRABitem->eRABLevelQoSParameters->allocationRetentionPriority->priorityLevel=PDATA->user_ctx->ebearer[0].qos.pl;
     eRABitem->eRABLevelQoSParameters->allocationRetentionPriority->pre_emptionCapability = shall_not_trigger_pre_emption;
     eRABitem->eRABLevelQoSParameters->allocationRetentionPriority->pre_emptionVulnerability = not_pre_emptable;
     /*GBR_QosInformation_t                *gbrQosInformation; OPTIONAL*/
@@ -1406,21 +1432,36 @@ static uint8_t TASK_MME_S1___Validate_HandoverReqAck(Signal *signal){
     /* E-RABs Subject to Forwarding List */
     admList = s1ap_findIe(s1msg, id_E_RABAdmittedList);
     admItem = (E_RABAdmittedItem_t*)admList->item[0]->value;
-
     memcpy(&(user->hoCtx.eRAB_ID), &(admItem->eRAB_ID), sizeof(E_RAB_ID_t));
     memcpy(&(user->hoCtx.GTP_TEID), &(admItem->gTP_TEID), sizeof(GTP_TEID_t));
-    memcpy(&(user->hoCtx.transportLayerAddress), admItem->transportLayerAddress, sizeof(TransportLayerAddress_t));
-    memcpy(&(user->hoCtx.dL_Forward_GTP_TEID), &(admItem->dL_GTP_TEID), sizeof(GTP_TEID_t));
-    memcpy(&(user->hoCtx.dL_Forward_transportLayerAddress), admItem->dL_transportLayerAddress, sizeof(TransportLayerAddress_t));
-    memcpy(&(user->hoCtx.uL_Forward_GTP_TEID), &(admItem->uL_GTP_TEID), sizeof(GTP_TEID_t));
-    memcpy(&(user->hoCtx.uL_Forward_transportLayerAddress), admItem->uL_transportLayerAddress, sizeof(TransportLayerAddress_t));
+    memcpy(&(user->hoCtx.transportLayerAddress), admItem->transportLayerAddress,
+           sizeof(TransportLayerAddress_t));
+    if (admItem->opt & 0x80 ){
+        memcpy(&(user->hoCtx.dL_Forward_transportLayerAddress),
+               admItem->dL_transportLayerAddress,
+               sizeof(TransportLayerAddress_t));
+    }
+    if (admItem->opt & 0x40) {
+        memcpy(&(user->hoCtx.dL_Forward_GTP_TEID), &(admItem->dL_GTP_TEID),
+               sizeof(GTP_TEID_t));
+    }
+    if (admItem->opt & 0x20){
+        memcpy(&(user->hoCtx.uL_Forward_transportLayerAddress),
+               admItem->uL_transportLayerAddress,
+               sizeof(TransportLayerAddress_t));
+    }
+    if (admItem->opt & 0x10){
+        memcpy(&(user->hoCtx.uL_Forward_GTP_TEID), &(admItem->uL_GTP_TEID),
+               sizeof(GTP_TEID_t));
+    }
 
     /* id_Target_ToSource_TransparentContainer */
     container = s1ap_findIe(s1msg, id_Target_ToSource_TransparentContainer);
     CHECKIEPRESENCE(container)
     user->hoCtx.target2sourceTransparentContainer.len = container->len;
     user->hoCtx.target2sourceTransparentContainer.str = malloc(container->len);
-    memcpy(user->hoCtx.target2sourceTransparentContainer.str, container->str, container->len);
+    memcpy(user->hoCtx.target2sourceTransparentContainer.str, container->str,
+           container->len);
 
     return 0;
 }
@@ -1586,13 +1627,10 @@ static uint8_t TASK_MME_S1___Validate_HandoverNotify(Signal *signal){
 
     /* S1 HO completed.*/
 
-    /* Store source parameters*/
-    user->hoCtx.source_eNB_id = enb_id->eNB_id;
-    memcpy(&(user->hoCtx.source_s1), PDATA->s1, sizeof(struct EndpointStruct_t));
-    memcpy(user->hoCtx.old_ebearers, user->ebearer, sizeof(Bearer_Ctx_t));
     /*refresh endpoint and bearer parameters*/
     enb_id->eNB_id = user->hoCtx.target_eNB_id;
     PDATA->s1 = &(user->hoCtx.target_s1);
+    PDATA->user_ctx->eNB_UE_S1AP_ID = user->hoCtx.target_eNB_id;
     user->ebearer[0].id = user->hoCtx.eRAB_ID.id;
     memcpy(&(user->ebearer[0].s1u_eNB.teid), user->hoCtx.GTP_TEID.teid, 4);
     if(user->hoCtx.transportLayerAddress.len == 32){

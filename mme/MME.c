@@ -114,8 +114,8 @@ int init_sctp_srv(int port, int addr){
 
     /* Specify that a maximum of 5 streams will be available per socket */
     memset( &initmsg, 0, sizeof(initmsg) );
-    initmsg.sinit_num_ostreams = 32;
-    initmsg.sinit_max_instreams = 32;
+    initmsg.sinit_num_ostreams = 2;
+    initmsg.sinit_max_instreams = 2;
     initmsg.sinit_max_attempts = 4;
     if ( setsockopt( listenSock, IPPROTO_SCTP, SCTP_INITMSG, &initmsg, sizeof(initmsg) )< 0) {
         log_msg(LOG_ERR, errno, "setsockopt error");

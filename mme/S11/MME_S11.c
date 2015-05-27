@@ -124,6 +124,9 @@ static int STATE_Handle_Recv_Msg(Signal *signal)
             }
         }
         break;
+    case S11_releaseAccessBearers:
+        run_parent(signal);
+      
     default:
         break;
     }
@@ -239,6 +242,26 @@ static int STATE_CreateIndirectDataForwardingTunnel(Signal *signal)
     else{
         log_msg(LOG_WARNING, 0, "Is this a retransmission? Not implemented");
     }
+    return 0;
+}
+
+static int STATE_ReleaseAccessBearers(Signal *signal)
+{
+    log_msg(LOG_DEBUG, 0, "Enter");
+
+    /*TASK_MME_S11___Forge_CreateIndirectDataForwardingTunnel(signal);
+    PROC->next_state = STATE_Handle_Recv_Msg;
+    */
+    /* Add session to pendent request*//*
+    if( addToPendingResponse(PDATA) == 0){
+        log_msg(LOG_DEBUG, 0, "Stored session %x", PDATA);
+        return 1;
+    }
+    else{
+        log_msg(LOG_WARNING, 0, "Is this a retransmission? Not implemented");
+    }*/
+    /*TODO Not implemented*/
+    run_parent(signal);
     return 0;
 }
 
@@ -1018,6 +1041,24 @@ void S11_dettach(struct t_engine_data *engine, struct SessionStruct_t *session)
     output->priority = MAXIMUM_PRIORITY;
     signal_send(output);
 
+}
+
+void S11_ReleaseAccessBearers(struct t_engine_data *engine, struct SessionStruct_t *session)
+{
+    Signal *output;
+    struct t_process proc;
+    log_msg(LOG_DEBUG, 0, "enter");
+
+    session->s11 = &(session->sessionHandler->engine->mme->s11);   /*Select SGW endpoint structure before entering to S11 state machine*/
+
+    /*Create a new process to manage the S11 state machine. The older session handler is stored as parent
+    * to return once the S11 state machine ends*/
+    session->sessionHandler = process_create(engine, STATE_ReleaseAccessBearers, (void *)session, session->sessionHandler);
+
+    output = new_signal(session->sessionHandler);
+    output->name = S11_releaseAccessBearers;
+    output->priority = MAXIMUM_PRIORITY;
+    signal_send(output);
 }
 
 void S11_CreateIndirectDataForwardingTunnel(struct t_engine_data *engine, struct SessionStruct_t *session)

@@ -37,28 +37,29 @@ enum t_signal_name{
 	S11_createIndirectDataForwardingTunnel,
     S11_handler_ready,
     S11_handler_error,
+    S11_releaseAccessBearers,
+
 
 	/**********************************************
 	other signals related to S1 interface are here
 	***********************************************/
 
     S1_Setup_Endpoint,
-    S1_newUEmessage,/*11*/
-    S1_ContinueAttach,/*12*/
+    S1_newUEmessage,/*12*/
+    S1_ContinueAttach,/*13*/
     S1_detach,
-	S1_handler_ready,/*14*/
+	S1_handler_ready,/*15*/
 	S1_UE_Context_Release,
 	S1_HandoverPreparation,
 	S1_HandoverCommand,
 	S1_PathSwitchRequest,
 	S1_PathSwitchACK,
 
-
     /**********************************************
     other signals related to NAS interface are here
     ***********************************************/
-    NAS_data_available, /*20*/
-    NAS_AttachReqCont, /*21*/
+    NAS_data_available, /*21*/
+    NAS_AttachReqCont, /*22*/
     NAS_AuthVectorAvailable,
     NAS_EMM_Continue,
     NAS_ESM_Continue,
@@ -68,6 +69,7 @@ enum t_signal_name{
     other signals related to S6a interface are here
     ***********************************************/
     S6a_getAuthVector,
+    S6a_SynchAuthVector,
 
     /**********************************************
     other signals related to SDN Controller interface are here

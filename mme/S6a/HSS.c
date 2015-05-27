@@ -52,6 +52,28 @@ static char *bin_to_strhex(uint8_t *hexbuf, uint32_t size, char *result){
     return result;
 }
 
+void increaseSQN(uint8_t *sqn_b){
+	uint64_t sqn, sqn_tmp;
+	uint8_t str_sqn[6*2+1];
+	int j;
+    /*Increase SQN*/
+    /* Using annex C.1.1.2 of TS 33.102
+	 * Generation of sequence numbers which are not time-based*/
+
+	bin_to_strhex(sqn_b,6,  str_sqn);
+   	sqn = strtoll(str_sqn, NULL, 16);
+	//sqn = ((sqn/32+1)<<5)|(sqn%32); /* SQN_HE = SEQ_HE (43 bits)|| IND_HE (5 bits)*/
+	/* Copy back to buffer*/
+	/*sqn = htobe64(sqn<<16);
+	  memcpy(sqn_b, &sqn, 6);*/
+	sqn+=0x20;
+	sqn_tmp = sqn;
+	for(j=5; j>=0;j--){
+		sqn_b[j] = sqn_tmp&0xFF;
+		sqn_tmp>>=8;
+	}
+}
+
 int init_hss(){
     MYSQL      *MySQLConRet;
     int reconnect;
@@ -210,21 +232,7 @@ static void HSS_newAuthVec(struct user_ctx_t *user){
     memcpy(op, row[3], 16); /* op*/
     memcpy(amf, row[4], 2); /* amf*/
 
-    /*Increase SQN*/
-    /* Using annex C.1.1.2 of TS 33.102
-	 * Generation of sequence numbers which are not time-based*/
-	bin_to_strhex(sqn_b,6,  str_sqn);
-   	sqn = strtoll(str_sqn, NULL, 16);
-	//sqn = ((sqn/32+1)<<5)|(sqn%32); /* SQN_HE = SEQ_HE (43 bits)|| IND_HE (5 bits)*/
-	/* Copy back to buffer*/
-	/*sqn = htobe64(sqn<<16);
-	  memcpy(sqn_b, &sqn, 6);*/
-	sqn+=0x20;
-	sqn_tmp = sqn;
-	for(j=5; j>=0;j--){
-		sqn_b[j] = sqn_tmp&0xFF;
-		sqn_tmp>>=8;
-	}
+    increaseSQN(sqn_b);
 
     if(row[1]==NULL){
         getOPC(op, k, opc);
@@ -256,10 +264,10 @@ static void HSS_newAuthVec(struct user_ctx_t *user){
             bin_to_strhex(user->sec_ctx.rAND,16, str_rand),
             bin_to_strhex(user->sec_ctx.xRES,8, str_res),
             bin_to_strhex(user->sec_ctx.aUTN,16, str_autn),
-            sqn,
+            bin_to_strhex(sqn_b, 6, str_sqn),
             bin_to_strhex(user->sec_ctx.kASME,16, str_kasme),
             "00000000000000000000000000000000",   /*AK not stored for the moment*/
-            sqn,
+            bin_to_strhex(sqn_b, 6, str_sqn),
             bin_to_strhex(opc,16, str_opc),
             mcc,
             mnc,
@@ -350,6 +358,119 @@ void HSS_getAuthVec(Signal *signal){
 	struct user_ctx_t *user = PDATA->user_ctx;
 	HSS_newAuthVec(user);
 
+}
+
+void HSS_syncAuthVec(Signal *signal){
+	struct user_ctx_t *user = PDATA->user_ctx;
+	uint8_t * auts = (uint8_t*)signal->data;
+	uint8_t sqn[6];
+	MYSQL_RES *result;
+    MYSQL_ROW row;
+    my_ulonglong num_rows;
+
+    uint8_t op[16], amf[2], k[16], opc[16], ik[16], ck[16], sqn_b[6];
+    uint8_t str_ik[16*2+1], str_ck[16*2+1], str_rand[16*2+1], str_autn[16*2+1], str_kasme[16*2+1], str_opc[16*2+1];
+    uint8_t str_res[8*2+1], str_sqn[6*2+1], sqn_old[6*2+1], sqn_new[6*2+1];
+
+    uint8_t i;
+    int j;
+    size_t resLen=8;
+
+    char query[1000];
+    uint16_t mcc;
+    uint8_t mnc;
+
+    log_msg(LOG_DEBUG, 0, "ENTER");
+
+    mcc = user->imsi/1000000000000;
+    mnc = (user->imsi/10000000000)%100;
+
+    sprintf(query, authparams, mcc, mnc, user->imsi%10000000000);
+
+    if (mysql_query(HSSConnection, query)){
+        log_msg(LOG_ERR, mysql_errno(HSSConnection), "%s", mysql_error(HSSConnection));
+    }
+
+    result = mysql_store_result(HSSConnection);
+
+    if (result == NULL){
+
+    }
+
+    num_rows =mysql_num_rows(result);
+    if(num_rows != 1){
+        mysql_free_result(result);
+        log_msg(LOG_ERR, 0, "Unexpected number of rows %llu. \n %s", num_rows, query);
+        return;
+    }
+    row = mysql_fetch_row(result);
+
+    memcpy(k, row[0], 16); /* k*/
+    memcpy(sqn_b, row[2], 6); /* sqn*/
+    memcpy(op, row[3], 16); /* op*/
+    memcpy(amf, row[4], 2); /* amf*/
+
+    if(row[1]==NULL){
+        getOPC(op, k, opc);
+    }else{
+        memcpy(opc, row[1], 16); /* opc*/
+    }
+
+    mysql_free_result(result);
+	
+    if(milenage_auts(opc, k, user->sec_ctx.rAND, auts, sqn) == 0){
+	    if (memcmp(sqn, sqn_b, 6) != 0){
+
+		    increaseSQN(sqn);
+		    log_msg(LOG_INFO, 0, "SQN sync old:0x%s, new:0x%s",
+		            bin_to_strhex(sqn_b, 6, sqn_old), bin_to_strhex(sqn, 6, sqn_new));
+
+		    /* KSI*/
+		    user->ksi.id = 0;
+		    user->ksi.tsc = 0;
+
+		    get_random(user->sec_ctx.rAND, 16);
+
+		    milenage_generate(opc, amf, k, sqn, user->sec_ctx.rAND, user->sec_ctx.aUTN, ik, ck, user->sec_ctx.xRES, &resLen);
+
+		    /* The first 6 bytes of AUTN are SQN^Ak*/
+		    generate_Kasme(ck, ik, user->tAI.sn, user->sec_ctx.aUTN, user->sec_ctx.kASME);
+
+		    /* Store Auth vector*/
+		    sprintf(query, insertAuthVector,
+		            mcc,
+		            mnc,
+		            user->imsi%10000000000,
+		            user->ksi.id,
+		            bin_to_strhex(ik,16, str_ik),
+		            bin_to_strhex(ck,16, str_ck),
+		            bin_to_strhex(user->sec_ctx.rAND,16, str_rand),
+		            bin_to_strhex(user->sec_ctx.xRES,8, str_res),
+		            bin_to_strhex(user->sec_ctx.aUTN,16, str_autn),
+		            bin_to_strhex(sqn, 6, sqn_new),
+		            bin_to_strhex(user->sec_ctx.kASME,16, str_kasme),
+		            "00000000000000000000000000000000",   /*AK not stored for the moment*/
+		            bin_to_strhex(sqn, 6, sqn_new),
+		            bin_to_strhex(opc,16, str_opc),
+		            mcc,
+		            mnc,
+		            user->imsi%10000000000 );
+
+		    /*log_msg(LOG_DEBUG, 0, "%s", query);*/
+
+		    if (mysql_query(HSSConnection, query)){
+			    log_msg(LOG_ERR, mysql_errno(HSSConnection), "%s", mysql_error(HSSConnection));
+		    }
+
+		    /*The last query is a multiple statement query, so it is needed to get
+		      all free all potential results to avoid sync errors.*/
+		    for(; mysql_next_result(HSSConnection) == 0;)/* do nothing */;
+	    }else{
+		    log_msg(LOG_ERR, 0, "NAS SQN Already synchronized");
+	    }
+    }else{
+	    log_msg(LOG_ERR, 0, "Invalid AUTS");
+    }
 }
 
 void HSS_UpdateLocation(Signal *signal){

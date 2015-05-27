@@ -59,12 +59,21 @@ static int STATE_S6a_Authentication(Signal *signal){
     INIT_TIME_MEASUREMENT_ENVIRONMENT
 
     MME_MEASURE_PROC_TIME
-    log_msg(LOG_DEBUG, 0, "S6a: Creating Auth vector -  time = %u us", SELF_ON_SIG->procTime);
+    if( signal->name == S6a_getAuthVector){
+	    log_msg(LOG_DEBUG, 0, "S6a: Creating Auth vector -  time = %u us", SELF_ON_SIG->procTime);
 
-    HSS_getAuthVec(signal);
+	    HSS_getAuthVec(signal);
 
-    generate_KeNB(user->sec_ctx.kASME, user->sec_ctx.ulNAScnt, user->sec_ctx.keNB);
-    /*  Recover old process and old signal to continue the flow to original State Machine*/
+	    generate_KeNB(user->sec_ctx.kASME, user->sec_ctx.ulNAScnt, user->sec_ctx.keNB);
+    }else if(signal->name == S6a_SynchAuthVector){
+	    log_msg(LOG_DEBUG, 0, "S6a: Synch NAS SQN -  time = %u us", SELF_ON_SIG->procTime);
+
+	    HSS_syncAuthVec(signal);
+
+	    generate_KeNB(user->sec_ctx.kASME, user->sec_ctx.ulNAScnt, user->sec_ctx.keNB);
+    }
+
+    /*  Recover old process and old signal to continue the flow to original State Machine*/    
     run_parent(signal);
 
     MME_MEASURE_PROC_TIME
@@ -109,6 +118,28 @@ void s6a_GetAuthVector(struct t_engine_data *engine, struct SessionStruct_t *ses
     output->priority = MAXIMUM_PRIORITY;
     signal_send(output);
 }
+
+void s6a_SynchAuthVector(struct t_engine_data *engine, struct SessionStruct_t *session, uint8_t *auts){
+
+    Signal *output;
+    struct t_process proc;
+    void *d;
+    log_msg(LOG_DEBUG, 0, "Enter S6a State Machine");
+
+    /*Create a new process to manage the S6a state machine. The older session handler is stored as parent
+     * to return once the S6a state machine ends*/
+    session->sessionHandler = process_create(engine, STATE_S6a_Authentication, (void *)session, session->sessionHandler);
+
+    output = new_signal(session->sessionHandler);
+    d = malloc(14);
+    memcpy(d, auts, 14);
+    output->data = d;
+    output->freedataFunc=&free;
+    output->name = S6a_SynchAuthVector;
+    output->priority = MAXIMUM_PRIORITY;
+    signal_send(output);
+}
+
 
 void s6a_UpdateLocation(struct t_engine_data *engine, struct SessionStruct_t *session){
 

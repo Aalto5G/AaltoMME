@@ -20,12 +20,52 @@
 
 /* ********************** EMM ********************** */
 void dec_IdentityResponse(IdentityResponse_t *msg, uint8_t *buffer, uint32_t size) {
-	/*EPSMobileId*/
+    /*EPSMobileId*/
     msg->mobileId.l = *buffer;
     memcpy(msg->mobileId.v, ++buffer, msg->mobileId.l);
     buffer+=msg->mobileId.l;
     nas_msg(NAS_DEBUG, 0, "DEC : ePSMobileId len = %u, v = %#x%x", msg->mobileId.l, msg->mobileId.v[0], msg->mobileId.v[1]);
 }
+
+void dec_AuthenticationResponse(AuthenticationResponse_t *msg, uint8_t *buffer, uint32_t size){
+    /* AuthParam*/
+    msg->authParam.l = *buffer;
+    memcpy(msg->authParam.v, ++buffer, msg->authParam.l);
+    buffer+=msg->authParam.l;
+    nas_msg(NAS_DEBUG, 0, "DEC : authParam len = %u, v = %#x%x", msg->authParam.l, msg->authParam.v[0], msg->authParam.v[1]);
+}
+
+void dec_AuthenticationFailure(AuthenticationFailure_t *msg, uint8_t *buffer, uint32_t size){
+    uint8_t  opT, numOp=0;
+    ie_tlv_t4_t *temp;
+
+    /*eMMCause*/
+    memcpy(&(msg->eMMCause), buffer,1);
+    buffer++;
+    nas_msg(NAS_DEBUG, 0, "DEC : eMMCause = %#x", msg->eMMCause);
+
+
+    size--;
+    if(size == 0)
+        return;
+
+    /*Optionals*/
+    opT = *buffer;
+    if(opT == 0x30){
+        /*Protocol configuration options*/
+        temp = (ie_tlv_t4_t *)buffer;
+        memcpy( msg->optionals +numOp, temp, temp->l+2);
+
+        buffer += temp->l;
+        size -= 2;
+        size -= temp->l;
+        numOp++;
+        if(size == 0)
+            return;
+        opT = *buffer;
+    }
+}
+
 
 void dec_AttachAccept(AttachAccept_t *msg, uint8_t *buffer, uint32_t size){
 
@@ -78,9 +118,9 @@ void dec_AttachComplete(AttachComplete_t *msg, uint8_t *buffer, uint32_t size){
 void dec_AttachReject(AttachReject_t *msg, uint8_t *buffer, uint32_t size){
 
     /*eMMCause*/
-    memcpy(msg->eMMCause, buffer,1);
+    memcpy(&(msg->eMMCause), buffer,1);
     buffer++;
-    nas_msg(NAS_DEBUG, 0, "DEC : eMMCause = %#x", msg->eMMCause[0]);
+    nas_msg(NAS_DEBUG, 0, "DEC : eMMCause = %#x", msg->eMMCause);
 
 }
 
@@ -150,9 +190,9 @@ void dec_TrackingAreaUpdateAccept(TrackingAreaUpdateAccept_t *msg, uint8_t *buff
 
 void dec_TrackingAreaUpdateReject(TrackingAreaUpdateReject_t *msg, uint8_t *buffer, uint32_t size){
     /*eMMCause*/
-    memcpy(msg->eMMCause, buffer,1);
+    memcpy(&(msg->eMMCause), buffer,1);
     buffer++;
-    nas_msg(NAS_DEBUG, 0, "DEC : eMMCause = %#x", msg->eMMCause[0]);
+    nas_msg(NAS_DEBUG, 0, "DEC : eMMCause = %#x", msg->eMMCause);
 }
 
 void dec_TrackingAreaUpdateRequest(TrackingAreaUpdateRequest_t *msg, uint8_t *buffer, uint32_t size){
@@ -180,9 +220,9 @@ void dec_ActivateDefaultEPSBearerContextAccept(ActivateDefaultEPSBearerContextAc
 
 void dec_ActivateDefaultEPSBearerContextReject(ActivateDefaultEPSBearerContextReject_t *msg, uint8_t *buffer, uint32_t size){
     /*eSMCause*/
-    memcpy(msg->eSMCause, buffer,1);
+    memcpy(&(msg->eSMCause), buffer,1);
     buffer++;
-    nas_msg(NAS_DEBUG, 0, "DEC : eSMCause = %#x", msg->eSMCause[0]);
+    nas_msg(NAS_DEBUG, 0, "DEC : eSMCause = %#x", msg->eSMCause);
 }
 
 void dec_ActivateDefaultEPSBearerContextRequest(ActivateDefaultEPSBearerContextRequest_t *msg, uint8_t *buffer, uint32_t size){
@@ -213,9 +253,9 @@ void dec_ActivateDedicatedEPSBearerContextAccept(ActivateDedicatedEPSBearerConte
 
 void dec_ActivateDedicatedEPSBearerContextReject(ActivateDedicatedEPSBearerContextReject_t *msg, uint8_t *buffer, uint32_t size){
     /*eSMCause*/
-    memcpy(msg->eSMCause, buffer,1);
+    memcpy(&(msg->eSMCause), buffer,1);
     buffer++;
-    nas_msg(NAS_DEBUG, 0, "DEC : eSMCause = %#x", msg->eSMCause[0]);
+    nas_msg(NAS_DEBUG, 0, "DEC : eSMCause = %#x", msg->eSMCause);
 }
 
 void dec_ActivateDedicatedEPSBearerContextRequest(ActivateDedicatedEPSBearerContextRequest_t *msg, uint8_t *buffer, uint32_t size){
@@ -245,9 +285,9 @@ void dec_ModifyEPSBearerContextAccept(ModifyEPSBearerContextAccept_t *msg, uint8
 
 void dec_ModifyEPSBearerContextReject(ModifyEPSBearerContextReject_t *msg, uint8_t *buffer, uint32_t size){
     /*eSMCause*/
-    memcpy(msg->eSMCause, buffer,1);
+    memcpy(&(msg->eSMCause), buffer,1);
     buffer++;
-    nas_msg(NAS_DEBUG, 0, "DEC : eSMCause = %#x", msg->eSMCause[0]);
+    nas_msg(NAS_DEBUG, 0, "DEC : eSMCause = %#x", msg->eSMCause);
 }
 
 void dec_ModifyEPSBearerContextRequest(ModifyEPSBearerContextRequest_t *msg, uint8_t *buffer, uint32_t size){
@@ -261,22 +301,22 @@ void dec_DeactivateEPSBearerContextAccept(DeactivateEPSBearerContextAccept_t *ms
 
 void dec_DeactivateEPSBearerContextRequest(DeactivateEPSBearerContextRequest_t *msg, uint8_t *buffer, uint32_t size){
     /*eSMCause*/
-    memcpy(msg->eSMCause, buffer,1);
+    memcpy(&(msg->eSMCause), buffer,1);
     buffer++;
-    nas_msg(NAS_DEBUG, 0, "DEC : eSMCause = %#x", msg->eSMCause[0]);
+    nas_msg(NAS_DEBUG, 0, "DEC : eSMCause = %#x", msg->eSMCause);
 }
 
 
 void dec_PDNConnectivityReject(PDNConnectivityReject_t *msg, uint8_t *buffer, uint32_t size){
     /*eSMCause*/
-    memcpy(msg->eSMCause, buffer,1);
+    memcpy(&(msg->eSMCause), buffer,1);
     buffer++;
-    nas_msg(NAS_DEBUG, 0, "DEC : eSMCause = %#x", msg->eSMCause[0]);
+    nas_msg(NAS_DEBUG, 0, "DEC : eSMCause = %#x", msg->eSMCause);
 }
 
 void dec_PDNConnectivityRequest(PDNConnectivityRequest_t *msg, uint8_t *buffer, uint32_t size){
-	uint8_t  opT, numOp=0;
-	ie_tlv_t4_t *temp;
+    uint8_t  opT, numOp=0;
+    ie_tlv_t4_t *temp;
     /*EPSAttachType and NASKeySetId*/
     msg->requestType.v = (*buffer)&0x0F;
     msg->PDNType.v = ((*buffer)&0xF0)>>4;
@@ -285,7 +325,7 @@ void dec_PDNConnectivityRequest(PDNConnectivityRequest_t *msg, uint8_t *buffer, 
 
     size--;
     if(size == 0)
-	    return;
+        return;
 
     /*Optionals*/
     opT = *buffer;
@@ -296,46 +336,46 @@ void dec_PDNConnectivityRequest(PDNConnectivityRequest_t *msg, uint8_t *buffer, 
         numOp++;
         if(size == 0)
             return;
-	opT = *buffer;
+    opT = *buffer;
     }
     if(opT == 0x28){
-	/*Access point name*/
-	temp = (ie_tlv_t4_t *)buffer;
-	buffer += temp->l;
-	size -= 2;
-	size -= temp->l;
-	numOp++;
-	if(size == 0)
-	    return;
-	opT = *buffer;
+    /*Access point name*/
+    temp = (ie_tlv_t4_t *)buffer;
+    buffer += temp->l;
+    size -= 2;
+    size -= temp->l;
+    numOp++;
+    if(size == 0)
+        return;
+    opT = *buffer;
     }
     if(opT == 0x27){
-	/*Protocol configuration options*/
-	temp = (ie_tlv_t4_t *)buffer;
+    /*Protocol configuration options*/
+    temp = (ie_tlv_t4_t *)buffer;
         memcpy( msg->optionals +numOp, temp, temp->l+2);
 
-	buffer += temp->l;
-	size -= 2;
-	size -= temp->l;
-	numOp++;
-	if(size == 0)
-	    return;
-	opT = *buffer;
+    buffer += temp->l;
+    size -= 2;
+    size -= temp->l;
+    numOp++;
+    if(size == 0)
+        return;
+    opT = *buffer;
     }
     if(opT&0xF0 == 0x0C0){
         /*Device properties*/
         numOp++;
-	buffer++;
-	size--;
+    buffer++;
+    size--;
     }
 }
 
 
 void dec_PDNDisconnectReject(PDNDisconnectReject_t *msg, uint8_t *buffer, uint32_t size){
     /*eSMCause*/
-    memcpy(msg->eSMCause, buffer,1);
+    memcpy(&(msg->eSMCause), buffer,1);
     buffer++;
-    nas_msg(NAS_DEBUG, 0, "DEC : eSMCause = %#x", msg->eSMCause[0]);
+    nas_msg(NAS_DEBUG, 0, "DEC : eSMCause = %#x", msg->eSMCause);
 }
 
 void dec_PDNDisconnectRequest(PDNDisconnectRequest_t *msg, uint8_t *buffer, uint32_t size){
@@ -347,9 +387,9 @@ void dec_PDNDisconnectRequest(PDNDisconnectRequest_t *msg, uint8_t *buffer, uint
 
 void dec_BearerResourceAllocationReject(BearerResourceAllocationReject_t *msg, uint8_t *buffer, uint32_t size){
     /*eSMCause*/
-    memcpy(msg->eSMCause, buffer,1);
+    memcpy(&(msg->eSMCause), buffer,1);
     buffer++;
-    nas_msg(NAS_DEBUG, 0, "DEC : eSMCause = %#x", msg->eSMCause[0]);
+    nas_msg(NAS_DEBUG, 0, "DEC : eSMCause = %#x", msg->eSMCause);
 }
 
 void dec_BearerResourceAllocationRequest(BearerResourceAllocationRequest_t *msg, uint8_t *buffer, uint32_t size){
@@ -376,9 +416,9 @@ void dec_BearerResourceAllocationRequest(BearerResourceAllocationRequest_t *msg,
 
 void dec_BearerResourceModificationReject(BearerResourceModificationReject_t *msg, uint8_t *buffer, uint32_t size){
     /*eSMCause*/
-    memcpy(msg->eSMCause, buffer,1);
+    memcpy(&(msg->eSMCause), buffer,1);
     buffer++;
-    nas_msg(NAS_DEBUG, 0, "DEC : eSMCause = %#x", msg->eSMCause[0]);
+    nas_msg(NAS_DEBUG, 0, "DEC : eSMCause = %#x", msg->eSMCause);
 }
 
 void dec_BearerResourceModificationRequest(BearerResourceModificationRequest_t *msg, uint8_t *buffer, uint32_t size){
@@ -427,5 +467,3 @@ void dec_nonImperativeIE(union nAS_ie_member ** optionals, uint8_t *buffer, uint
     }
 
 };
-
-

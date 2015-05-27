@@ -60,5 +60,12 @@ struct t_process *S11_handler_create(struct t_engine_data *engine, struct t_proc
  */
 void S11_CreateIndirectDataForwardingTunnel(struct t_engine_data *engine, struct SessionStruct_t *session);
 
+/**@brief Release Access Bearers
+ * @param [in]  engine Engine reference
+ * @param [in]  session User session structure
+ *
+ */
+void S11_ReleaseAccessBearers(struct t_engine_data *engine, struct SessionStruct_t *session);
+
 
 #endif /* MME_S11_HFILE */

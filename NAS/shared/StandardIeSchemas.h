@@ -103,15 +103,15 @@ typedef struct NAS_tai_list_c{
         struct{
             uint32_t    plmn:24;
             uint16_t    tAC[16];
-        }singlePLMNnonconsec;
+        }__attribute__((packed)) singlePLMNnonconsec;
         struct{
             uint32_t    plmn:24;
             uint16_t    tAC;
-        }singlePLMNconsec;
+        }__attribute__((packed)) singlePLMNconsec;
         struct{
             uint32_t    plmn:24;
             uint16_t    tAC;
-        }difPLMN[16];
+        }__attribute__((packed)) difPLMN[16];
     }list;
 }__attribute__((packed)) NAS_tai_list_t;
 
