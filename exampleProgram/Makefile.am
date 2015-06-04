@@ -7,7 +7,7 @@
 # Because a.out is only a sample program we don't want it to be installed.
 # The 'noinst_' prefix indicates that the following targets are not to be
 # installed.
-noinst_PROGRAMS=exampleProgram eping loadtest eNBemulator hmac_test loadWithAttach
+noinst_PROGRAMS=exampleProgram eping eNBemulator hmac_test loadWithAttach
 
 #######################################
 # Build information for each executable. The variable name is derived
@@ -17,7 +17,6 @@ noinst_PROGRAMS=exampleProgram eping loadtest eNBemulator hmac_test loadWithAtta
 
 # Sources for the a.out
 eping_SORCES = eping.c ../mme/storagesys.c ../Common/logmgr.c
-loadtest_SOURCES = loadtest.c ../mme/storagesys.c ../Common/logmgr.c
 exampleProgram_SOURCES= exampleProgram.c ../mme/storagesys.c ../Common/logmgr.c
 eNBemulator_SOURCES = eNBemulator.c ../Common/logmgr.c
 hmac_test_SOURCES = hmac_test.c ../mme/S6a/hmac/sha2.c ../mme/S6a/hmac/hmac_sha2.c
@@ -50,19 +49,8 @@ eping_CPPFLAGS = -Wall -I$(top_srcdir)/libgtp/include \
 			 -I$(top_srcdir)/NAS/shared \
 			 -I$(top_srcdir)/SDN/shared \
 			 -I$(top_srcdir)/mme/S6a/ \
-			 -I$(top_srcdir)/mme/S11
-loadtest_CPPFLAGS = -Wall -I$(top_srcdir)/libgtp/include \
-			 -I$(top_srcdir)/mme \
-			 -I$(top_srcdir)/Common \
-			 -I$(top_srcdir)/mme/S1 \
-			 -I$(top_srcdir)/S1AP/shared \
-			 -I$(top_srcdir)/mme/S1/NAS \
-			 -I$(top_srcdir)/NAS/shared \
-			 -I$(top_srcdir)/SDN/shared \
-			 -I$(top_srcdir)/mme/S6a/ \
-			 -I$(top_srcdir)/mme/S11
-
-
+			 -I$(top_srcdir)/mme/S11 \
+			 $(GLIB_CFLAGS) $(GOBJECT_CFLAGS)
 exampleProgram_CPPFLAGS = -Wall -I$(top_srcdir)/libgtp/include \
 			 -I$(top_srcdir)/mme \
 			 -I$(top_srcdir)/Common \
@@ -72,7 +60,8 @@ exampleProgram_CPPFLAGS = -Wall -I$(top_srcdir)/libgtp/include \
 			 -I$(top_srcdir)/mme/S1/NAS \
 			 -I$(top_srcdir)/NAS/shared \
 			 -I$(top_srcdir)/SDN/shared \
-			 -I$(top_srcdir)/mme/S11
+			 -I$(top_srcdir)/mme/S11 \
+			 $(GLIB_CFLAGS) $(GOBJECT_CFLAGS)
 
 eNBemulator_CPPFLAGS = -Wall -I$(top_srcdir)/libgtp/include \
 			 -I$(top_srcdir)/Common \

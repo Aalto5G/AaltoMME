@@ -51,6 +51,23 @@ void termination_handler (int signum)
     }
 }
 
+void free_ep(gpointer data){
+    struct EndpointStruct_t* ep = (struct EndpointStruct_t*)data;
+    if (ep->info)
+        free_S1_EndPoint_Info(ep->info);
+
+    if(ep->handler)
+        engine_process_stop(ep->handler);
+
+    if (ep->ev)
+        event_free(ep->ev);
+
+    if (ep->portState != closed){
+        close(ep->fd);
+    }
+    free(ep);
+}
+
 
 /**@brief Simple UDP creation
  * @param [in] port server UDP port
@@ -193,15 +210,10 @@ int mme_close_ifaces(struct mme_t *self){
         close(self->s1.fd);
         self->s1.portState = closed;
     }
-    for(i=0; i<self->nums1conn;i++){
-        ep = self->s1ap[i];
-        free_S1_EndPoint_Info(ep->info);
-        close(ep->fd);
-        ep->portState = closed;
-        free(ep);
-    }
-    free(self->s1ap);
 
+    /*
+      Other S1AP SCTP associations remaining are freed when the GHashTable is destroyed
+     */
 
     if( self->ctrl.portState != closed){
         close(self->ctrl.fd);
@@ -281,18 +293,15 @@ int mme_run(struct mme_t *self){
     event_add(listener_Ctrl, NULL);
     event_add(kill_event, NULL);
 
+    self->s1ap = g_hash_table_new_full( g_int_hash, g_int_equal, NULL, free_ep);
+
     engine_main(self);
+
+    g_hash_table_destroy(self->s1ap);
 
     engine_process_stop(self->command.handler);
     engine_process_stop(self->s11.handler);
     engine_process_stop(self->ctrl.handler);
-
-    if( self->s1.portState != closed){
-        for(i=0; i<self->nums1conn;i++){
-            engine_process_stop(self->s1ap[i]->handler);
-            event_free(self->s1ap[i]->ev);
-        }
-    }
 
     event_free(listener_command);
     event_free(listener_S11);
@@ -369,18 +378,6 @@ void free_mme(struct mme_t *self){
     if( self->ctrl.portState != closed){
         close(self->ctrl.fd);
         self->ctrl.portState = closed;
-    }
-
-    if( self->s1.portState != closed){
-        for(i=0; i<self->nums1conn;i++){
-            ep = self->s1ap[i];
-            free_S1_EndPoint_Info(ep->info);
-            close(ep->fd);
-            ep->portState = closed;
-
-            free(ep);
-        }
-        free(self->s1ap);
     }
 
     if(self->servedGUMMEIs!=NULL)
@@ -486,12 +483,7 @@ void s1_accept(evutil_socket_t listener, short event, void *arg){
     memset(&sndrcvinfo, 0, sizeof(struct sctp_sndrcvinfo));
 
     /*Identify the Endpoint*/
-    for(i=0; i<mme->nums1conn ; i++){
-	    if(listener == mme->s1ap[i]->fd){
-		    ep_S1 = mme->s1ap[i];
-		    break;
-	    }
-    }
+    ep_S1 = g_hash_table_lookup(mme->s1ap, &listener);
 
     if(ep_S1 == NULL){
         log_msg(LOG_DEBUG, 0, "Invalid Endpoint");
@@ -517,10 +509,11 @@ void s1_accept(evutil_socket_t listener, short event, void *arg){
 
     /*Check errors*/
     if (msg->length <= 0) {
+	    g_hash_table_remove(mme->s1ap, &listener);
         /*Close socket*/
-        close(listener);
-        /*Delete event*/
-        event_free(ep_S1->ev);
+        /* close(listener); */
+        /* /\*Delete event*\/ */
+        /* event_free(ep_S1->ev); */
         log_msg(LOG_INFO, 0, "Connection closed");
         freeMsg(msg);
         return;
@@ -584,17 +577,17 @@ void s1_accept_new_eNB(evutil_socket_t listener, short event, void *arg){
         return;
     }
 
-    tmp = (struct EndpointStruct_t**)realloc(mme->s1ap, (mme->nums1conn+1)*sizeof(struct EndpointStruct_t*) );
-    if (tmp!=NULL) {
-        mme->s1ap=tmp;
-        mme->s1ap[mme->nums1conn] = news1ep;
-        mme->nums1conn++;
-    }
-    else {
-        free (mme->s1ap);
-        log_msg(LOG_ERR, 0, "Error (re)allocating memory");
-        exit (1);
-    }
+    /* tmp = (struct EndpointStruct_t**)realloc(mme->s1ap, (mme->nums1conn+1)*sizeof(struct EndpointStruct_t*) ); */
+    /* if (tmp!=NULL) { */
+    /*     mme->s1ap=tmp; */
+    /*     mme->s1ap[mme->nums1conn] = news1ep; */
+    /*     mme->nums1conn++; */
+    /* } */
+    /* else { */
+    /*     free (mme->s1ap); */
+    /*     log_msg(LOG_ERR, 0, "Error (re)allocating memory"); */
+    /*     exit (1); */
+    /* } */
 
     news1ep->socklen = sizeof(struct sockaddr);
 
@@ -621,6 +614,9 @@ void s1_accept_new_eNB(evutil_socket_t listener, short event, void *arg){
     /* Make socket non blocking*/
     /*log_msg(LOG_DEBUG, 0, "news1mme->fd %u", news1ep->fd);*/
     evutil_make_socket_nonblocking(news1ep->fd);
+
+    /*Store the new connection*/
+    g_hash_table_insert(mme->s1ap, &(news1ep->fd), news1ep);
 
     /*Add event to the event base (libevent)*/
     event_add(listener_S1_Conn, NULL);
@@ -798,4 +794,33 @@ uint32_t getNewLocalUEid(struct  SessionStruct_t  * s){
     }
     log_msg(LOG_WARNING, 0, "Maximum number of UE (%u) reached, using stream 0", i);
     return 0;
+}
+
+struct EndpointStruct_t *get_ep_with_GlobalID(struct mme_t *mme, TargeteNB_ID_t *t){
+    GHashTableIter iter;
+    gpointer v;
+    struct EndpointStruct_t* ep;
+    gboolean found = FALSE;
+    Global_ENB_ID_t *id1, *id2;
+
+
+    id1 = t->global_ENB_ID;
+
+    g_hash_table_iter_init (&iter, mme->s1ap);
+
+    while (g_hash_table_iter_next (&iter, NULL, &v)){
+	    ep = (struct EndpointStruct_t*)v;
+	    id2 = ((S1_EndPoint_Info_t*)ep->info)->global_eNB_ID;
+
+        if( memcmp(id1->pLMNidentity->tbc.s, id2->pLMNidentity->tbc.s, 3) ==0 &&
+            memcmp(id1->eNBid, id2->eNBid, sizeof(ENB_ID_t)) == 0 ){
+            found = TRUE;
+            break;
+        }
+    }
+
+    if (found)
+        return ep;
+    else
+        return NULL;
 }

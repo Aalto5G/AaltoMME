@@ -209,7 +209,7 @@ static int STATE_S1_handle(Signal *signal)
             log_msg(LOG_DEBUG, 0, "S1AP: New user");
             S1_newUserSession(PROC->engine, s1ep, s1msg, 1);
             return 0;
-            /*            
+            /*
         }else if(s1msg->pdu->procedureCode == id_eNBStatusTransfer && s1msg->choice == initiating_message){
             log_msg(LOG_DEBUG, 0, "Received an id_eNBStatusTransfer Msg");
             TASK_MME_S1___Replay_StatusTransfer(signal);
@@ -1197,7 +1197,7 @@ static uint8_t TASK_MME_S1___Forge_PathSwitchAck(Signal *signal){
     bitrate = s1ap_newIE(s1msg, id_uEaggregateMaximumBitrate, optional, ignore);
     bitrate->uEaggregateMaximumBitRateDL.rate = user->ue_ambr_dl;
     bitrate->uEaggregateMaximumBitRateUL.rate = user->ue_ambr_ul;
-    
+
     /* E-RAB To Be Switched in Uplink List */
     eRABlist = s1ap_newIE(s1msg, id_E_RABToBeSwitchedULList, optional, ignore);
 
@@ -1246,7 +1246,6 @@ static uint8_t TASK_MME_S1___Validate_HandoverRequired(Signal *signal){
 
     s1msg = (S1AP_Message_t *)signal->data;
     int i, ep_index=-1;
-    Global_ENB_ID_t *id1, *id2;
 
     log_msg(LOG_DEBUG, 0, "Enter");
 
@@ -1281,25 +1280,17 @@ static uint8_t TASK_MME_S1___Validate_HandoverRequired(Signal *signal){
     }
 
     targeteNB = target->targetID.targeteNB_ID;
-    id1 = targeteNB->global_ENB_ID;
-    for (i=0; i<SELF_ON_SIG->nums1conn; i++){
-        id2 = ((S1_EndPoint_Info_t*)(SELF_ON_SIG->s1ap[i]->info))->global_eNB_ID;
 
-        if( memcmp(id1->pLMNidentity->tbc.s, id2->pLMNidentity->tbc.s, 3) ==0 &&
-                memcmp(id1->eNBid, id2->eNBid, sizeof(ENB_ID_t)) == 0 ){
-            ep_index=i;
-            log_msg(LOG_DEBUG, 0, "Target ENBid  %x endpoint found",  id2->eNBid->id.macroENB_ID);
-            break;
-        }
-    }
+    PDATA->user_ctx->hoCtx.target_s1 = get_ep_with_GlobalID(SELF_ON_SIG, targeteNB);
 
-    if(ep_index == -1){
+    if(PDATA->user_ctx->hoCtx.target_s1 == NULL){
         log_msg(LOG_ERR, 0, "Target endpoint not available on this MME. MME relocation not implemented.");
         return 1;
     }
 
-    /* Get target eNB Endpoint*/
-    memcpy(&(PDATA->user_ctx->hoCtx.target_s1), SELF_ON_SIG->s1ap[ep_index], sizeof(struct EndpointStruct_t));
+    log_msg(LOG_DEBUG, 0, "Target ENBid  %x endpoint found",
+            ((S1_EndPoint_Info_t*)PDATA->user_ctx->hoCtx.target_s1->info)->global_eNB_ID->eNBid->id.macroENB_ID);
+
     /* Store source parameters*/
     PDATA->user_ctx->hoCtx.source_eNB_id = enb_id->eNB_id;
     memcpy(&(PDATA->user_ctx->hoCtx.source_s1), PDATA->s1, sizeof(struct EndpointStruct_t));

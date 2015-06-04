@@ -22,8 +22,8 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
-#include "commands.h"
 #include "MME_engine.h"
+#include "commands.h"
 #include "logmgr.h"
 
 /*-****************************************************************/
@@ -58,7 +58,7 @@ int servcommand_init(const int servPort){
 
 void cmd_accept(evutil_socket_t listener, short event, void *arg){
 
-    struct t_signal *sig = (struct t_signal *)arg;
+	struct mme_t *mme = (struct mme_t *)arg;
     struct comm_tlv cpack;
     size_t len;
     struct sockaddr_in src_addr;
@@ -78,24 +78,7 @@ void cmd_accept(evutil_socket_t listener, short event, void *arg){
     }
     log_msg(LOG_DEBUG, 0,"Recvfrom %s:%d command: %d", inet_ntoa(src_addr.sin_addr), src_addr.sin_port, (enum t_comm_name)cpack.t);
 
-    sig->data = NULL;
     switch((enum t_comm_name)cpack.t){
-    case engine_signal:
-        if (cpack.l == 3 + 8){
-            sig->name = cpack.v[0];
-            log_msg(LOG_DEBUG, 0, "Recv signal name: %d", cpack.v[0]);
-        }
-        break;
-    case engine_signal_with_args:
-        if (cpack.l > 3){
-            sig->name = cpack.v[0];
-            sig->data = malloc(sizeof(uint64_t));
-            sig->freedataFunc = free;
-            memcpy(sig->data, &(cpack.imsi), sizeof(uint64_t));
-
-            log_msg(LOG_DEBUG, 0, "Recv signal name: %d, args %llu", cpack.v[0], cpack.imsi);
-        }
-        break;
     case debug_level:
     /*change debug level*/
         if (cpack.l == 3){

@@ -17,7 +17,7 @@
 #include <string.h>
 
 #include "logmgr.h"
-#include "commands.h"
+#include "commands_msg.h"
 
 void menu_msg(){
   printf("Menu:\n");
@@ -73,35 +73,35 @@ int main(int argc, char**argv)
      printf("> ");
      fgets(line, 25, stdin);
      switch(line[0]){
-     case 's':
-       sscanf(line, "%c %d\n", &option, &arg);
-       msg.t=(uint8_t)engine_signal;
-       msg.l=3+8;
-       msg.v[0]=arg;
-       printf("signal send: %d\n", msg.v[0]);
-       if(sendto(sockfd, &msg, msg.l ,0, (struct sockaddr *)&servaddr, sizeof(servaddr))<1){
-           log_msg(LOG_ERR, errno, "Error sending the command.");
-       };
-       /*n=recvfrom(sockfd,recvline,10000,0,NULL,NULL);
-       recvline[n]=0;
-       fputs(recvline,stdout);*/
-       break;
-     case 'a':
-       sscanf(line, "%c %d %ULL\n", &option, &arg, &arg2);
-       msg.t=(uint8_t)engine_signal_with_args;
-       msg.l=3 + sizeof(uint64_t);
-       msg.v[0]=arg;
-       //memcpy(&(msg.v[1]), &arg2, sizeof(long long));
-       memcpy(&(msg.imsi), &arg2, sizeof(uint64_t));
-       msg.imsi = 1000000000000000ULL;
-       printf("Send arg %ULL\n", arg2);
-       if(sendto(sockfd, &msg, msg.l ,0, (struct sockaddr *)&servaddr, sizeof(servaddr))<1){
-           log_msg(LOG_ERR, errno, "Error sending the command.");
-       };
-       /*n=recvfrom(sockfd,recvline,10000,0,NULL,NULL);
-       recvline[n]=0;
-       fputs(recvline,stdout);*/
-       break;
+     /* case 's': */
+     /*   sscanf(line, "%c %d\n", &option, &arg); */
+     /*   msg.t=(uint8_t)engine_signal; */
+     /*   msg.l=3+8; */
+     /*   msg.v[0]=arg; */
+     /*   printf("signal send: %d\n", msg.v[0]); */
+     /*   if(sendto(sockfd, &msg, msg.l ,0, (struct sockaddr *)&servaddr, sizeof(servaddr))<1){ */
+     /*       log_msg(LOG_ERR, errno, "Error sending the command."); */
+     /*   }; */
+     /*   /\*n=recvfrom(sockfd,recvline,10000,0,NULL,NULL); */
+     /*   recvline[n]=0; */
+     /*   fputs(recvline,stdout);*\/ */
+     /*   break; */
+     /* case 'a': */
+     /*   sscanf(line, "%c %d %ULL\n", &option, &arg, &arg2); */
+     /*   msg.t=(uint8_t)engine_signal_with_args; */
+     /*   msg.l=3 + sizeof(uint64_t); */
+     /*   msg.v[0]=arg; */
+     /*   //memcpy(&(msg.v[1]), &arg2, sizeof(long long)); */
+     /*   memcpy(&(msg.imsi), &arg2, sizeof(uint64_t)); */
+     /*   msg.imsi = 1000000000000000ULL; */
+     /*   printf("Send arg %ULL\n", arg2); */
+     /*   if(sendto(sockfd, &msg, msg.l ,0, (struct sockaddr *)&servaddr, sizeof(servaddr))<1){ */
+     /*       log_msg(LOG_ERR, errno, "Error sending the command."); */
+     /*   }; */
+     /*   /\*n=recvfrom(sockfd,recvline,10000,0,NULL,NULL); */
+     /*   recvline[n]=0; */
+     /*   fputs(recvline,stdout);*\/ */
+     /*   break; */
      case 'd':
        sscanf(line, "%c %d\n", &option, &arg);
        msg.t=(uint8_t)debug_level;

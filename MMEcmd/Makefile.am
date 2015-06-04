@@ -13,7 +13,7 @@ bin_PROGRAMS=MMEcmd
 
 # Sources
 AM_CXXFLAGS = $(INTI_CFLAGS)
-MMEcmd_SOURCES = MMEcmd.c ../mme/commands.c ../Common/logmgr.c
+MMEcmd_SOURCES = MMEcmd.c ../Common/logmgr.c
 
 # Linker options
 MMEcmd_LDADD = $(INTI_LIBS) -levent

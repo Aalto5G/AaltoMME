@@ -32,8 +32,8 @@ Date: 8 Feb 2013
 #include "nodemgr.h"
 
 
-#define FALSE 0
-#define TRUE 1
+#define FALSE (0)
+#define TRUE (!FALSE)
 
 
 void freedatadummy(void *data){}

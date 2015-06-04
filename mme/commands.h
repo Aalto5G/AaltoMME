@@ -18,25 +18,7 @@
 
 #include <event2/event.h>
 #include "signals.h"
-
-/** Server port definition*/
-#define COMMAND_PORT 5000
-
-/** Command Structure, the data is organized as a TLV */
-struct comm_tlv {
-  uint8_t t;                    /**< Type */
-  uint8_t l;                    /**< Length : Total length of the packet, not only the value.*/
-  uint8_t v[254];               /**< Value */
-  uint64_t imsi;
-} __attribute__((packed));
-
-
-/** Command type enum*/
-enum t_comm_name{
-        engine_signal = 0,          /**<The command is a signal*/
-        engine_signal_with_args,    /**<The command is a signal with arguments*/
-        debug_level,                /**<The command is a debug level*/
-};
+#include "commands_msg.h"
 
 /*Public functions*/
 

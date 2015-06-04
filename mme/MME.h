@@ -26,6 +26,7 @@
 #include <time.h>
 
 #include <event2/event.h>
+#include <glib.h>
 
 #include "uthash.h"
 #include "gtp.h"
@@ -160,7 +161,7 @@ struct user_ctx_t{
 	    uint32_t                        target_eNB_id;
         uint32_t                        source_eNB_id;
 	    E_RAB_ID_t                      eRAB_ID;
-	    struct EndpointStruct_t         target_s1;
+	    struct EndpointStruct_t         *target_s1;
         struct EndpointStruct_t         source_s1;
         Bearer_Ctx_t	                old_ebearers[1];
         GTP_TEID_t                      GTP_TEID;
@@ -252,7 +253,8 @@ struct mme_t{
     struct EndpointStruct_t s11;
     struct EndpointStruct_t s1;                             /*< Server endpoint*/
     struct EndpointStruct_t ctrl;                             /*< Server endpoint*/
-    struct EndpointStruct_t **s1ap;                         /*< SCTP endpoint connections*/
+	GHashTable *            s1ap;                         /*< SCTP endpoint connections*/
+	/*struct EndpointStruct_t **s1ap;*/                         /*< SCTP endpoint connections*/
     uint32_t                nums1conn;                      /*< Number of S1 Connections*/
     struct SessionStruct_t  *s1apUsersbyLocalID[MAX_UE];    /*< UE MME ID to session relation vector*/
     struct EndpointStruct_t command;
@@ -307,5 +309,7 @@ extern unsigned int getNextSeq(struct mme_t *mme);
 extern unsigned int newTeid();
 
 extern uint32_t getNewLocalUEid(struct  SessionStruct_t  * s);
+
+extern struct EndpointStruct_t *get_ep_with_GlobalID(struct mme_t *mme, TargeteNB_ID_t *t);
 
 #endif /* MME_HFILE */
