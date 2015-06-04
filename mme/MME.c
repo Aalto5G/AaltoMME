@@ -660,9 +660,10 @@ void ctrl_accept(evutil_socket_t listener, short event, void *arg){
 }
 
 /**/
+const struct timeval delay = { 1, 0 }; /* 1 sec 0 usec*/
+
 void kill_handler(evutil_socket_t listener, short event, void *arg){
   struct mme_t *mme = (struct mme_t *)arg;
-  struct timeval delay = { 1, 0 };
 
   if(mme_run!=NULL){
     mme_run_flag=0;
