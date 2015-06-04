@@ -23,6 +23,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <signal.h>
+#include <glib.h>
 
 #include "logmgr.h"
 #include "gtp.h"
@@ -98,7 +99,7 @@ int init_sctp_srv(int port, int addr){
     servaddr.sin_family = AF_INET;
     servaddr.sin_addr.s_addr = addr;
     servaddr.sin_port = htons(port);
-    
+
     /* Turn off bind address checking and allow port numbers to be reused*/
     /* on = 1; */
     /* if( setsockopt(listenSock, SOL_SOCKET, SO_REUSEADDR, (const char*)&on, sizeof(int))==-1){ */
@@ -189,17 +190,17 @@ int mme_close_ifaces(struct mme_t *self){
     }
 
     if( self->s1.portState != closed){
-    	close(self->s1.fd);
+        close(self->s1.fd);
         self->s1.portState = closed;
     }
     for(i=0; i<self->nums1conn;i++){
-		ep = self->s1ap[i];
-		free_S1_EndPoint_Info(ep->info);
-		close(ep->fd);
-		ep->portState = closed;
-		free(ep);
-	}
-	free(self->s1ap);
+        ep = self->s1ap[i];
+        free_S1_EndPoint_Info(ep->info);
+        close(ep->fd);
+        ep->portState = closed;
+        free(ep);
+    }
+    free(self->s1ap);
 
 
     if( self->ctrl.portState != closed){
@@ -366,8 +367,8 @@ void free_mme(struct mme_t *self){
         self->s11.portState = closed;
     }
     if( self->ctrl.portState != closed){
-    	close(self->ctrl.fd);
-    	self->ctrl.portState = closed;
+        close(self->ctrl.fd);
+        self->ctrl.portState = closed;
     }
 
     if( self->s1.portState != closed){
@@ -486,10 +487,10 @@ void s1_accept(evutil_socket_t listener, short event, void *arg){
 
     /*Identify the Endpoint*/
     for(i=0; i<mme->nums1conn ; i++){
-    	if(listener == mme->s1ap[i]->fd){
-    	    ep_S1 = mme->s1ap[i];
-    	    break;
-    	}
+	    if(listener == mme->s1ap[i]->fd){
+		    ep_S1 = mme->s1ap[i];
+		    break;
+	    }
     }
 
     if(ep_S1 == NULL){
@@ -509,6 +510,10 @@ void s1_accept(evutil_socket_t listener, short event, void *arg){
     printf("outstrms  = %d\n", status.sstat_outstrms );*/
 
     msg->length = sctp_recvmsg( listener, (void *)&(msg->packet), sizeof(msg->packet), (struct sockaddr *)NULL, 0, &sndrcvinfo, &flags );
+
+    if (flags & MSG_NOTIFICATION){
+        log_msg(LOG_INFO, 0, "Received SCTP notification");
+    }
 
     /*Check errors*/
     if (msg->length <= 0) {
@@ -661,7 +666,7 @@ void ctrl_accept(evutil_socket_t listener, short event, void *arg){
 /**/
 void kill_handler(evutil_socket_t listener, short event, void *arg){
   struct mme_t *mme = (struct mme_t *)arg;
-  struct timeval delay = { 1, 0 };  
+  struct timeval delay = { 1, 0 };
 
   if(mme_run!=NULL){
     mme_run_flag=0;
@@ -672,7 +677,7 @@ void kill_handler(evutil_socket_t listener, short event, void *arg){
   }
 
   event_base_loopexit(mme->evbase, &delay);
-  
+
 }
 
 

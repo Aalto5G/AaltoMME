@@ -15,12 +15,12 @@ noinst_PROGRAMS=exampleProgram eping loadtest eNBemulator hmac_test loadWithAtta
 # replaced by '_'. So a.out becomes a_out and the appropriate suffex added.
 # '_SOURCES' for example.
 
-# Sources for the a.out 
-eping_SORCES = eping.c $(top_srcdir)/mme/storagesys.c $(top_srcdir)/Common/logmgr.c
-loadtest_SOURCES = loadtest.c $(top_srcdir)/mme/storagesys.c $(top_srcdir)/Common/logmgr.c
-exampleProgram_SOURCES= exampleProgram.c $(top_srcdir)/mme/storagesys.c $(top_srcdir)/Common/logmgr.c
-eNBemulator_SOURCES = eNBemulator.c $(top_srcdir)/Common/logmgr.c
-hmac_test_SOURCES = hmac_test.c $(top_srcdir)/mme/S6a/hmac/sha2.c $(top_srcdir)/mme/S6a/hmac/hmac_sha2.c
+# Sources for the a.out
+eping_SORCES = eping.c ../mme/storagesys.c ../Common/logmgr.c
+loadtest_SOURCES = loadtest.c ../mme/storagesys.c ../Common/logmgr.c
+exampleProgram_SOURCES= exampleProgram.c ../mme/storagesys.c ../Common/logmgr.c
+eNBemulator_SOURCES = eNBemulator.c ../Common/logmgr.c
+hmac_test_SOURCES = hmac_test.c ../mme/S6a/hmac/sha2.c ../mme/S6a/hmac/hmac_sha2.c
 loadWithAttach_SOURCES = loadWithAttach.c
 
 
@@ -28,12 +28,12 @@ loadWithAttach_SOURCES = loadWithAttach.c
 eping_LDFLAGS = $(top_srcdir)/libgtp/libgtp.la
 exampleProgram_LDFLAGS = $(top_srcdir)/libgtp/libgtp.la
 # eNBemulator_LDFLAGS = $(top_srcdir)/S1AP/src/libs1ap.la $(top_srcdir)/NAS/src/libnas.la
-loadWithAttach_LDFLAGS = $(top_srcdir)/S1AP/src/libs1ap.la $(top_srcdir)/NAS/src/libnas.la `mysql_config --libs_r` 
+loadWithAttach_LDFLAGS = $(top_srcdir)/S1AP/src/libs1ap.la $(top_srcdir)/NAS/src/libnas.la `mysql_config --libs_r`
 #
 exampleProgram_LDADD = -levent
 eping_LDADD = -levent
 eNBemulator_LDFLAGS = -levent -lsctp
-loadWithAttach_LDADD = -levent -lsctp 
+loadWithAttach_LDADD = -levent -lsctp
 #
 
 # -ls1ap -lnas
@@ -50,7 +50,7 @@ eping_CPPFLAGS = -Wall -I$(top_srcdir)/libgtp/include \
 			 -I$(top_srcdir)/NAS/shared \
 			 -I$(top_srcdir)/SDN/shared \
 			 -I$(top_srcdir)/mme/S6a/ \
-			 -I$(top_srcdir)/mme/S11 
+			 -I$(top_srcdir)/mme/S11
 loadtest_CPPFLAGS = -Wall -I$(top_srcdir)/libgtp/include \
 			 -I$(top_srcdir)/mme \
 			 -I$(top_srcdir)/Common \
@@ -60,8 +60,8 @@ loadtest_CPPFLAGS = -Wall -I$(top_srcdir)/libgtp/include \
 			 -I$(top_srcdir)/NAS/shared \
 			 -I$(top_srcdir)/SDN/shared \
 			 -I$(top_srcdir)/mme/S6a/ \
-			 -I$(top_srcdir)/mme/S11 
-	
+			 -I$(top_srcdir)/mme/S11
+
 
 exampleProgram_CPPFLAGS = -Wall -I$(top_srcdir)/libgtp/include \
 			 -I$(top_srcdir)/mme \
@@ -72,23 +72,23 @@ exampleProgram_CPPFLAGS = -Wall -I$(top_srcdir)/libgtp/include \
 			 -I$(top_srcdir)/mme/S1/NAS \
 			 -I$(top_srcdir)/NAS/shared \
 			 -I$(top_srcdir)/SDN/shared \
-			 -I$(top_srcdir)/mme/S11 
-			 
+			 -I$(top_srcdir)/mme/S11
+
 eNBemulator_CPPFLAGS = -Wall -I$(top_srcdir)/libgtp/include \
 			 -I$(top_srcdir)/Common \
 			 -I$(top_srcdir)/S1AP/shared
-			 
+
 loadWithAttach_CPPFLAGS = -Wall -I$(top_srcdir)/libgtp/include \
 			 `mysql_config --cflags` \
 			 -I$(top_srcdir)/NAS/shared \
 			 -I$(top_srcdir)/SDN/shared \
 			 -I$(top_srcdir)/S1AP/shared
-			 
+
 #			 -I$(top_srcdir)/mme/S1 \
 #			 -I$(top_srcdir)/mme \
 #			 -I$(top_srcdir)/mme/S1/NAS \
 #			 -I$(top_srcdir)/NAS/shared \
-#			 -I$(top_srcdir)/mme/S11 
-	
+#			 -I$(top_srcdir)/mme/S11
+
 
 hmac_test_CPPFLAGS = -Wall -I$(top_srcdir)/mme/S6a/hmac

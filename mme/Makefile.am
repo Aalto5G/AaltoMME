@@ -12,7 +12,8 @@ bin_PROGRAMS=mme
 # '_SOURCES' for example.
 
 # Sources
-AM_CXXFLAGS = $(INTI_CFLAGS)
+#AM_CXXFLAGS = $(INTI_CFLAGS)
+#$(GLIB_CFLAGS) $(GOBJECT_CFLAGS)
 mme_SOURCES = MME_engine.c \
 				S1/MME_S1.c \
 				S1/NAS/NAS_FSM.c \
@@ -31,12 +32,13 @@ mme_SOURCES = MME_engine.c \
 				Controller/MME_Controller.c
 
 # Linker options
-mme_LDFLAGS = $(top_srcdir)/libgtp/libgtp.la $(top_srcdir)/S1AP/src/libs1ap.la $(top_srcdir)/NAS/src/libnas.la `mysql_config --libs_r` 
+mme_LDFLAGS = $(top_srcdir)/libgtp/libgtp.la $(top_srcdir)/S1AP/src/libs1ap.la $(top_srcdir)/NAS/src/libnas.la `mysql_config --libs_r`
 
-mme_LDADD = $(INTI_LIBS) -levent -ls1ap -lnas -lconfig -lsctp
+mme_LDADD = -levent -ls1ap -lnas -lconfig -lsctp $(GLIB_LIBS) $(GOBJECT_LIBS) #$(INTI_LIBS)
 
-# Compiler options 
+# Compiler options
 mme_CFLAGS = `mysql_config --cflags` \
+			 $(GLIB_CFLAGS) $(GOBJECT_CFLAGS) \
 			 -I$(top_srcdir)/libgtp/include \
 			 -I$(top_srcdir)/mme \
 			 -I$(top_srcdir)/Common \
@@ -49,6 +51,4 @@ mme_CFLAGS = `mysql_config --cflags` \
 			 -I$(top_srcdir)/NAS/shared \
 			 -I$(top_srcdir)/SDN/shared \
 			 -I$(top_srcdir)/mme/S11 \
-			 -I$(top_srcdir)/mme/Controller 
-			 
-			 
+			 -I$(top_srcdir)/mme/Controller

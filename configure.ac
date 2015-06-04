@@ -26,6 +26,8 @@ AC_SEARCH_LIBS([event_base_loop],[event],, AC_MSG_ERROR([libevent not found.]))
 AC_SEARCH_LIBS([sctp_sendmsg], [sctp],, AC_MSG_ERROR([libsctp not found.]))
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.4],, AC_MSG_WARN([Check test framework not found.]))
 PKG_CHECK_MODULES([LIBCONFIG], [libconfig >= 1.3.2],, AC_MSG_ERROR([libconfig 1.3.2 or newer not found.]) )
+PKG_CHECK_MODULES([GLIB], [glib-2.0 > 2.19.0],, AC_MSG_ERROR([glib 2.19.0 or newer not found.]) )
+PKG_CHECK_MODULES([GOBJECT],[gobject-2.0])
 
 # Line working on debian based, but failing on fedora. The mysqlclient will be checked looking for the header files
 #AC_SEARCH_LIBS([mysql_init], [mysqlclient],, AC_MSG_ERROR([Please install mysqlclient library first.]))
@@ -52,7 +54,7 @@ AC_FUNC_REALLOC
 AC_CHECK_FUNCS([bzero gettimeofday inet_ntoa memmove memset socket strdup strerror strtoull])
 
 dnl Initialize automake
-AM_INIT_AUTOMAKE([1.9 foreign])
+AM_INIT_AUTOMAKE([1.9 foreign subdir-objects])
 
 WITH_MYSQL()
 
