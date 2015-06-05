@@ -390,25 +390,6 @@ static void engine_run(struct t_engine_data *self){
 static void engine_loop(struct t_engine_data *self){
 
     int i;
-    Signal CommandSignal;
-    struct nodeinfo_t node;
-
-    struct  SessionStruct_t *testsession;
-    struct user_ctx_t *user;
-
-    /*=================================================
-    For testing we preassign the signal name to start S1 */
-    /*CommandSignal.name=S11_new_user_test;*/
-    CommandSignal.name=no_new_cmd;
-    CommandSignal.data = NULL;
-
-    testsession = (struct SessionStruct_t *) malloc(sizeof(struct SessionStruct_t));
-    memset(testsession, 0, sizeof(struct SessionStruct_t));
-    testsession->user_ctx = (struct user_ctx_t *) malloc(sizeof(struct user_ctx_t));
-    user = testsession->user_ctx;
-    user->imsi = 123454678901236ULL;
-
-    /*For testing we preassign the imsi to 1 */
 
     while(*(self->mme_run)){
 
@@ -417,42 +398,7 @@ static void engine_loop(struct t_engine_data *self){
         /*Event base loop, because of EVLOOP_NONBLOCK flag,
          * it only checks if there is any active file descriptor. If so, run the callbacks*/
         event_base_loop(self->evbase, EVLOOP_ONCE );//| EVLOOP_NONBLOCK);
-        /*****wait for messages from application and then run specific function associated to the message****/
-        switch(CommandSignal.name){
-            case engine_start:
-                log_msg(LOG_DEBUG, 0, "Signal command engine_start received");
-                CommandSignal.name=no_new_cmd;
-                break;
-            case engine_stop:
-                log_msg(LOG_DEBUG, 0, "Signal command engine_stop received");
-                self->mme_run=FALSE;
-                CommandSignal.name=no_new_cmd;
-                break;
-
-            case S11_new_user_test:
-                log_msg(LOG_DEBUG, 0, "Signal command S11_new_user_test, \nSimulating the reception of S1AP Initial UE Message.");
-                /*Create session request*/
-                if(CommandSignal.data!=NULL){
-                    testsession = (struct SessionStruct_t *) malloc(sizeof(struct SessionStruct_t));
-                    memset(testsession, 0, sizeof(struct SessionStruct_t));
-                    testsession->user_ctx = (struct user_ctx_t *) malloc(sizeof(struct user_ctx_t));
-                    memset(testsession->user_ctx, 0, sizeof(struct user_ctx_t));
-                    memcpy(&(testsession->user_ctx->imsi), CommandSignal.data, sizeof(uint64_t));
-                    testsession->user_ctx->S11MMETeid = newTeid();
-                    testsession->user_ctx->s11.teid = 0;
-                }
-                //testsession->s11 = &(mme->s11);  /*Change endpoint structure before entering to S11 state machine*/
-                S11_newUserAttach(self, testsession);
-                CommandSignal.name=no_new_cmd;
-                break;
-
-            default:
-                break;
-        }
     }
-    free(user);
-    free(testsession);
-
 }
 
 /***************************************************************/
