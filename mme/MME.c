@@ -32,6 +32,7 @@
 #include "MME_engine.h"
 #include "MME_S1.h"
 #include "MME_S11.h"
+#include "MME_S6a.h"
 #include "MME_Controller.h"
 #include "HSS.h"
 
@@ -163,9 +164,7 @@ int mme_init_ifaces(struct mme_t *self){
     struct event *listener_S11, *listener_command, *listener_S1, *listener_Ctrl;
     uint32_t addr = 0;
 
-    if (init_hss() != 0){
-        return 1;
-    }
+    self->s6a = s6a_init((gpointer)self);
 
     /*Init command server, returns server file descriptor*/
     self->command.fd = servcommand_init(COMMAND_PORT);
@@ -195,7 +194,7 @@ int mme_close_ifaces(struct mme_t *self){
     struct EndpointStruct_t *ep;
     int i=0;
 
-    disconnect_hss();
+    s6a_free(self->s6a);
 
     if( self->command.portState != closed){
         close(self->command.fd);
@@ -509,7 +508,7 @@ void s1_accept(evutil_socket_t listener, short event, void *arg){
 
     /*Check errors*/
     if (msg->length <= 0) {
-	    g_hash_table_remove(mme->s1ap, &listener);
+        g_hash_table_remove(mme->s1ap, &listener);
         log_msg(LOG_INFO, 0, "Connection closed");
         freeMsg(msg);
         return;
@@ -517,7 +516,7 @@ void s1_accept(evutil_socket_t listener, short event, void *arg){
 
     /* If the packet is not a s1ap packet, it is silently rejected*/
     if(sndrcvinfo.sinfo_ppid != SCTP_S1AP_PPID){
-	    freeMsg(msg);
+        freeMsg(msg);
         return;
     }
 
@@ -795,8 +794,8 @@ struct EndpointStruct_t *get_ep_with_GlobalID(struct mme_t *mme, TargeteNB_ID_t 
     g_hash_table_iter_init (&iter, mme->s1ap);
 
     while (g_hash_table_iter_next (&iter, NULL, &v)){
-	    ep = (struct EndpointStruct_t*)v;
-	    id2 = ((S1_EndPoint_Info_t*)ep->info)->global_eNB_ID;
+        ep = (struct EndpointStruct_t*)v;
+        id2 = ((S1_EndPoint_Info_t*)ep->info)->global_eNB_ID;
 
         if( memcmp(id1->pLMNidentity->tbc.s, id2->pLMNidentity->tbc.s, 3) ==0 &&
             memcmp(id1->eNBid, id2->eNBid, sizeof(ENB_ID_t)) == 0 ){

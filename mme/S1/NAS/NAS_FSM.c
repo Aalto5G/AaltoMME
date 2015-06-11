@@ -332,7 +332,7 @@ void stateEMM_Deregistered(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg
             save_signal(continueAuth);      /* Signal to continue with the authentication to S11*/
 
 
-            s6a_GetAuthVector(PROC->engine, PDATA);
+            //s6a_GetAuthVector(PROC->engine, PDATA);
 
 
             /* Create a new signal to finish the process of the message*/
@@ -348,6 +348,10 @@ void stateEMM_Deregistered(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg
             //signal->name = NAS_AuthVectorAvailable;
             save_signal(continueAttach);    /* Signal to continue with the Attach procedure to S11*/
             signal->name = S1_ContinueAttach;
+
+            s6a_GetAuthVector(SELF_ON_SIG->s6a, user,
+                              (void(*)(gpointer)) sendFirstStoredSignal,
+                              (gpointer)PDATA->sessionHandler);
             return;
         }
     }else{
@@ -502,7 +506,7 @@ void stateEMM_CommonProcedureInitiated(uint8_t *returnbuffer, uint32_t *bsize, G
 	    log_msg(LOG_WARNING, 0, "Received a NAS AuthenticationFailure, cause : %u", authFail->eMMCause);
 	    if(authFail->eMMCause == EMM_SynchFailure){
 		    log_msg(LOG_DEBUG, 0, "Starting NAS SQNms Resynch with HSS");
-		    s6a_SynchAuthVector(PROC->engine, PDATA, authFail->optionals[0].tlv_t4.v);
+		    //s6a_SynchAuthVector(PROC->engine, PDATA, authFail->optionals[0].tlv_t4.v);
 
 		    /* Create a new signal to start the Auth Procedure*/
 		    continueAuth = new_signal(signal->processTo);
@@ -510,6 +514,10 @@ void stateEMM_CommonProcedureInitiated(uint8_t *returnbuffer, uint32_t *bsize, G
 		    continueAuth->priority = signal->priority;
 		    
 		    save_signal(continueAuth);      /* Signal to continue with the authentication to S11*/
+		    s6a_SynchAuthVector(SELF_ON_SIG->s6a, user, authFail->optionals[0].tlv_t4.v,
+		                        (void(*)(gpointer)) sendFirstStoredSignal,
+		                        (gpointer)PDATA->sessionHandler);
+
 	    }        
 
     }else if(msg->plain.eMM.messageType == AuthenticationReject){

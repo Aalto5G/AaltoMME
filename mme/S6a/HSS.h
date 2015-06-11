@@ -15,13 +15,15 @@
  * The current database is a MariaDB.
  */
 
-#include "MME_engine.h"
+#include "MME.h"
 
 /* Functions Called from the MME initialize and destroy methods*/
 int init_hss();
 
 void disconnect_hss();
 
-void HSS_getAuthVec(Signal *signal);
+void HSS_getAuthVec(struct user_ctx_t *user);
 
-void HSS_UpdateLocation(Signal *signal);
+void HSS_UpdateLocation(struct user_ctx_t *user, ServedGUMMEIs_t * sGUMMEIs);
+
+void HSS_syncAuthVec(struct user_ctx_t *user, uint8_t * auts);

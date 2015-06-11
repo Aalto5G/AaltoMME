@@ -325,44 +325,12 @@ static void HSS_recoverAuthVec(struct user_ctx_t *user){
 
 /* ============================================================== */
 
-void HSS_getAuthVec(Signal *signal){
-	/*
-    MYSQL_RES *result;
-    MYSQL_ROW row;
-
-    char query[1000];
-    struct user_ctx_t *user = PDATA->user_ctx;
-    uint16_t mcc;
-    uint8_t mnc;
-
-    mcc = user->imsi/1000000000000;
-    mnc = (user->imsi/10000000000)%100;*/
-	/*Chech if there is any Auth vector already stored*//*
-    sprintf(query, exists_auth_vec, mcc, mnc, user->imsi%10000000000);
-
-    if (mysql_query(HSSConnection, query)){
-        log_msg(LOG_ERR, mysql_errno(HSSConnection), "%s", mysql_error(HSSConnection));
-        return;
-    }
-    result = mysql_store_result(HSSConnection);
-    row = mysql_fetch_row(result);*/
-    /*log_msg(LOG_DEBUG, 0, "%s", query);*/
-	/*log_msg(LOG_DEBUG, 0, "row[0] %d %d",*row[0], (int)*row[0] );*//*
-    if(*row[0] == '1'){
-        HSS_recoverAuthVec(user);
-    }else{
-        HSS_newAuthVec(user);
-    }
-
-    mysql_free_result(result);*/
-	struct user_ctx_t *user = PDATA->user_ctx;
+void HSS_getAuthVec(struct user_ctx_t *user){
 	HSS_newAuthVec(user);
 
 }
 
-void HSS_syncAuthVec(Signal *signal){
-	struct user_ctx_t *user = PDATA->user_ctx;
-	uint8_t * auts = (uint8_t*)signal->data;
+void HSS_syncAuthVec(struct user_ctx_t *user, uint8_t * auts){
 	uint8_t sqn[6];
 	MYSQL_RES *result;
     MYSQL_ROW row;
@@ -473,14 +441,13 @@ void HSS_syncAuthVec(Signal *signal){
     }
 }
 
-void HSS_UpdateLocation(Signal *signal){
+void HSS_UpdateLocation(struct user_ctx_t *user, ServedGUMMEIs_t * sGUMMEIs){
 
     MYSQL_RES *result;
     MYSQL_ROW row;
     uint8_t mmegi[5], apn[100];
 
     char query[1000];
-    struct user_ctx_t *user = PDATA->user_ctx;
     uint16_t mcc;
     uint8_t mnc;
 
@@ -488,8 +455,8 @@ void HSS_UpdateLocation(Signal *signal){
     mnc = (user->imsi/10000000000)%100;
     /*Update Location*/
     sprintf(query, update_location,
-            SELF_ON_SIG->servedGUMMEIs->item[0]->servedMMECs->item[0]->s[0],
-            bin_to_strhex(SELF_ON_SIG->servedGUMMEIs->item[0]->servedGroupIDs->item[0]->s,2,mmegi),
+            sGUMMEIs->item[0]->servedMMECs->item[0]->s[0],
+            bin_to_strhex(sGUMMEIs->item[0]->servedGroupIDs->item[0]->s,2,mmegi),
             0,
             mcc, mnc, user->imsi%10000000000);
 

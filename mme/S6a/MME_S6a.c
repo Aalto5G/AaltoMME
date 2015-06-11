@@ -29,6 +29,34 @@
 
 #include "HSS.h"
 
+typedef void (*s6a_STATE)(Signal *signal);
+
+struct s6a_t{
+	gpointer mme;
+	s6a_STATE state;
+};
+
+
+/**
+ * @brief initiate the S6a stack
+ * @param [in]  mme   pointer to mme structure to access the API
+ */
+gpointer s6a_init(gpointer mme){
+	struct s6a_t *s6a = g_new(struct s6a_t, 1);
+	s6a->mme = mme;
+
+    if (init_hss() != 0){
+	    return  NULL;
+    }
+    //return (gpointer) s6a;
+    return s6a;
+}
+
+void s6a_free(gpointer s6a){
+	disconnect_hss();
+	g_free(s6a);
+}
+
 /**
  * @brief generate_KeNB - KDF function to derive the K_eNB
  * @param [in]  kasme       derived key - 256 bits
@@ -54,41 +82,15 @@ static void generate_KeNB(const uint8_t *kasme, const uint32_t ulNASCount, uint8
 
 /* ====================================================================== */
 
-static int STATE_S6a_Authentication(Signal *signal){
-    struct user_ctx_t *user = PDATA->user_ctx;
-    INIT_TIME_MEASUREMENT_ENVIRONMENT
-
-    MME_MEASURE_PROC_TIME
-    if( signal->name == S6a_getAuthVector){
-	    log_msg(LOG_DEBUG, 0, "S6a: Creating Auth vector -  time = %u us", SELF_ON_SIG->procTime);
-
-	    HSS_getAuthVec(signal);
-
-	    generate_KeNB(user->sec_ctx.kASME, user->sec_ctx.ulNAScnt, user->sec_ctx.keNB);
-    }else if(signal->name == S6a_SynchAuthVector){
-	    log_msg(LOG_DEBUG, 0, "S6a: Synch NAS SQN -  time = %u us", SELF_ON_SIG->procTime);
-
-	    HSS_syncAuthVec(signal);
-
-	    generate_KeNB(user->sec_ctx.kASME, user->sec_ctx.ulNAScnt, user->sec_ctx.keNB);
-    }
-
-    /*  Recover old process and old signal to continue the flow to original State Machine*/    
-    run_parent(signal);
-
-    MME_MEASURE_PROC_TIME
-    log_msg(LOG_DEBUG, 0, "S6a: Auth vector available-  time = %u us", SELF_ON_SIG->procTime);
-    return 0;
-
-}
-
 static int STATE_S6a_UpdateLocation(Signal *signal){
-    INIT_TIME_MEASUREMENT_ENVIRONMENT
+	struct user_ctx_t *user = PDATA->user_ctx;
+	
+	INIT_TIME_MEASUREMENT_ENVIRONMENT
 
     MME_MEASURE_PROC_TIME
     log_msg(LOG_DEBUG, 0, "S6a: Update Location -  time = %u us", SELF_ON_SIG->procTime);
 
-    HSS_UpdateLocation(signal);
+    HSS_UpdateLocation(user, SELF_ON_SIG->servedGUMMEIs);
 
     /*  Recover old process and old signal to continue the flow to original State Machine*/
     run_parent(signal);
@@ -102,42 +104,24 @@ static int STATE_S6a_UpdateLocation(Signal *signal){
 
 /* ====================================================================== */
 
-void s6a_GetAuthVector(struct t_engine_data *engine, struct SessionStruct_t *session){
+void s6a_GetAuthVector(gpointer s6a_h, struct user_ctx_t *user,
+                       void(*cb)(gpointer), gpointer args){
 
-    Signal *output;
-    struct t_process proc;
-    log_msg(LOG_DEBUG, 0, "Enter S6a State Machine");
+	log_msg(LOG_DEBUG, 0, "Enter S6a State Machine");
 
-    /*Create a new process to manage the S6a state machine. The older session handler is stored as parent
-     * to return once the S6a state machine ends*/
-    session->sessionHandler = process_create(engine, STATE_S6a_Authentication, (void *)session, session->sessionHandler);
-
-    output = new_signal(session->sessionHandler);
-    /*output->data = (void *)session;*/
-    output->name = S6a_getAuthVector;
-    output->priority = MAXIMUM_PRIORITY;
-    signal_send(output);
+	HSS_getAuthVec(user);
+	generate_KeNB(user->sec_ctx.kASME, user->sec_ctx.ulNAScnt, user->sec_ctx.keNB);
+	cb(args);
 }
 
-void s6a_SynchAuthVector(struct t_engine_data *engine, struct SessionStruct_t *session, uint8_t *auts){
+void s6a_SynchAuthVector(gpointer s6a_h, struct user_ctx_t *user, uint8_t *auts,
+                         void(*cb)(gpointer), gpointer args){
 
-    Signal *output;
-    struct t_process proc;
-    void *d;
-    log_msg(LOG_DEBUG, 0, "Enter S6a State Machine");
+	struct s6a_t *s6a = (struct s6a_t*) s6a_h;
 
-    /*Create a new process to manage the S6a state machine. The older session handler is stored as parent
-     * to return once the S6a state machine ends*/
-    session->sessionHandler = process_create(engine, STATE_S6a_Authentication, (void *)session, session->sessionHandler);
-
-    output = new_signal(session->sessionHandler);
-    d = malloc(14);
-    memcpy(d, auts, 14);
-    output->data = d;
-    output->freedataFunc=&free;
-    output->name = S6a_SynchAuthVector;
-    output->priority = MAXIMUM_PRIORITY;
-    signal_send(output);
+	HSS_syncAuthVec(user, auts);
+	generate_KeNB(user->sec_ctx.kASME, user->sec_ctx.ulNAScnt, user->sec_ctx.keNB);
+	cb(args);
 }
 
 

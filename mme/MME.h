@@ -236,6 +236,7 @@ struct mme_t{
     struct EndpointStruct_t s1;                             /*< Server endpoint*/
     struct EndpointStruct_t ctrl;                             /*< Server endpoint*/
 	GHashTable *            s1ap;                         /*< SCTP endpoint connections*/
+	gpointer                s6a;
 	/*struct EndpointStruct_t **s1ap;*/                         /*< SCTP endpoint connections*/
     uint32_t                nums1conn;                      /*< Number of S1 Connections*/
     struct SessionStruct_t  *s1apUsersbyLocalID[MAX_UE];    /*< UE MME ID to session relation vector*/

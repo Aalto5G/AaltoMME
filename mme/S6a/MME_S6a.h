@@ -19,13 +19,31 @@
 #ifndef MME_S6a_HFILE
 #define MME_S6a_HFILE
 
+#include <glib.h>
+
 #include "MME.h"
 #include "S6a.h"
 
-void s6a_GetAuthVector(struct t_engine_data *engine, struct SessionStruct_t *session);
+/**************************************************/
+/* Interface to MME.c                             */
+/**************************************************/
+
+gpointer s6a_init(gpointer mme);
+
+void s6a_free(gpointer s6a);
+
+
+/**************************************************/
+/* Interface to NAS_FSM.c                         */
+/**************************************************/
+
+void s6a_GetAuthVector(gpointer s6a_h, struct user_ctx_t *user,
+                       void(*cb)(gpointer), gpointer args);
+
+void s6a_SynchAuthVector(gpointer s6a_h, struct user_ctx_t *user, uint8_t *auts,
+                         void(*cb)(gpointer), gpointer args);
 
 void s6a_UpdateLocation(struct t_engine_data *engine, struct SessionStruct_t *session);
 
-void refresh_NH(SecurityCtx_t* sec);
 
 #endif /* MME_S6a_HFILE */
