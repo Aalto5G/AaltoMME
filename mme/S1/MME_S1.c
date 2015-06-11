@@ -21,10 +21,15 @@
 #include <netinet/sctp.h>
 #include "signals.h"
 
+//#include "MME.h"
+//#include "NAS_FSM.h"
+#include "S1AP.h"
 #include "MME_S1.h"
 #include "NAS_FSM.h"
 #include "logmgr.h"
 #include "hmac_sha2.h"
+
+
 
 
 /* ======================================================================
@@ -61,6 +66,10 @@ static uint8_t TASK_MME_S1___Validate_HandoverReqAck(Signal *signal);
 static uint8_t TASK_MME_S1___Forge_HandoverCommand(Signal *signal);
 static uint8_t TASK_MME_S1___Replay_StatusTransfer(Signal *signal);
 static uint8_t TASK_MME_S1___Validate_HandoverNotify(Signal *signal);
+
+/* Forward declarations*/
+
+void S1_newUserSession(struct t_engine_data *engine, struct EndpointStruct_t* ep_S1, S1AP_Message_t *s1msg, uint16_t sid);
 
 
 /* ======================================================================
@@ -1391,7 +1400,7 @@ static uint8_t TASK_MME_S1___Forge_HandoverReq(Signal *signal){
 
 
     /* Send Response*/
-    s1_sendmsg(&(PDATA->user_ctx->hoCtx.target_s1), PDATA->sid, s1msg);
+    s1_sendmsg(PDATA->user_ctx->hoCtx.target_s1, PDATA->sid, s1msg);
 
     s1msg->freemsg(s1msg);
 
@@ -1558,7 +1567,7 @@ static uint8_t TASK_MME_S1___Replay_StatusTransfer(Signal *signal){
     s1msg->pdu->procedureCode = id_MMEStatusTransfer;
 
     /* Send Response*/
-    s1_sendmsg(&(user->hoCtx.target_s1), PDATA->sid, s1msg);
+    s1_sendmsg(user->hoCtx.target_s1, PDATA->sid, s1msg);
 
     return 0;
 }
@@ -1620,7 +1629,7 @@ static uint8_t TASK_MME_S1___Validate_HandoverNotify(Signal *signal){
 
     /*refresh endpoint and bearer parameters*/
     enb_id->eNB_id = user->hoCtx.target_eNB_id;
-    PDATA->s1 = &(user->hoCtx.target_s1);
+    PDATA->s1 = user->hoCtx.target_s1;
     PDATA->user_ctx->eNB_UE_S1AP_ID = user->hoCtx.target_eNB_id;
     user->ebearer[0].id = user->hoCtx.eRAB_ID.id;
     memcpy(&(user->ebearer[0].s1u_eNB.teid), user->hoCtx.GTP_TEID.teid, 4);

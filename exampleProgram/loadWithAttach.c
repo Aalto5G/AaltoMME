@@ -134,7 +134,7 @@ void deleteTestUEsonHSS(){
 }
 
 void addNewUEonHSS(uint64_t imsi){
-    int ret, err, i=0;
+    int ret, err=0, i=0;
     struct timeval stop;
 
     const char insert1[] = "INSERT INTO auth_vec values (234, 77, x'%.10llu', 0, "

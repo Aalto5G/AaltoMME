@@ -510,10 +510,6 @@ void s1_accept(evutil_socket_t listener, short event, void *arg){
     /*Check errors*/
     if (msg->length <= 0) {
 	    g_hash_table_remove(mme->s1ap, &listener);
-        /*Close socket*/
-        /* close(listener); */
-        /* /\*Delete event*\/ */
-        /* event_free(ep_S1->ev); */
         log_msg(LOG_INFO, 0, "Connection closed");
         freeMsg(msg);
         return;
@@ -521,6 +517,7 @@ void s1_accept(evutil_socket_t listener, short event, void *arg){
 
     /* If the packet is not a s1ap packet, it is silently rejected*/
     if(sndrcvinfo.sinfo_ppid != SCTP_S1AP_PPID){
+	    freeMsg(msg);
         return;
     }
 
@@ -576,18 +573,6 @@ void s1_accept_new_eNB(evutil_socket_t listener, short event, void *arg){
         log_msg(LOG_ERR, errno, "Error allocating Endpoint");
         return;
     }
-
-    /* tmp = (struct EndpointStruct_t**)realloc(mme->s1ap, (mme->nums1conn+1)*sizeof(struct EndpointStruct_t*) ); */
-    /* if (tmp!=NULL) { */
-    /*     mme->s1ap=tmp; */
-    /*     mme->s1ap[mme->nums1conn] = news1ep; */
-    /*     mme->nums1conn++; */
-    /* } */
-    /* else { */
-    /*     free (mme->s1ap); */
-    /*     log_msg(LOG_ERR, 0, "Error (re)allocating memory"); */
-    /*     exit (1); */
-    /* } */
 
     news1ep->socklen = sizeof(struct sockaddr);
 

@@ -18,10 +18,10 @@
 #ifndef MME_S1_HFILE
 #define MME_S1_HFILE
 
-#include "S1AP.h"
-#include "MME.h"
-#include "NAS_FSM.h"
 #include <netinet/sctp.h>
+
+#include "MME.h"
+#include "S1AP.h"
 
 #define S1AP_NONUESIGNALING_STREAM0 0
 
@@ -44,7 +44,7 @@ typedef struct S1_EndPoint_Info_c{
  *
  * This function send the S1 message using the SCTP protocol
  * */
-void free_S1_EndPoint_Info(S1_EndPoint_Info_t* epInfo);
+//void free_S1_EndPoint_Info(S1_EndPoint_Info_t* epInfo);
 
 
 /* ======================================================================
@@ -59,7 +59,7 @@ void free_S1_EndPoint_Info(S1_EndPoint_Info_t* epInfo);
  *
  * This function send the S1 message using the SCTP protocol
  * */
-void s1_sendmsg(struct EndpointStruct_t* ep_S1, uint32_t streamId, S1AP_Message_t *s1msg);
+//void s1_sendmsg(struct EndpointStruct_t* ep_S1, uint32_t streamId, S1AP_Message_t *s1msg);
 
 
 /* ======================================================================
@@ -84,11 +84,11 @@ struct t_process *S1_Setup(struct t_engine_data *self, struct t_process *owner, 
  *
  * Used to create a session structure on S1 State machine due to new user info message.
  */
-void S1_newUserSession(struct t_engine_data *engine, struct EndpointStruct_t* ep_S1, S1AP_Message_t *s1msg, uint16_t sid);
+//void S1_newUserSession(struct t_engine_data *engine, struct EndpointStruct_t* ep_S1, S1AP_Message_t *s1msg, uint16_t sid);
 
 /**@brief Trigger UE context Release
  * @param [in] session Session struct of the current user
  */
-void S1_UEContextRelease(struct SessionStruct_t *session);
+//void S1_UEContextRelease(struct SessionStruct_t *session);
 
 #endif /* MME_S1_HFILE */

@@ -66,6 +66,22 @@ struct EndpointStruct_t
     struct event        *ev;
 };
 
+
+/**
+ * Session Structure*/
+struct SessionStruct_t
+{
+    struct t_process            *sessionHandler;    /*Current process handler*/
+    struct t_signal_queue       *storedSignals;      /*Stored signals, used when changing between State Machines*/
+    struct user_ctx_t           *user_ctx;          /*User information*/
+    struct EndpointStruct_t     *s1;
+    struct EndpointStruct_t     *s11;
+    uint16_t                    sid;                /*SCTP stream used*/
+    uint8_t                     pendingRsp;         /*Pending Response Flag*/
+    UT_hash_handle              hh1;                /* TEID as index*/
+    UT_hash_handle              hh2;                /* MME UE S1AP ID as  index*/
+};
+
 struct t_message{
     union{
         uint8_t             raw[65547];
@@ -206,40 +222,6 @@ struct user_ctx_t{
 	uint8_t pco[0xff+2];   /* TLV Protocol Configuration Options*/
 };
 
-
-
-/**
- * Standard Procedures*/
-enum procedure{
-    EUTRAN_INITIAL_ATTACH,      /*E-UTRAN Initial Attach*/
-    UE_REQ_PDN_CONNECTIVITY,    /*UE requested PDN connectivity*/
-    TRACKING_AREA_UP_PROC_SGW,  /*Tracking Area Update procedure with Serving GW change*/
-    S1_HANDOVER,                /*S1-based handover*/
-    X2_HANDOVER,                /*X2-based handover*/
-    /*others*/
-    /*UTRAN Iu mode to E-UTRAN Inter RAT handover with SGW change*/
-    /*GERAN A/Gb mode to E-UTRAN Inter RAT handover with SGW change*/
-    /*3G Gn/Gp SGSN to MME combined hard handover and SRNS relocation procedure*/
-    /*Gn/Gp SGSN to MME Tracking Area Update procedure*/
-    /*Restoration of PDN connections after an SGW failure if the MME and PGW support these procedures as specified in 3GPP TS 23.007*/
-};
-
-/**
- * Session Structure*/
-struct SessionStruct_t
-{
-    struct t_process            *sessionHandler;    /*Current process handler*/
-    struct t_signal_queue       *storedSignals;      /*Stored signals, used when changing between State Machines*/
-    struct user_ctx_t           *user_ctx;          /*User information*/
-    struct EndpointStruct_t     *s1;
-    struct EndpointStruct_t     *s11;
-    uint16_t                    sid;                /*SCTP stream used*/
-    uint8_t                     pendingRsp;         /*Pending Response Flag*/
-    enum procedure              procedure;
-    UT_hash_handle              hh1;                /* TEID as index*/
-    UT_hash_handle              hh2;                /* MME UE S1AP ID as  index*/
-
-};
 
 /*@TODO Node structure*/
 struct mme_t{

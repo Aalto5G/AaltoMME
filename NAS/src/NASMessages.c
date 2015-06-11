@@ -329,7 +329,7 @@ void dec_PDNConnectivityRequest(PDNConnectivityRequest_t *msg, uint8_t *buffer, 
 
     /*Optionals*/
     opT = *buffer;
-    if(opT&0xF0 == 0xD0){
+    if((opT&0xF0) == 0xD0){
         /*ESM information transfer flag*/
         buffer++;
         size--;
