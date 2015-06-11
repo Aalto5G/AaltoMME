@@ -1,7 +1,6 @@
-*/.deps/
-*/.libs/
-*/*/.deps/
-*/*/.libs/
+**/.deps/
+**/.libs/
+**/.dirstamp
 *.o
 *.lo
 *.la
@@ -35,3 +34,6 @@ ltmain.sh
 missing
 test-driver
 .settings_*
+GPATH
+GRTAGS
+GTAGS
