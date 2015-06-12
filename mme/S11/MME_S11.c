@@ -16,7 +16,7 @@
  * The firsts ones implements the flow control and the second ones the processing
  */
 
-#include "MME_engine.h"
+//#include "MME_engine.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include "signals.h"
@@ -28,28 +28,62 @@
 #include "gtpie.h"
 #include "MME.h"
 
+typedef enum{
+	S11_new_user_test,
+	S11_attach,
+	S11_ModifyBearer,
+	S11_detach,
+	S11_createIndirectDataForwardingTunnel,
+    S11_handler_ready,
+    S11_handler_error,
+    S11_releaseAccessBearers,
+} S11_Signal;
+
+typedef void (*S11_STATE)(S11_user_t u, S11_Signal sig);
+
+typedef struct{
+    gpointer    mme;   /**< mme handler*/
+    int         fd;    /**< file descriptor of the s11 server*/
+    GHashTable *users; /**< s11 users by TEID*/
+}S11_t;
+
+typedef struct{
+	S11_t*    s11;    /**< s11 stack handler*/
+    S11_STATE state;  /**< s11 state for this user*/
+    uint32_t  lTEID;  /**< local control TEID*/
+    uint32_t  rTEID;  /**< remote control TEID*/
+    struct sockaddr     rAddr;       /**<Peer IP address, IPv4 or IPv6*/
+    socklen_t           rAddrLen;    /**<Peer Socket length returned by recvfrom*/
+    struct user_ctx_t *user; /**< User information*/
+}S11_user_t;
+
+void s11_accept(evutil_socket_t listener, short event, void *arg);
+
+//TO REMOVE
+struct t_process *S11_handler_create(struct t_engine_data *engine, struct t_process *owner);
+//
 /* ======================================================================
  * TASK Prototypes
  * ====================================================================== */
 
 
-static void TASK_MME_S11___CreateContextResp(Signal *signal);
+static void TASK_MME_S11___CreateContextResp(S11_user_t u, S11_Signal sig);
 
-static void TASK_MME_S11___removeCtx(Signal *signal);
+static void TASK_MME_S11___removeCtx(S11_user_t u, S11_Signal sig);
 
-static void TASK_MME_S11___newCtx(Signal *signal);
+static void TASK_MME_S11___newCtx(S11_user_t u, S11_Signal sig);
 
-static void TASK_MME_S11___processHandler(Signal *signal);
+static void TASK_MME_S11___processHandler(S11_user_t u, S11_Signal sig);
 
-static void TASK_MME_S11___Forge_ModifyBearerReqAttach(Signal *signal);
+static void TASK_MME_S11___Forge_ModifyBearerReqAttach(S11_user_t u, S11_Signal sig);
 
-static uint8_t TASK_MME_S11___validate_ModifyBearerReq(Signal *signal);
+static uint8_t TASK_MME_S11___validate_ModifyBearerReq(S11_user_t u, S11_Signal sig);
 
-static void TASK_MME_S11___Forge_CreateIndirectDataForwardingTunnel(Signal *signal);
+static void TASK_MME_S11___Forge_CreateIndirectDataForwardingTunnel(S11_user_t u, S11_Signal sig);
 
-static uint8_t TASK_MME_S11___Validate_createIndirectDataForwardingTunnelRsp(Signal *signal);
+static uint8_t TASK_MME_S11___Validate_createIndirectDataForwardingTunnelRsp(S11_user_t u, S11_Signal sig);
 
-static void TASK_MME_S11___handler_error(Signal *signal);
+static void TASK_MME_S11___handler_error(S11_user_t u, S11_Signal sig);
 
 /* ======================================================================
  * S11 FSM State Prototypes
@@ -68,22 +102,120 @@ static void TASK_MME_S11___handler_error(Signal *signal);
  *  If a PCRF is deployed, the PDN GW employs an IP-CAN Session Termination procedure to indicate that
  *  resources have been released.
  */
-static int STATE_attach(Signal *signal);
+static int STATE_attach(S11_user_t u, S11_Signal sig);
 
+/* ======================================================================*/
+
+static S11_user_t *s11_newUser(S11_t *s11, struct user_ctx_t *user){
+	S11_user_t *u = g_new(S11_user_t, 1);
+	u->lTEID = newTeid();
+	u->rTEID = 0;
+	u->state = STATE_Handle_Recv_Msg;
+	u->user  = user;
+
+	g_hash_table_insert(s11->users, &(u->lTEID), u);
+
+	return u;
+}
+
+static void s11_freeUser(S11_user_t *self){
+	g_hash_table_remove(self->s11->users, &(self->lTEID));
+	g_free(self);
+}
+
+static gboolean s11_UserhasPendingResp(S11_user_t *self){
+	
+	return TRUE;
+}
+
+
+gpointer s11_init(gpointer mme){
+    S11_t *self = g_new(S11_t, 1);
+
+    self->mme = mme;
+
+    /*Init S11 server*/
+    self->fd =init_udp_srv(GTP2C_PORT);
+    log_msg(LOG_INFO, 0, "Open S11 server on file descriptor %d, port %d",
+            self->fd, GTP2C_PORT);
+
+    mme_registerRead(self->mme, self->fd, s11_accept, self);
+
+    self->users = g_hash_table_new_full( g_int_hash,
+                                         g_int_equal,
+                                         NULL,
+                                         (GDestroyNotify)s11_freeUser);
+    return self;
+}
+
+void s11_free(gpointer s11_h){
+	S11_t *self = (S11_t *) s11_h;
+
+	g_hash_table_destroy(self->users);
+	mme_deregisterRead(self->mme, self->fd);
+	close(self->fd);
+    g_free(self);
+}
+
+
+void s11_accept(evutil_socket_t listener, short event, void *arg){
+
+    uint32_t teid;
+    struct SessionStruct_t *session;
+    S11_Signal *output;
+    struct t_message *msg;
+
+    S11_t *self = (S11_t *) arg;
+    S11_user_t * u;
+
+    msg = newMsg();
+    msg->packet.gtp.flags=0x0;
+    gtp2_recv(listener, &(msg->packet.gtp), &(msg->length),
+              (struct sockaddr_in*)&(msg->peer.peerAddr),
+              &(msg->peer.socklen));
+    msg->peer.fd = listener;
+
+    if(msg->packet.gtp.gtp2s.h.type<4){
+        /* TODO @Vicent :Manage echo request, echo response or version not suported*/
+        log_msg(LOG_INFO, 0, "S11 recv echo request,"
+                " echo response or version not suported msg");
+        print_packet(&(msg->packet), msg->length);
+        return;
+    }
+
+    teid = ntoh32(msg->packet.gtp.gtp2l.h.tei);
+
+    /*Look if there is any process waiting a response*/
+    if (! g_hash_table_lookup_extended(self->users, &teid, NULL, (gpointer*)&u)){
+	    log_errpack(LOG_INFO, 0, (struct sockaddr_in*)&(msg->peer.peerAddr),
+	                &(msg->packet), msg->length,
+	                "S11 received packet with unknown TEID (%#X), ignoring packet", &teid);
+	    return;
+    }
+
+    if (s11_UserhasPendingResp( u)){
+	    log_msg(LOG_DEBUG, 0, "Received pending S11 reply");
+	    u->state(u, S11_handler_ready)
+    }
+    else{
+	    log_msg(LOG_DEBUG, 0, "Received new S11 request");
+	    u->state(u, S11_handler_ready)
+    }
+}
 
 /* ======================================================================
  * S11 FSM State Implementations
  * ====================================================================== */
 
-static int STATE_Handle_Recv_Msg(Signal *signal)
+static int STATE_Handle_Recv_Msg(S11_user_t u, S11_Signal sig)
 {
 
     INIT_TIME_MEASUREMENT_ENVIRONMENT
 
-    Signal *output;
+    S11_Signal *output;
     log_msg(LOG_DEBUG, 0, "Enter STATE_Handle_Recv_Msg.");
 
-    switch(signal->name){
+    switch(sig){
     case S11_attach:
         TASK_MME_S11___processHandler(signal);
 
@@ -126,14 +258,14 @@ static int STATE_Handle_Recv_Msg(Signal *signal)
         break;
     case S11_releaseAccessBearers:
         run_parent(signal);
-      
+
     default:
         break;
     }
     return 0;
 }
 
-static int STATE_Delete_User_Session(Signal *signal)
+static int STATE_Delete_User_Session(S11_user_t u, S11_Signal sig)
 {
 
     INIT_TIME_MEASUREMENT_ENVIRONMENT
@@ -158,8 +290,8 @@ static int STATE_Delete_User_Session(Signal *signal)
     return 0;
 }
 
-static int STATE_attach(Signal *signal){
-    Signal *output, *contCreateUserctx;
+static int STATE_attach(S11_user_t u, S11_Signal sig){
+    S11_Signal *output, *contCreateUserctx;
     struct t_process *old;
     struct user_ctx_t *user = NULL;
 
@@ -167,7 +299,7 @@ static int STATE_attach(Signal *signal){
 
     log_msg(LOG_DEBUG, 0, "Enter");
 
-    switch (signal->name)
+    switch (sig)
     {
     case S11_attach:
         /*  Look for active bearer contexts */
@@ -206,8 +338,10 @@ static int STATE_attach(Signal *signal){
             log_msg(LOG_DEBUG, 0, "User Context doesn't exist, creating a new one.");
             /*  Add User context to storage*/
             store_user_ctx(PDATA->user_ctx);
-            s6a_UpdateLocation(PROC->engine, PDATA);
-            return 1;      /* Signal to continue with the context recreate after S6*/
+            s6a_UpdateLocation(SELF_ON_SIG->s6a, user,
+                              (void(*)(gpointer)) sendFirstStoredS11_Signal,
+                              (gpointer)PDATA->sessionHandler);
+            return 1;      /* S11_Signal to continue with the context recreate after S6*/
         }
         break;
     case S11_ModifyBearer:
@@ -227,7 +361,7 @@ static int STATE_attach(Signal *signal){
     /*return 1;   Save signal on process*/
 }
 
-static int STATE_CreateIndirectDataForwardingTunnel(Signal *signal)
+static int STATE_CreateIndirectDataForwardingTunnel(S11_user_t u, S11_Signal sig)
 {
     log_msg(LOG_DEBUG, 0, "Enter");
 
@@ -245,7 +379,7 @@ static int STATE_CreateIndirectDataForwardingTunnel(Signal *signal)
     return 0;
 }
 
-static int STATE_ReleaseAccessBearers(Signal *signal)
+static int STATE_ReleaseAccessBearers(S11_user_t u, S11_Signal sig)
 {
     log_msg(LOG_DEBUG, 0, "Enter");
 
@@ -271,11 +405,11 @@ static int STATE_ReleaseAccessBearers(Signal *signal)
  * ====================================================================== */
 
 
-void TASK_MME_S11___handler_error(Signal *signal){
+void TASK_MME_S11___handler_error(S11_user_t u, S11_Signal sig){
 
 }
 
-void TASK_MME_S11___CreateContextResp(Signal *signal){
+void TASK_MME_S11___CreateContextResp(S11_user_t u, S11_Signal sig){
 
     struct t_message *msg;
     union gtpie_member *ie[GTPIE_SIZE], *bearerCtxGroupIE[GTPIE_SIZE];
@@ -343,8 +477,8 @@ void TASK_MME_S11___CreateContextResp(Signal *signal){
 
         /* EPS Bearer ID*/
         gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_EBI, 0, value, &vsize);
-    	memcpy(&(PDATA->user_ctx->ebearer[0].id), value, vsize);
-    	log_msg(LOG_DEBUG, 0, "EPC Bearer ID = %u", PDATA->user_ctx->ebearer[0].id);
+        memcpy(&(PDATA->user_ctx->ebearer[0].id), value, vsize);
+        log_msg(LOG_DEBUG, 0, "EPC Bearer ID = %u", PDATA->user_ctx->ebearer[0].id);
 
         /* F-TEID S1-U (SGW)*/
         gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_FTEID, 0, value, &vsize);
@@ -374,7 +508,7 @@ void TASK_MME_S11___CreateContextResp(Signal *signal){
 
 }
 
-void TASK_MME_S11___removeCtx(Signal *signal){
+void TASK_MME_S11___removeCtx(S11_user_t u, S11_Signal sig){
     /*  Send  Delete Session Request to SGW */
     struct user_ctx_t *user;
     union gtp_packet packet;
@@ -440,7 +574,7 @@ void TASK_MME_S11___removeCtx(Signal *signal){
 
 };
 
-void TASK_MME_S11___newCtx(Signal *signal){
+void TASK_MME_S11___newCtx(S11_user_t u, S11_Signal sig){
     /* TODO @Vicent
      * The new MME selects a Serving GW as described in clause 4.3.8.2 3GPP 23.401 on Serving GW selection function and
      * allocates an EPS Bearer Identity for the Default Bearer associated with the UE.
@@ -565,12 +699,12 @@ void TASK_MME_S11___newCtx(Signal *signal){
 
     /*Protocol Configuration Options*/
     if(user->pco[0]==0x27){
-	    ie[ienum].tliv.i=0;
-	    ie[ienum].tliv.l=hton16(user->pco[1]);
-	    ie[ienum].tliv.t=GTPV2C_IE_PCO;
-	    tmp = user->pco+2;
-	    memcpy(ie[ienum].tliv.v, tmp, user->pco[1]);
-	    ienum++;
+        ie[ienum].tliv.i=0;
+        ie[ienum].tliv.l=hton16(user->pco[1]);
+        ie[ienum].tliv.t=GTPV2C_IE_PCO;
+        tmp = user->pco+2;
+        memcpy(ie[ienum].tliv.v, tmp, user->pco[1]);
+        ienum++;
     }
     /*Bearer contex*/
         /*EPS Bearer ID */
@@ -629,7 +763,7 @@ void TASK_MME_S11___newCtx(Signal *signal){
 
 };
 
-void TASK_MME_S11___processHandler(Signal *signal){
+void TASK_MME_S11___processHandler(S11_user_t u, S11_Signal sig){
 
     struct t_message *msg;
     union gtpie_member *ie[GTPIE_SIZE];
@@ -647,7 +781,7 @@ void TASK_MME_S11___processHandler(Signal *signal){
 
     switch(msg->packet.gtp.gtp2l.h.type){
     case GTP2_CREATE_SESSION_RSP:
-    	TASK_MME_S11___CreateContextResp(signal);
+        TASK_MME_S11___CreateContextResp(signal);
 
         break;
     case GTP2_DELETE_SESSION_RSP:
@@ -679,7 +813,7 @@ void TASK_MME_S11___processHandler(Signal *signal){
     }
 };
 
-void TASK_MME_S11___Forge_ModifyBearerReqAttach(Signal *signal){
+void TASK_MME_S11___Forge_ModifyBearerReqAttach(S11_user_t u, S11_Signal sig){
     struct user_ctx_t *user;
     union gtp_packet packet;
     struct fteid_t  fteid;
@@ -752,7 +886,7 @@ void TASK_MME_S11___Forge_ModifyBearerReqAttach(Signal *signal){
 
 }
 
-uint8_t TASK_MME_S11___validate_ModifyBearerReq(Signal *signal){
+uint8_t TASK_MME_S11___validate_ModifyBearerReq(S11_user_t u, S11_Signal sig){
     struct t_message *msg;
     union gtpie_member *ie[GTPIE_SIZE], *bearerCtxGroupIE[GTPIE_SIZE];
     uint8_t value[40];
@@ -808,7 +942,7 @@ uint8_t TASK_MME_S11___validate_ModifyBearerReq(Signal *signal){
     return 0;
 }
 
-void TASK_MME_S11___Forge_CreateIndirectDataForwardingTunnel(Signal *signal){
+void TASK_MME_S11___Forge_CreateIndirectDataForwardingTunnel(S11_user_t u, S11_Signal sig){
     union gtp_packet packet;
     struct fteid_t  dl_fteid, ul_fteid;
     size_t peerlen;
@@ -907,7 +1041,7 @@ void TASK_MME_S11___Forge_CreateIndirectDataForwardingTunnel(Signal *signal){
 
 }
 
-uint8_t TASK_MME_S11___Validate_createIndirectDataForwardingTunnelRsp(Signal *signal){
+uint8_t TASK_MME_S11___Validate_createIndirectDataForwardingTunnelRsp(S11_user_t u, S11_Signal sig){
     struct t_message *msg;
     union gtpie_member *ie[GTPIE_SIZE], *bearerCtxGroupIE[GTPIE_SIZE];
     uint8_t value[40];
@@ -973,109 +1107,67 @@ uint8_t TASK_MME_S11___Validate_createIndirectDataForwardingTunnelRsp(Signal *si
 /* ======================================================================
  * S11 API Implementation
  * ====================================================================== */
-
-struct t_process *S11_handler_create(struct t_engine_data *engine, struct t_process *owner)
-{
+/**@brief Create S11 process structure
+ * @param [in]  engine Engine reference
+ * @param [in]  owner Parent process.
+ *
+ */
+struct t_process *S11_handler_create(struct t_engine_data *engine, struct t_process *owner){
     struct t_process    *pSelf = (struct t_process *)NULL;  /* agent process */
 
     pSelf = process_create(engine, STATE_Handle_Recv_Msg, NULL, owner);
     return pSelf;
 }
 
-void S11_newUserAttach(struct t_engine_data *engine, struct SessionStruct_t *session){
-    Signal *output;
-    struct t_process proc;
+gpointer S11_newUserAttach(gpointer s11_h, struct user_ctx_t *user,
+                        void(*cb)(gpointer), gpointer args){
     log_msg(LOG_DEBUG, 0, "enter S11_newUserAttach()");
 
+	S11_t *self = (S11_t *) s11_h;
+
     /* New MME TEID for the new user*/
-    if(session->user_ctx->S11MMETeid == 0){
-        session->user_ctx->S11MMETeid = newTeid();
-    }
+	S11_user_t *u = s11_newUser(self, user);
 
-    /* Use SGW TEID 0 for first message*/
-    session->user_ctx->s11.teid = 0;
+	u->state = STATE_attach;
+	u->state(u, S11_attach);
 
-    /*Create a new process to manage the S11 state machine. The older session handler is stored as parent
-     * to return once the S11 state machine ends*/
-    session->sessionHandler = process_create(engine, STATE_attach, (void *)session, session->sessionHandler);
-
-    output = new_signal(session->sessionHandler);
-    /*output->data = (void *)session;*/
-    output->name = S11_attach;
-    output->priority = MAXIMUM_PRIORITY;
-    signal_send(output);
+	//cb(args);
+	return u;
 }
 
 
-void S11_Attach_ModifyBearerReq(struct t_engine_data *engine, struct SessionStruct_t *session){
-    Signal *output;
-    struct t_process proc;
+void S11_Attach_ModifyBearerReq(gpointer s11_user, void(*cb)(gpointer), gpointer args){
     log_msg(LOG_DEBUG, 0, "enter");
 
-    session->s11 = &(session->sessionHandler->engine->mme->s11);   /*Select SGW endpoint structure before entering to S11 state machine*/
+    u->state = STATE_attach;
+	u->state(u, S11_ModifyBearer);
 
-    /*Create a new process to manage the S11 state machine. The older session handler is stored as parent
-    * to return once the S11 state machine ends*/
-    session->sessionHandler = process_create(engine, STATE_attach, (void *)session, session->sessionHandler);
-
-    output = new_signal(session->sessionHandler);
-    output->name = S11_ModifyBearer;
-    output->priority = MAXIMUM_PRIORITY;
-    signal_send(output);
+	//cb(args);
 }
 
-void S11_dettach(struct t_engine_data *engine, struct SessionStruct_t *session)
-{
-    Signal *output;
-    struct t_process proc;
+void S11_dettach(gpointer s11_user, void(*cb)(gpointer), gpointer args){
     log_msg(LOG_DEBUG, 0, "enter");
 
-    session->s11 = &(session->sessionHandler->engine->mme->s11);   /*Select SGW endpoint structure before entering to S11 state machine*/
+    u->state = STATE_Delete_User_Session;
+	u->state(u, S11_detach);
 
-    /*Create a new process to manage the S11 state machine. The older session handler is stored as parent
-    * to return once the S11 state machine ends*/
-    session->sessionHandler = process_create(engine, STATE_Delete_User_Session, (void *)session, session->sessionHandler);
-
-    output = new_signal(session->sessionHandler);
-    output->name = S11_detach;
-    output->priority = MAXIMUM_PRIORITY;
-    signal_send(output);
-
+	//cb(args);
 }
 
-void S11_ReleaseAccessBearers(struct t_engine_data *engine, struct SessionStruct_t *session)
-{
-    Signal *output;
-    struct t_process proc;
+void S11_ReleaseAccessBearers(gpointer s11_user, void(*cb)(gpointer), gpointer args){
     log_msg(LOG_DEBUG, 0, "enter");
 
-    session->s11 = &(session->sessionHandler->engine->mme->s11);   /*Select SGW endpoint structure before entering to S11 state machine*/
+    u->state = STATE_ReleaseAccessBearers;
+	u->state(u, S11_releaseAccessBearers);
 
-    /*Create a new process to manage the S11 state machine. The older session handler is stored as parent
-    * to return once the S11 state machine ends*/
-    session->sessionHandler = process_create(engine, STATE_ReleaseAccessBearers, (void *)session, session->sessionHandler);
-
-    output = new_signal(session->sessionHandler);
-    output->name = S11_releaseAccessBearers;
-    output->priority = MAXIMUM_PRIORITY;
-    signal_send(output);
+	//cb(args);
 }
 
-void S11_CreateIndirectDataForwardingTunnel(struct t_engine_data *engine, struct SessionStruct_t *session)
-{
-    Signal *output;
-    struct t_process proc;
-    log_msg(LOG_DEBUG, 0, "enter");
+/* void S11_CreateIndirectDataForwardingTunnel(gpointer s11_user, void(*cb)(gpointer), gpointer args){ */
+/*     log_msg(LOG_DEBUG, 0, "enter"); */
 
-    session->s11 = &(session->sessionHandler->engine->mme->s11);   /*Select SGW endpoint structure before entering to S11 state machine*/
+/*     u->state = STATE_CreateIndirectDataForwardingTunnel; */
+/* 	u->state(u, S11_createIndirectDataForwardingTunnel); */
 
-    /*Create a new process to manage the S11 state machine. The older session handler is stored as parent
-    * to return once the S11 state machine ends*/
-    session->sessionHandler = process_create(engine, STATE_CreateIndirectDataForwardingTunnel, (void *)session, session->sessionHandler);
-
-    output = new_signal(session->sessionHandler);
-    output->name = S11_createIndirectDataForwardingTunnel;
-    output->priority = MAXIMUM_PRIORITY;
-    signal_send(output);
-
-}
+/* 	//cb(args); */
+/* } */

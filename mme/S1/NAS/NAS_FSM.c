@@ -170,7 +170,10 @@ void stateESM_BearerContextInactive(uint8_t *returnbuffer, uint32_t *bsize, Gene
             PDATA->s11 = &(SELF_ON_SIG->s11);   /*Select SGW endpoint structure before entering to S11 state machine*/
             TASK_PDNConnectivityReqParse(returnbuffer, bsize, msg, signal);
 
-            S11_newUserAttach(PROC->engine, PDATA);   /*Enter S11 State Machine to set user context*/
+            /*Enter S11 State Machine to set user context*/
+            user->s11 = S11_newUserAttach(SELF_ON_SIG->s11, user,
+                              (void(*)(gpointer)) sendFirstStoredSignal,
+                              (gpointer)PDATA->sessionHandler);
         }
         break;
     }
@@ -395,7 +398,9 @@ void stateEMM_Registered(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg_t
             save_signal(continueDetach);      /* Signal to continue with the authentication to S11*/
             PDATA->user_ctx->stateNAS_EMM = EMM_Specific_Procedure_Initiated;
 
-            S11_dettach(PROC->engine, PDATA);
+            S11_dettach(user->s11,
+                        (void(*)(gpointer)) sendFirstStoredSignal,
+                        (gpointer)PDATA->sessionHandler);
             Controller_newDetach(PROC->engine, PDATA);
         }
     }else if (msg->plain.eMM.messageType == TrackingAreaUpdateRequest){

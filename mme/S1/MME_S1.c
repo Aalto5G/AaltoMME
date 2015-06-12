@@ -374,12 +374,16 @@ static int STATE_S1_Active(Signal *signal){
         if(PDATA->user_ctx->stateNAS_EMM == EMM_Specific_Procedure_Initiated) flag=1;
         TASK_MME_S1___TransparentNAS(signal);
         if(PDATA->user_ctx->stateNAS_EMM == EMM_Registered && flag){
-            S11_Attach_ModifyBearerReq(PROC->engine, PDATA);
+            S11_Attach_ModifyBearerReq(PDATA->user_ctx->s11,
+                              (void(*)(gpointer)) sendFirstStoredSignal,
+                              (gpointer)PDATA->sessionHandler);
         }
 
     }else if(signal->name == S1_PathSwitchRequest){
         if(TASK_MME_S1___Validate_PathSwitchRequest(signal)==0){
-            S11_Attach_ModifyBearerReq(PROC->engine, PDATA);
+	        S11_Attach_ModifyBearerReq(PDATA->user_ctx->s11,
+	                                   (void(*)(gpointer)) sendFirstStoredSignal,
+	                                   (gpointer)PDATA->sessionHandler);
             Controller_newHandover(PROC->engine, PDATA);
             signal->name = S1_PathSwitchACK;
             save = 1;
@@ -431,13 +435,15 @@ static int STATE_S1_Active(Signal *signal){
             TASK_MME_S1___Replay_StatusTransfer(signal);
         }else if(s1msg->pdu->procedureCode == id_UEContextReleaseRequest){
           //if (TASK_MME_S1___Validate_UEContextReleaseRequest(signal)==0){
-                output = new_signal(PDATA->sessionHandler);
-                output->name = S1_UE_Context_Release;
-                output->priority = MAXIMUM_PRIORITY/2;
-                set_timeout(output, 0, 500000);
-                S11_ReleaseAccessBearers(PROC->engine, PDATA);
-                //}
-
+	        output = new_signal(PDATA->sessionHandler);
+	        output->name = S1_UE_Context_Release;
+	        output->priority = MAXIMUM_PRIORITY/2;
+	        set_timeout(output, 0, 500000);
+	        S11_ReleaseAccessBearers(PDATA->user_ctx->s11,
+	                                 (void(*)(gpointer)) sendFirstStoredSignal,
+	                                 (gpointer)PDATA->sessionHandler);
+	        //}
+	        
         }else if(s1msg->pdu->procedureCode == id_HandoverNotification){
             if(TASK_MME_S1___Validate_HandoverNotify(signal)==0){
                 output = new_signal(PDATA->sessionHandler);
@@ -445,7 +451,9 @@ static int STATE_S1_Active(Signal *signal){
                 output->priority = MAXIMUM_PRIORITY/2;
                 set_timeout(output, 0, 500000);
 
-                S11_Attach_ModifyBearerReq(PROC->engine, PDATA);
+                S11_Attach_ModifyBearerReq(PDATA->user_ctx->s11,
+                                           (void(*)(gpointer)) sendFirstStoredSignal,
+                                           (gpointer)PDATA->sessionHandler);
                 Controller_newHandover(PROC->engine, PDATA);
             }
 
@@ -500,7 +508,9 @@ static int STATE_S1_SetupOfUEContext(Signal *signal){
             /* Attach message not received yet, add session to pending response*/
             addToPendingResponse(PDATA);
         }else{
-            S11_Attach_ModifyBearerReq(PROC->engine, PDATA);
+	        S11_Attach_ModifyBearerReq(PDATA->user_ctx->s11,
+	                                   (void(*)(gpointer)) sendFirstStoredSignal,
+	                                   (gpointer)PDATA->sessionHandler);
         }
         signal->processTo->next_state = STATE_S1_Active;
     }else if(s1msg->choice == unsuccessfull_outcome){
