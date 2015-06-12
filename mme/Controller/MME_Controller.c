@@ -108,7 +108,7 @@ static int STATE_Existing_User_Handover(Signal *signal){
 	return 0;   /*free signal & send stored signals on process*/
 }
 
-static int STATE_Handle_Recv_Msg(Signal *signal){
+static int STATE_Handle_Recv_Msg_C(Signal *signal){
 
 	INIT_TIME_MEASUREMENT_ENVIRONMENT
 
@@ -132,7 +132,7 @@ static int STATE_Handle_Recv_Msg(Signal *signal){
 struct t_process *Controller_handler_create(struct t_engine_data *engine, struct t_process *owner)
 {
 	struct t_process *pSelf = (struct t_process *)NULL;  /* agent process */
-	pSelf = process_create(engine, STATE_Handle_Recv_Msg, NULL, owner);
+	pSelf = process_create(engine, STATE_Handle_Recv_Msg_C, NULL, owner);
 	return pSelf;
 }
 
