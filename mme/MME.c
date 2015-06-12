@@ -38,19 +38,6 @@
 
 int mme_run_flag=0;
 
-/***********************************************
-SIGINT handler
-***********************************************/
-void termination_handler (int signum)
-{
-    if(mme_run!=NULL){
-        mme_run_flag=0;
-        log_msg(LOG_INFO, 0, "SIGINT detected. Closing MME");
-    }else{
-        log_msg(LOG_INFO, 0, "SIGINT detected.");
-        exit(0);
-    }
-}
 
 void free_ep(gpointer data){
     struct EndpointStruct_t* ep = (struct EndpointStruct_t*)data;
@@ -643,9 +630,6 @@ void ctrl_accept(evutil_socket_t listener, short event, void *arg){
     signal_send(output);
 }
 
-/**/
-const struct timeval delay = { 1, 0 }; /* 1 sec 0 usec*/
-
 void kill_handler(evutil_socket_t listener, short event, void *arg){
   struct mme_t *mme = (struct mme_t *)arg;
 
@@ -656,9 +640,6 @@ void kill_handler(evutil_socket_t listener, short event, void *arg){
     log_msg(LOG_INFO, 0, "SIGINT detected.");
     exit(0);
   }
-
-  event_base_loopexit(mme->evbase, &delay);
-
 }
 
 
