@@ -125,21 +125,12 @@ void s6a_SynchAuthVector(gpointer s6a_h, struct user_ctx_t *user, uint8_t *auts,
 }
 
 
-void s6a_UpdateLocation(struct t_engine_data *engine, struct SessionStruct_t *session){
+void s6a_UpdateLocation(gpointer s6a_h, struct user_ctx_t *user,
+                        void(*cb)(gpointer), gpointer args){
 
-    Signal *output;
-    struct t_process proc;
-    log_msg(LOG_DEBUG, 0, "Enter S6a State Machine");
-
-    /*Create a new process to manage the S6a state machine. The older session handler is stored as parent
-     * to return once the S6a state machine ends*/
-    session->sessionHandler = process_create(engine, STATE_S6a_UpdateLocation, (void *)session, session->sessionHandler);
-
-    output = new_signal(session->sessionHandler);
-    /*output->data = (void *)session;*/
-    /*output->name = S6a_getAuthVector;*/
-    output->priority = MAXIMUM_PRIORITY;
-    signal_send(output);
+	struct s6a_t *s6a = (struct s6a_t*) s6a_h;
+	HSS_UpdateLocation(user, mme_getServedGUMMEIs(s6a->mme));
+	cb(args);
 }
 
 /* ====================================================================== */

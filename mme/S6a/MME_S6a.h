@@ -43,7 +43,8 @@ void s6a_GetAuthVector(gpointer s6a_h, struct user_ctx_t *user,
 void s6a_SynchAuthVector(gpointer s6a_h, struct user_ctx_t *user, uint8_t *auts,
                          void(*cb)(gpointer), gpointer args);
 
-void s6a_UpdateLocation(struct t_engine_data *engine, struct SessionStruct_t *session);
+void s6a_UpdateLocation(gpointer s6a_h, struct user_ctx_t *user,
+                        void(*cb)(gpointer), gpointer args);
 
 
 #endif /* MME_S6a_HFILE */

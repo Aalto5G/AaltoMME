@@ -441,7 +441,7 @@ void HSS_syncAuthVec(struct user_ctx_t *user, uint8_t * auts){
     }
 }
 
-void HSS_UpdateLocation(struct user_ctx_t *user, ServedGUMMEIs_t * sGUMMEIs){
+void HSS_UpdateLocation(struct user_ctx_t *user, const ServedGUMMEIs_t * sGUMMEIs){
 
     MYSQL_RES *result;
     MYSQL_ROW row;
