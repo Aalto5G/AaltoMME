@@ -125,7 +125,7 @@ struct user_ctx_t{
 	/*MEI Mobile Equipment Identity*/
 
 	/*MME IP addr for S11*/
-	struct fteid_t	s11;
+	gpointer	s11; //TEMPORAL LOCATION
 
 	/*F-TEID PGW S5/S8 Address for Control Plane or PMIP */
 	struct fteid_t	s5s8;
@@ -232,12 +232,12 @@ struct mme_t{
     uint32_t                ipv4;
     ServedGUMMEIs_t         *servedGUMMEIs;
     RelativeMMECapacity_t   *relativeCapacity;
-    struct EndpointStruct_t s11;
     struct EndpointStruct_t s1;                             /*< Server endpoint*/
-    struct EndpointStruct_t ctrl;                             /*< Server endpoint*/
-	GHashTable *            s1ap;                         /*< SCTP endpoint connections*/
+    struct EndpointStruct_t ctrl;                           /*< Server endpoint*/
+	GHashTable *            s1ap;                           /*< SCTP endpoint connections*/
+	GHashTable *            ev_readers;                     /*< Listener events accessed by socket*/
 	gpointer                s6a;
-	/*struct EndpointStruct_t **s1ap;*/                         /*< SCTP endpoint connections*/
+	gpointer                s11;
     uint32_t                nums1conn;                      /*< Number of S1 Connections*/
     struct SessionStruct_t  *s1apUsersbyLocalID[MAX_UE];    /*< UE MME ID to session relation vector*/
     struct EndpointStruct_t command;
@@ -263,12 +263,10 @@ struct mme_t{
 extern int init_udp_srv(int port);
 
 extern int mme_run();
-extern void free_mme();
 
 extern struct t_message *newMsg();
 extern void freeMsg( void *msg);
 
-extern void s11_accept(evutil_socket_t listener, short event, void *arg);
 extern void s1_accept_new_eNB(evutil_socket_t listener, short event, void *arg);
 extern void s1_accept(evutil_socket_t listener, short event, void *arg);
 extern void ctrl_accept(evutil_socket_t listener, short event, void *arg);
@@ -294,5 +292,37 @@ extern unsigned int newTeid();
 extern uint32_t getNewLocalUEid(struct  SessionStruct_t  * s);
 
 extern struct EndpointStruct_t *get_ep_with_GlobalID(struct mme_t *mme, TargeteNB_ID_t *t);
+
+
+/**************************************************/
+/* Accessors                                      */
+/**************************************************/
+
+extern const ServedGUMMEIs_t *mme_getservedGUMMEIs(const struct mme_t *mme);
+
+
+/**************************************************/
+/* API towards state machines                     */
+/**************************************************/
+
+/**@brief Register a read callback for a socket
+ * @param [in] self MME pointer
+ * @param [in] fd   File descriptor to register
+ * @param [in] cb   Callback invoked when the fd becomes active
+ * @param [in] args Arguments used in the callback
+ *
+ * The socket needs to be deregistered before exiting the program with
+ * the function mme_deregisterRead
+ */
+void mme_registerRead(struct mme_t *self, int fd,
+                      event_callback_fn cb, void * args);
+
+/**@brief Deregister a read callback
+ * @param [in] self MME pointer
+ * @param [in] fd   File descriptor to register
+ *
+ * Deregisters a callback registered with mme_registerRead
+ */
+void mme_deregisterRead(struct mme_t *self, int fd);
 
 #endif /* MME_HFILE */

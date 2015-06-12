@@ -159,9 +159,7 @@ int mme_init_ifaces(struct mme_t *self){
     log_msg(LOG_INFO, 0, "Open command server on file descriptor %d, port %d", self->command.fd, COMMAND_PORT);
 
     /*Init S11 server*/
-    self->s11.fd =init_udp_srv(GTP2C_PORT);
-    self->s11.portState=opened;
-    log_msg(LOG_INFO, 0, "Open S11 server on file descriptor %d, port %d", self->s11.fd, GTP2C_PORT);
+    self->s11 = s11_init((gpointer)self);
 
     /*Init S1 server*/
     self->s1.fd =init_sctp_srv(S1AP_PORT, self->ipv4);
@@ -187,10 +185,8 @@ int mme_close_ifaces(struct mme_t *self){
         close(self->command.fd);
         self->command.portState = closed;
     }
-    if( self->s11.portState != closed){
-        close(self->s11.fd);
-        self->s11.portState = closed;
-    }
+
+    s11_free(self->s11);
 
     if( self->s1.portState != closed){
         close(self->s1.fd);
@@ -209,18 +205,28 @@ int mme_close_ifaces(struct mme_t *self){
     return 0;
 }
 
+
+void mme_registerRead(struct mme_t *self, int fd, event_callback_fn cb, void * args){
+    struct event *ev;
+    ev = event_new(self->evbase, fd, EV_READ|EV_PERSIST, (event_callback_fn)cb, args);
+    evutil_make_socket_nonblocking(fd);
+    event_add(ev, NULL);
+    g_hash_table_insert(self->ev_readers, &fd, ev);
+}
+
+void mme_deregisterRead(struct mme_t *self, int fd){
+    g_hash_table_remove(self->ev_readers, &fd);
+}
+
+
 /**@brief Initialize mme structure
  */
 int mme_run(struct mme_t *self){
 
     struct event_base       *base;                          /*< libevent base loop*/
-    struct event            *listener_S11;                  /*< S11 Interface event*/
-    struct event            *listener_S1;                   /*< S1 Interface event*/
-    struct event            *listener_Ctrl;                 /*< listener_Ctrl Interface event*/
-    struct event            *listener_command;              /*< Command Interface event*/
     struct event            *kill_event;                    /*< Kill Posix signal event*/
 
-    int i = 0, allocated = 0;
+    int allocated = 0;
 
     if(self==NULL){
         self = malloc(sizeof(struct mme_t));
@@ -247,56 +253,55 @@ int mme_run(struct mme_t *self){
     /*Load MME information from config file*/
     loadMMEinfo(self);
 
-    mme_init_ifaces(self);
+    self->s1ap = g_hash_table_new_full( g_int_hash,
+                                        g_int_equal,
+                                        NULL,
+                                        free_ep);
 
-    /* LibEvent Configuration*/
+    self->ev_readers = g_hash_table_new_full( g_int_hash,
+                                              g_int_equal,
+                                              NULL,
+                                              (GDestroyNotify) event_free);
     /*Create event base structure*/
     self->evbase = event_base_new();
     if (!self->evbase){
         log_msg(LOG_ERR, 0, "Failed to create libevent event-base");
+        if(allocated==1)
+	        free(self);
         return 1;
     }
 
-    /*Create event for accepting connections*/
-    listener_command = event_new(self->evbase, self->command.fd, EV_READ|EV_PERSIST, cmd_accept, self);
-    listener_S11 = event_new(self->evbase, self->s11.fd, EV_READ|EV_PERSIST, s11_accept, self); /*mme possible arg in the future*/
-    listener_S1 = event_new(self->evbase, self->s1.fd, EV_READ|EV_PERSIST, s1_accept_new_eNB, self); /*mme possible arg in the future*/
-    listener_Ctrl = event_new(self->evbase, self->ctrl.fd, EV_READ|EV_PERSIST, ctrl_accept, self); /*mme possible arg in the future*/
+    mme_init_ifaces(self);
+
+    mme_registerRead(self, self->command.fd, cmd_accept, self);
+    mme_registerRead(self, self->s1.fd, s1_accept_new_eNB, self);
+    mme_registerRead(self, self->ctrl.fd, ctrl_accept, self);
+
+    /*Create event for processing SIGINT*/
     kill_event = evsignal_new(self->evbase, SIGINT, kill_handler, self);
-
-
-    /*Make socket non blocking*/
-    evutil_make_socket_nonblocking(self->command.fd);
-    evutil_make_socket_nonblocking(self->s11.fd);
-    evutil_make_socket_nonblocking(self->s1.fd);
-    evutil_make_socket_nonblocking(self->ctrl.fd);
-
-
-    /*Add command listener event to the event base*/
-    event_add(listener_command, NULL);
-    event_add(listener_S11, NULL);
-    event_add(listener_S1, NULL);
-    event_add(listener_Ctrl, NULL);
     event_add(kill_event, NULL);
 
-    self->s1ap = g_hash_table_new_full( g_int_hash, g_int_equal, NULL, free_ep);
 
+    /* Loop blocking*/
     engine_main(self);
 
-    g_hash_table_destroy(self->s1ap);
 
+    /*Dealocation */
     engine_process_stop(self->command.handler);
-    engine_process_stop(self->s11.handler);
+    //engine_process_stop(self->s11.handler);
     engine_process_stop(self->ctrl.handler);
 
-    event_free(listener_command);
-    event_free(listener_S11);
-    event_free(listener_S1);
-    event_free(listener_Ctrl);
+    mme_deregisterRead(self, self->ctrl.fd);
+    mme_deregisterRead(self, self->s1.fd);
+    mme_deregisterRead(self, self->command.fd);
+
+    mme_close_ifaces(self);
+
     event_free(kill_event);
     event_base_free(self->evbase);
 
-    mme_close_ifaces(self);
+    g_hash_table_destroy(self->s1ap);
+    g_hash_table_destroy(self->ev_readers);
 
     freeMMEinfo(self);
 
@@ -349,31 +354,6 @@ int mme_main(){
     return 0;
 }
 
-void free_mme(struct mme_t *self){
-    int i=0;
-    struct EndpointStruct_t *ep;
-
-    if( self->command.portState != closed){
-        close(self->command.fd);
-        self->command.portState = closed;
-    }
-    if( self->s11.portState != closed){
-        close(self->s11.fd);
-        self->s11.portState = closed;
-    }
-    if( self->ctrl.portState != closed){
-        close(self->ctrl.fd);
-        self->ctrl.portState = closed;
-    }
-
-    if(self->servedGUMMEIs!=NULL)
-        self->servedGUMMEIs->freeIE(self->servedGUMMEIs);
-    if(self->relativeCapacity!=NULL)
-        self->relativeCapacity->freeIE(self->relativeCapacity);
-    if(self->name!=NULL)
-        self->name->freeIE(self->name);
-}
-
 struct t_message *newMsg(){
     struct t_message *msg;
     msg = malloc(sizeof(struct t_message));
@@ -386,65 +366,7 @@ void freeMsg(void *msg){
 }
 
 /** S11 Accept function callback*/
-void s11_accept(evutil_socket_t listener, short event, void *arg){
 
-    uint32_t teid;
-    struct SessionStruct_t *session;
-    Signal *output;
-    struct t_message *msg;
-    struct t_message msg1;
-
-    struct mme_t *mme = (struct mme_t *)arg;
-
-    msg = newMsg();
-    msg->packet.gtp.flags=0x0;
-    gtp2_recv(listener, &(msg->packet.gtp), &(msg->length), (struct sockaddr_in*)&(msg->peer.peerAddr), &(msg->peer.socklen));
-    msg->peer.fd = listener;
-
-    /*Debugging*/
-    /*printf("S11_accept(): Packet received: \n");
-    print_packet(&(msg->packet), msg->length);*/
-
-    /*Is this necessary?*/
-    msg->peer.portState = opened;
-    /********************/
-
-    if(msg->packet.gtp.gtp2s.h.type<4){
-        /* TODO @Vicent :Manage echo request, echo response or version not suported*/
-        log_msg(LOG_INFO, 0, "s11_accept() recv echo request, echo response or version not suported msg");
-        print_packet(&(msg->packet), msg->length);
-        return;
-    }
-
-    teid = ntoh32(msg->packet.gtp.gtp2l.h.tei);
-
-    /*Look if there is any process waiting a response*/
-    session = getPendingResponseByTEID(mme, teid);
-
-    if (session){
-        log_msg(LOG_DEBUG, 0, "s11_accept() Session found");
-        if(session->sessionHandler->firstSignal!=NULL){
-            /*removePendentResponse(session);*/
-            log_msg(LOG_DEBUG, 0, "Found an associated signal.");
-            output = session->sessionHandler->firstSignal->signal;
-            session->sessionHandler->firstSignal = session->sessionHandler->firstSignal->next;
-        }else{
-            output = new_signal(session->sessionHandler);
-            output->name=S11_handler_ready;
-            output->priority = MAXIMUM_PRIORITY;
-        }
-    }
-    else{
-        /* Manage new request*/
-        log_msg(LOG_INFO, 0, "s11_accept() Session not found");
-        output = new_signal(S11_handler_create(mme->engine, NULL));
-        output->name=S11_handler_ready;
-        output->priority = MAXIMUM_PRIORITY;
-    }
-    output->data = (void *)msg;
-    output->freedataFunc = freeMsg;
-    signal_send(output);
-}
 
 /** S1 Accept function callback*/
 void s1_accept(evutil_socket_t listener, short event, void *arg){
@@ -642,7 +564,6 @@ void kill_handler(evutil_socket_t listener, short event, void *arg){
   }
 }
 
-
 int addToPendingResponse(struct SessionStruct_t *session){
 
     struct SessionStruct_t *old = NULL;
@@ -790,3 +711,7 @@ struct EndpointStruct_t *get_ep_with_GlobalID(struct mme_t *mme, TargeteNB_ID_t 
     else
         return NULL;
 }
+
+const ServedGUMMEIs_t *mme_getServedGUMMEIs(const struct mme_t *mme){
+     return mme->servedGUMMEIs;
+ }
