@@ -24,6 +24,13 @@ mme_SOURCES = MME_engine.c \
 				S6a/MME_S6a.c \
 				S6a/HSS.c \
 				S11/MME_S11.c \
+				S11/S11_FSMConfig.c \
+				S11/S11_NoCtx.c \
+				S11/S11_WCtxRsp.c \
+				S11/S11_UlCtx.c \
+				S11/S11_WModBearerRsp.c \
+				S11/S11_Ctx.c \
+				S11/S11_WDel.c \
 				MME_test.c commands.c \
 				../Common/logmgr.c \
 				MME.c \

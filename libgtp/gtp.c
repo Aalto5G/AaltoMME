@@ -167,14 +167,14 @@ int print_packet(void *packet, unsigned len)
   return 0;
 }
 
-int gtp2_recv(int sockfd, union gtp_packet *packet, size_t *len, struct sockaddr_in *peer, socklen_t *peerlen)
+int gtp2_recv(int sockfd, union gtp_packet *packet, size_t *len, struct sockaddr *peer, socklen_t *peerlen)
 {
   unsigned char buffer[PACKET_MAX];
   int status=0;
   union gtp_packet *pack = NULL;
   *len = 0;
 
-  *peerlen = sizeof(struct sockaddr_in);
+  *peerlen = sizeof(struct sockaddr);
   if ((status = recvfrom(sockfd, buffer, sizeof(buffer), 0,
                (struct sockaddr *) peer, peerlen)) < 0 ) {
     if (errno == EAGAIN) return 0;

@@ -1,0 +1,28 @@
+/* This application was initially developed as a Final Project by
+ *     Vicent Ferrer Guasch (vicent.ferrerguasch@aalto.fi)
+ * under the supervision of,
+ *     Jukka Manner (jukka.manner@aalto.fi)
+ *     Jose Costa-Requena (jose.costa@aalto.fi)
+ * in AALTO University and partially funded by EIT ICT labs.
+ */
+
+/**
+ * @file   S11_NoCtx.h
+ * @Author Vicent Ferrer
+ * @date   June, 2015
+ * @brief  S11 State
+ *
+ */
+
+#ifndef S11_NOCTX_HFILE
+#define S11_NOCTX_HFILE
+
+#include "S11_State.h"
+
+typedef{
+	S11STATE
+}S11_NoCtx;
+
+void linkNoCtx(S11_State* s);
+
+#endif /* S11_NOCTX_HFILE */

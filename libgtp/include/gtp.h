@@ -252,7 +252,7 @@ struct node_t{
 
 extern const char* gtp_version();
 
-extern int gtp2_recv(int sockfd, union gtp_packet *packet, size_t *len, struct sockaddr_in *src_addr, socklen_t *addrlen);
+extern int gtp2_recv(int sockfd, union gtp_packet *packet, size_t *len, struct sockaddr *src_addr, socklen_t *addrlen);
 
 extern unsigned int get_default_gtp(int version, uint8_t type, void *packet);
 

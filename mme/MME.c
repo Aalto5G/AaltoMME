@@ -60,7 +60,7 @@ void free_ep(gpointer data){
 /**@brief Simple UDP creation
  * @param [in] port server UDP port
  * @returns file descriptor*/
-int init_udp_srv(int port){
+int init_udp_srv(const char *src, int port){
     int fd;
     struct sockaddr_in addr;
 
@@ -72,6 +72,8 @@ int init_udp_srv(int port){
     memset(&addr, 0, sizeof(addr));
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = INADDR_ANY;
+    inet_pton(AF_INET, src, &(addr.sin_addr));
+    
     addr.sin_port = htons(port);
     #if defined(__FreeBSD__) || defined(__APPLE__)
     addr.sin_len = sizeof(addr);
@@ -87,7 +89,7 @@ int init_udp_srv(int port){
 /**@brief Simple SCTP creation
  * @param [in] port server SCTP port
  * @returns file descriptor*/
-int init_sctp_srv(int port, int addr){
+int init_sctp_srv(const char *src, int port){
     int listenSock, on=0, status, optval;
     struct sockaddr_in servaddr;
 
@@ -102,6 +104,7 @@ int init_sctp_srv(int port, int addr){
     /* Accept connections from any interface */
     bzero( (void *)&servaddr, sizeof(servaddr) );
     servaddr.sin_family = AF_INET;
+    inet_pton(AF_INET, src, &(servaddr.sin_addr));
     servaddr.sin_addr.s_addr = addr;
     servaddr.sin_port = htons(port);
 
@@ -162,12 +165,12 @@ int mme_init_ifaces(struct mme_t *self){
     self->s11 = s11_init((gpointer)self);
 
     /*Init S1 server*/
-    self->s1.fd =init_sctp_srv(S1AP_PORT, self->ipv4);
+    self->s1.fd =init_sctp_srv(self->ipv4, S1AP_PORT);
     self->s1.portState=opened;
     log_msg(LOG_INFO, 0, "Open S1 server on file descriptor %d, port %d", self->s1.fd, S1AP_PORT);
 
     /*Init Controller server*/
-    self->ctrl.fd =init_udp_srv(CONTROLLER_PORT);
+    self->ctrl.fd =init_udp_srv(self->ipv4, CONTROLLER_PORT);
     self->ctrl.portState=opened;
     log_msg(LOG_INFO, 0, "Open SDN Controller server on file descriptor %d, port %d", self->ctrl.fd, CONTROLLER_PORT);
 
@@ -715,3 +718,7 @@ struct EndpointStruct_t *get_ep_with_GlobalID(struct mme_t *mme, TargeteNB_ID_t 
 const ServedGUMMEIs_t *mme_getServedGUMMEIs(const struct mme_t *mme){
      return mme->servedGUMMEIs;
  }
+
+const char *mme_getLocalAddress(const struct mme_t *mme){
+	return mme->ipv4;
+}

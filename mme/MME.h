@@ -24,6 +24,7 @@
 #include <netinet/in.h>
 #include <stdbool.h>
 #include <time.h>
+#include <arpa/inet.h>
 
 #include <event2/event.h>
 #include <glib.h>
@@ -90,6 +91,7 @@ struct t_message{
     }packet;                 ;  /*  data received as part of the message*/
     uint32_t                length;         /*  Packet lenght*/
     struct EndpointStruct_t peer;           /*  Peer endpoint struct*/
+	const char              srcAddr[INET6_ADDRSTRLEN];
 };
 
 /* Procedure transaction states in the network : 3FPP 24.301 clause 6.1.3.3*/
@@ -229,7 +231,8 @@ struct mme_t{
     struct t_engine_data    *engine;                /*Multiple engines on the future?*/
     struct event_base       *evbase;
     MMEname_t               *name;
-    uint32_t                ipv4;
+	char                    ipv4[INET_ADDRSTRLEN];
+	char                    ipv6[INET6_ADDRSTRLEN]; /* Not used*/
     ServedGUMMEIs_t         *servedGUMMEIs;
     RelativeMMECapacity_t   *relativeCapacity;
     struct EndpointStruct_t s1;                             /*< Server endpoint*/
@@ -260,7 +263,9 @@ struct mme_t{
     SELF_ON_SIG->procTime=(stop.tv_usec - SELF_ON_SIG->start.tv_usec) + (stop.tv_sec - SELF_ON_SIG->start.tv_sec)*1000000; \
     //log_msg(LOG_WARNING, 0, "time mme->procTime %u us", mme->procTime);
 
-extern int init_udp_srv(int port);
+extern int init_udp_srv(const char* src, int port);
+
+extern int init_sctp_srv(const char *src, int port);
 
 extern int mme_run();
 
@@ -300,6 +305,7 @@ extern struct EndpointStruct_t *get_ep_with_GlobalID(struct mme_t *mme, TargeteN
 
 extern const ServedGUMMEIs_t *mme_getservedGUMMEIs(const struct mme_t *mme);
 
+extern const char *mme_getLocalAddress(const struct mme_t *mme);
 
 /**************************************************/
 /* API towards state machines                     */

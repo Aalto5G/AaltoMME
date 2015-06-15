@@ -38,6 +38,21 @@ gpointer s11_init(gpointer mme);
  */
 void s11_free(gpointer s11);
 
+/**
+ * @brief removes the s11 session
+ * @param [in]  s11 s11 stack handler
+ * 
+ * Deregisters the user session, used in the State Machine
+ */
+void s11_deleteSession(gpointer s11_h, gpointer u);
+
+/**
+ * @brief File descriptor accessor
+ * @param [in]  s11_h Engine reference
+ * @return file descriptor
+ */
+const int s11_fg(gpointer s11_h);
+
 /* ======================================================================
  * S11 MME State Machine API
  * ====================================================================== */
@@ -82,6 +97,8 @@ void S11_CreateIndirectDataForwardingTunnel(struct t_engine_data *engine, struct
  *
  */
 /* void S11_ReleaseAccessBearers(struct t_engine_data *engine, struct SessionStruct_t *session); */
+
+
 
 
 #endif /* MME_S11_HFILE */

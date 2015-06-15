@@ -172,7 +172,7 @@ void loadMMEinfo(struct mme_t *mme){
     mmeIp4 = config_lookup(&cfg, "mme.ipv4");
     mmeIpv4str = config_setting_get_string(mmeIp4);
     if(mmeIpv4str != NULL && mmeIpv4str[0]!= '\0'){
-        inet_pton(AF_INET, mmeIpv4str, &(mme->ipv4));
+	    memcpy(mme->ipv4, mmeIpv4str, INET_ADDRSTRLEN);
     }
 
     uE_DNS = config_lookup(&cfg, "mme.UE_DNS");

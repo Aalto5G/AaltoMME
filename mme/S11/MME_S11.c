@@ -28,12 +28,14 @@
 #include "gtpie.h"
 #include "MME.h"
 
+#include "S11_FSMConfig.h"
+
 typedef enum{
-	S11_new_user_test,
-	S11_attach,
-	S11_ModifyBearer,
-	S11_detach,
-	S11_createIndirectDataForwardingTunnel,
+    S11_new_user_test,
+    S11_attach,
+    S11_ModifyBearer,
+    S11_detach,
+    S11_createIndirectDataForwardingTunnel,
     S11_handler_ready,
     S11_handler_error,
     S11_releaseAccessBearers,
@@ -46,16 +48,6 @@ typedef struct{
     int         fd;    /**< file descriptor of the s11 server*/
     GHashTable *users; /**< s11 users by TEID*/
 }S11_t;
-
-typedef struct{
-	S11_t*    s11;    /**< s11 stack handler*/
-    S11_STATE state;  /**< s11 state for this user*/
-    uint32_t  lTEID;  /**< local control TEID*/
-    uint32_t  rTEID;  /**< remote control TEID*/
-    struct sockaddr     rAddr;       /**<Peer IP address, IPv4 or IPv6*/
-    socklen_t           rAddrLen;    /**<Peer Socket length returned by recvfrom*/
-    struct user_ctx_t *user; /**< User information*/
-}S11_user_t;
 
 void s11_accept(evutil_socket_t listener, short event, void *arg);
 
@@ -106,26 +98,15 @@ static int STATE_attach(S11_user_t u, S11_Signal sig);
 
 /* ======================================================================*/
 
-static S11_user_t *s11_newUser(S11_t *s11, struct user_ctx_t *user){
-	S11_user_t *u = g_new(S11_user_t, 1);
-	u->lTEID = newTeid();
-	u->rTEID = 0;
-	u->state = STATE_Handle_Recv_Msg;
-	u->user  = user;
-
-	g_hash_table_insert(s11->users, &(u->lTEID), u);
-
-	return u;
+static gpointer s11_newSession(S11_t *s11, struct user_ctx_t *user){
+    gpointer u = s11u_newUser(user);
+    g_hash_table_insert(s11->users, s11u_getTEIDp(u), u);
+    return u;
 }
 
-static void s11_freeUser(S11_user_t *self){
-	g_hash_table_remove(self->s11->users, &(self->lTEID));
-	g_free(self);
-}
-
-static gboolean s11_UserhasPendingResp(S11_user_t *self){
-	
-	return TRUE;
+void s11_deleteSession(gpointer s11_h, gpointer u){
+	S11_t *self = (S11_t *) s11_h;
+	g_hash_table_remove(self->users, s11u_getTEIDp(u));
 }
 
 
@@ -133,6 +114,8 @@ gpointer s11_init(gpointer mme){
     S11_t *self = g_new(S11_t, 1);
 
     self->mme = mme;
+
+    s11ConfigureFSM();
 
     /*Init S11 server*/
     self->fd =init_udp_srv(GTP2C_PORT);
@@ -144,17 +127,23 @@ gpointer s11_init(gpointer mme){
     self->users = g_hash_table_new_full( g_int_hash,
                                          g_int_equal,
                                          NULL,
-                                         (GDestroyNotify)s11_freeUser);
+                                         (GDestroyNotify)s11u_freeUser);
     return self;
 }
 
 void s11_free(gpointer s11_h){
-	S11_t *self = (S11_t *) s11_h;
+    S11_t *self = (S11_t *) s11_h;
 
-	g_hash_table_destroy(self->users);
-	mme_deregisterRead(self->mme, self->fd);
-	close(self->fd);
+    g_hash_table_destroy(self->users);
+    mme_deregisterRead(self->mme, self->fd);
+    close(self->fd);
+    s11DestroyFSM();
     g_free(self);
+}
+
+const int s11_fg(gpointer s11_h){
+    S11_t *self = (S11_t *) s11_h;
+    return self->fd;
 }
 
 
@@ -165,18 +154,30 @@ void s11_accept(evutil_socket_t listener, short event, void *arg){
     S11_Signal *output;
     struct t_message *msg;
 
+    struct sockaddr_in peer;
+    socklen_t peerlen;
+
     S11_t *self = (S11_t *) arg;
     S11_user_t * u;
+    const char str[INET6_ADDRSTRLEN];
 
     msg = newMsg();
     msg->packet.gtp.flags=0x0;
     gtp2_recv(listener, &(msg->packet.gtp), &(msg->length),
-              (struct sockaddr_in*)&(msg->peer.peerAddr),
-              &(msg->peer.socklen));
+              &peer, &peerlen);
+
+    switch(peer->sin_family){
+    case AF_INET:
+	    inet_ntop(AF_INET, &(peer.sin_addr), msg->srcAddr, INET_ADDRSTRLEN);
+    /* case AF_INET6: */
+	/*     inet_ntop(AF_INET6, &(peer.sin6_addr), str, INET6_ADDRSTRLEN); */
+    }
+
     msg->peer.fd = listener;
 
     if(msg->packet.gtp.gtp2s.h.type<4){
-        /* TODO @Vicent :Manage echo request, echo response or version not suported*/
+        /* TODO @Vicent:
+           Manage echo request, echo response or version not suported*/
         log_msg(LOG_INFO, 0, "S11 recv echo request,"
                 " echo response or version not suported msg");
         print_packet(&(msg->packet), msg->length);
@@ -185,22 +186,25 @@ void s11_accept(evutil_socket_t listener, short event, void *arg){
 
     teid = ntoh32(msg->packet.gtp.gtp2l.h.tei);
 
-    /*Look if there is any process waiting a response*/
-    if (! g_hash_table_lookup_extended(self->users, &teid, NULL, (gpointer*)&u)){
-	    log_errpack(LOG_INFO, 0, (struct sockaddr_in*)&(msg->peer.peerAddr),
-	                &(msg->packet), msg->length,
-	                "S11 received packet with unknown TEID (%#X), ignoring packet", &teid);
-	    return;
+    if (! g_hash_table_lookup_extended(self->users, &teid, NULL,
+                                       (gpointer*)&u)){
+        log_errpack(LOG_INFO, 0, (struct sockaddr_in*)&(msg->peer.peerAddr),
+                    &(msg->packet), msg->length,
+                    "S11 received packet with unknown TEID (%#X),"
+                    " ignoring packet", &teid);
+        return;
     }
 
-    if (s11_UserhasPendingResp( u)){
-	    log_msg(LOG_DEBUG, 0, "Received pending S11 reply");
-	    u->state(u, S11_handler_ready)
+    if (s11u_hasPendingResp( u)){
+        log_msg(LOG_DEBUG, 0, "Received pending S11 reply");
+        processMsg(u, msg);
     }
     else{
-	    log_msg(LOG_DEBUG, 0, "Received new S11 request");
-	    u->state(u, S11_handler_ready)
+        log_msg(LOG_DEBUG, 0, "Received new S11 request");
+        processMsg(u, msg);
     }
+    
+    freeMsg(msg);
 }
 
 /* ======================================================================
@@ -409,104 +413,104 @@ void TASK_MME_S11___handler_error(S11_user_t u, S11_Signal sig){
 
 }
 
-void TASK_MME_S11___CreateContextResp(S11_user_t u, S11_Signal sig){
+/* void TASK_MME_S11___CreateContextResp(S11_user_t u, S11_Signal sig){ */
 
-    struct t_message *msg;
-    union gtpie_member *ie[GTPIE_SIZE], *bearerCtxGroupIE[GTPIE_SIZE];
-    uint8_t value[40];
-    uint16_t vsize;
-    uint32_t numIE;
-    struct fteid_t fteid;
-    struct in_addr s1uaddr;
+/*     struct t_message *msg; */
+/*     union gtpie_member *ie[GTPIE_SIZE], *bearerCtxGroupIE[GTPIE_SIZE]; */
+/*     uint8_t value[40]; */
+/*     uint16_t vsize; */
+/*     uint32_t numIE; */
+/*     struct fteid_t fteid; */
+/*     struct in_addr s1uaddr; */
 
-    msg = (struct t_message *)signal->data;
+/*     msg = (struct t_message *)signal->data; */
 
-    /*  TODO @Vicent Check message mandatory IE*/
-    log_msg(LOG_DEBUG, 0, "Parsing Create Session Resp.");
-    gtp2ie_decap(ie, &(msg->packet), msg->length);
-    if(ntoh32(msg->packet.gtp.gtp2l.h.tei) != PDATA->user_ctx->S11MMETeid){
-        log_msg(LOG_WARNING, 0, "TEID incorrect 0x%x != 0x%x", ntoh32(msg->packet.gtp.gtp2l.h.tei), PDATA->user_ctx->S11MMETeid);
-        return;
-    }
+/*     /\*  TODO @Vicent Check message mandatory IE*\/ */
+/*     log_msg(LOG_DEBUG, 0, "Parsing Create Session Resp."); */
+/*     gtp2ie_decap(ie, &(msg->packet), msg->length); */
+/*     if(ntoh32(msg->packet.gtp.gtp2l.h.tei) != PDATA->user_ctx->S11MMETeid){ */
+/*         log_msg(LOG_WARNING, 0, "TEID incorrect 0x%x != 0x%x", ntoh32(msg->packet.gtp.gtp2l.h.tei), PDATA->user_ctx->S11MMETeid); */
+/*         return; */
+/*     } */
 
-    /* Cause*/
-    gtp2ie_gettliv(ie, GTPV2C_IE_CAUSE, 0, value, &vsize);
-    if(value!= NULL && vsize>0){
-        if(value[0]!=GTPV2C_CAUSE_REQUEST_ACCEPTED){
-            log_msg(LOG_WARNING, 0, "Create Session request rejected Cause %d", value[0]);
-            return;
-        }
-    }
+/*     /\* Cause*\/ */
+/*     gtp2ie_gettliv(ie, GTPV2C_IE_CAUSE, 0, value, &vsize); */
+/*     if(value!= NULL && vsize>0){ */
+/*         if(value[0]!=GTPV2C_CAUSE_REQUEST_ACCEPTED){ */
+/*             log_msg(LOG_WARNING, 0, "Create Session request rejected Cause %d", value[0]); */
+/*             return; */
+/*         } */
+/*     } */
 
-    /* F-TEID S11 (SGW)*/
-    gtp2ie_gettliv(ie, GTPV2C_IE_FTEID, 0, value, &vsize);
-    if(value!= NULL && vsize>0){
-        memcpy(&(PDATA->user_ctx->s11), value, vsize);
-        log_msg(LOG_DEBUG, 0, "S11 Sgw teid = %x into", hton32(PDATA->user_ctx->s11.teid));
-    }
-
-
-    /* F-TEID S5 /S8 (PGW)*/
-    gtp2ie_gettliv(ie, GTPV2C_IE_FTEID, 1, value, &vsize);
-    if(value!= NULL && vsize>0){
-        memcpy(&(PDATA->user_ctx->s5s8), value, vsize);
-        log_msg(LOG_DEBUG, 0, "S5/S8 Pgw teid = %x into", hton32(PDATA->user_ctx->s5s8.teid));
-    }
-
-    /* PDN Address Allocation - PAA*/
-    gtp2ie_gettliv(ie, GTPV2C_IE_PAA, 0, value, &vsize);
-    if(value!= NULL && vsize>0){
-        memcpy(&(PDATA->user_ctx->pAA), value, vsize);
-        log_msg(LOG_DEBUG, 0, "PDN Allocated Addr type %u", PDATA->user_ctx->pAA.type);
-    }
-    /* APN Restriction*/
-
-    vsize=0;
-    /* Protocol Configuration Options PCO*/
-    gtp2ie_gettliv(ie, GTPV2C_IE_PCO, 0, value, &vsize);
-    if(value!= NULL && vsize>0){
-        memcpy(&(PDATA->user_ctx->pco[2]), value, vsize);
-        PDATA->user_ctx->pco[1]= (uint8_t) ntoh16(vsize);
-        log_msg(LOG_DEBUG, 0, "PDN Allocated Addr type %u", PDATA->user_ctx->pAA.type);
-    }
-
-    /* Bearer Context*/
-    gtp2ie_gettliv(ie, GTPV2C_IE_BEARER_CONTEXT, 0, value, &vsize);
-    if(value!= NULL && vsize>0){
-        gtp2ie_decaps_group(bearerCtxGroupIE, &numIE, value, vsize);
-
-        /* EPS Bearer ID*/
-        gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_EBI, 0, value, &vsize);
-        memcpy(&(PDATA->user_ctx->ebearer[0].id), value, vsize);
-        log_msg(LOG_DEBUG, 0, "EPC Bearer ID = %u", PDATA->user_ctx->ebearer[0].id);
-
-        /* F-TEID S1-U (SGW)*/
-        gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_FTEID, 0, value, &vsize);
-        if(value!= NULL && vsize>0){
-            memcpy(&(PDATA->user_ctx->ebearer[0].s1u_sgw), value, vsize);
-            s1uaddr.s_addr = PDATA->user_ctx->ebearer[0].s1u_sgw.addr.addrv4;
-            log_msg(LOG_DEBUG, 0, "S1-u Sgw teid = %x, ip = %s", hton32(PDATA->user_ctx->ebearer[0].s1u_sgw.teid), inet_ntoa(s1uaddr));
-        }
-
-        /* F-TEID S5/S8-U(PGW)*/
-        gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_FTEID, 1, value, &vsize);
-        if(value!= NULL && vsize>0){
-            memcpy(&(PDATA->user_ctx->ebearer[0].s5s8u), value, vsize);
-            log_msg(LOG_DEBUG, 0, "S5/S8 Pgw teid = %x into", hton32(PDATA->user_ctx->ebearer[0].s5s8u.teid));
-        }else{
-
-        }
-    }
-
-    /* Recovery */
-    /*gtp2ie_gettliv(ie, GTPV2C_IE_RECOVERY, 0, value, &vsize);
-    if(value!= NULL && vsize>0){
-        log_msg(LOG_DEBUG, 0, "Recovery %d", value[0]);
-        return;
-    }*/
+/*     /\* F-TEID S11 (SGW)*\/ */
+/*     gtp2ie_gettliv(ie, GTPV2C_IE_FTEID, 0, value, &vsize); */
+/*     if(value!= NULL && vsize>0){ */
+/*         memcpy(&(PDATA->user_ctx->s11), value, vsize); */
+/*         log_msg(LOG_DEBUG, 0, "S11 Sgw teid = %x into", hton32(PDATA->user_ctx->s11.teid)); */
+/*     } */
 
 
-}
+/*     /\* F-TEID S5 /S8 (PGW)*\/ */
+/*     gtp2ie_gettliv(ie, GTPV2C_IE_FTEID, 1, value, &vsize); */
+/*     if(value!= NULL && vsize>0){ */
+/*         memcpy(&(PDATA->user_ctx->s5s8), value, vsize); */
+/*         log_msg(LOG_DEBUG, 0, "S5/S8 Pgw teid = %x into", hton32(PDATA->user_ctx->s5s8.teid)); */
+/*     } */
+
+/*     /\* PDN Address Allocation - PAA*\/ */
+/*     gtp2ie_gettliv(ie, GTPV2C_IE_PAA, 0, value, &vsize); */
+/*     if(value!= NULL && vsize>0){ */
+/*         memcpy(&(PDATA->user_ctx->pAA), value, vsize); */
+/*         log_msg(LOG_DEBUG, 0, "PDN Allocated Addr type %u", PDATA->user_ctx->pAA.type); */
+/*     } */
+/*     /\* APN Restriction*\/ */
+
+/*     vsize=0; */
+/*     /\* Protocol Configuration Options PCO*\/ */
+/*     gtp2ie_gettliv(ie, GTPV2C_IE_PCO, 0, value, &vsize); */
+/*     if(value!= NULL && vsize>0){ */
+/*         memcpy(&(PDATA->user_ctx->pco[2]), value, vsize); */
+/*         PDATA->user_ctx->pco[1]= (uint8_t) ntoh16(vsize); */
+/*         log_msg(LOG_DEBUG, 0, "PDN Allocated Addr type %u", PDATA->user_ctx->pAA.type); */
+/*     } */
+
+/*     /\* Bearer Context*\/ */
+/*     gtp2ie_gettliv(ie, GTPV2C_IE_BEARER_CONTEXT, 0, value, &vsize); */
+/*     if(value!= NULL && vsize>0){ */
+/*         gtp2ie_decaps_group(bearerCtxGroupIE, &numIE, value, vsize); */
+
+/*         /\* EPS Bearer ID*\/ */
+/*         gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_EBI, 0, value, &vsize); */
+/*         memcpy(&(PDATA->user_ctx->ebearer[0].id), value, vsize); */
+/*         log_msg(LOG_DEBUG, 0, "EPC Bearer ID = %u", PDATA->user_ctx->ebearer[0].id); */
+
+/*         /\* F-TEID S1-U (SGW)*\/ */
+/*         gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_FTEID, 0, value, &vsize); */
+/*         if(value!= NULL && vsize>0){ */
+/*             memcpy(&(PDATA->user_ctx->ebearer[0].s1u_sgw), value, vsize); */
+/*             s1uaddr.s_addr = PDATA->user_ctx->ebearer[0].s1u_sgw.addr.addrv4; */
+/*             log_msg(LOG_DEBUG, 0, "S1-u Sgw teid = %x, ip = %s", hton32(PDATA->user_ctx->ebearer[0].s1u_sgw.teid), inet_ntoa(s1uaddr)); */
+/*         } */
+
+/*         /\* F-TEID S5/S8-U(PGW)*\/ */
+/*         gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_FTEID, 1, value, &vsize); */
+/*         if(value!= NULL && vsize>0){ */
+/*             memcpy(&(PDATA->user_ctx->ebearer[0].s5s8u), value, vsize); */
+/*             log_msg(LOG_DEBUG, 0, "S5/S8 Pgw teid = %x into", hton32(PDATA->user_ctx->ebearer[0].s5s8u.teid)); */
+/*         }else{ */
+
+/*         } */
+/*     } */
+
+/*     /\* Recovery *\/ */
+/*     /\*gtp2ie_gettliv(ie, GTPV2C_IE_RECOVERY, 0, value, &vsize); */
+/*     if(value!= NULL && vsize>0){ */
+/*         log_msg(LOG_DEBUG, 0, "Recovery %d", value[0]); */
+/*         return; */
+/*     }*\/ */
+
+
+/* } */
 
 void TASK_MME_S11___removeCtx(S11_user_t u, S11_Signal sig){
     /*  Send  Delete Session Request to SGW */
@@ -574,194 +578,194 @@ void TASK_MME_S11___removeCtx(S11_user_t u, S11_Signal sig){
 
 };
 
-void TASK_MME_S11___newCtx(S11_user_t u, S11_Signal sig){
-    /* TODO @Vicent
-     * The new MME selects a Serving GW as described in clause 4.3.8.2 3GPP 23.401 on Serving GW selection function and
-     * allocates an EPS Bearer Identity for the Default Bearer associated with the UE.
-     * Then it sends a Create Session Request (IMSI, MSISDN, MME TEID for control plane, PDN GW address,
-     * PDN Address, APN, RAT type, Default EPS Bearer QoS, PDN Type, APN-AMBR, EPS Bearer Identity,
-     * Protocol Configuration Options, Handover Indication, ME Identity (IMEISV), User Location Information (ECGI),
-     * UE Time Zone, User CSG Information, MS Info Change Reporting support indication, Selection Mode,
-     * Charging Characteristics, Trace Reference, Trace Type, Trigger Id, OMC Identity, Maximum APN Restriction,
-     * Dual Address Bearer Flag, the Protocol Type over S5/S8, Serving Network) message to the selected Serving GW.
-     * User CSG Information includes CSG ID, access mode and CSG membership indication. */
+/* void TASK_MME_S11___newCtx(S11_user_t u, S11_Signal sig){ */
+/*     /\* TODO @Vicent */
+/*      * The new MME selects a Serving GW as described in clause 4.3.8.2 3GPP 23.401 on Serving GW selection function and */
+/*      * allocates an EPS Bearer Identity for the Default Bearer associated with the UE. */
+/*      * Then it sends a Create Session Request (IMSI, MSISDN, MME TEID for control plane, PDN GW address, */
+/*      * PDN Address, APN, RAT type, Default EPS Bearer QoS, PDN Type, APN-AMBR, EPS Bearer Identity, */
+/*      * Protocol Configuration Options, Handover Indication, ME Identity (IMEISV), User Location Information (ECGI), */
+/*      * UE Time Zone, User CSG Information, MS Info Change Reporting support indication, Selection Mode, */
+/*      * Charging Characteristics, Trace Reference, Trace Type, Trigger Id, OMC Identity, Maximum APN Restriction, */
+/*      * Dual Address Bearer Flag, the Protocol Type over S5/S8, Serving Network) message to the selected Serving GW. */
+/*      * User CSG Information includes CSG ID, access mode and CSG membership indication. *\/ */
 
-    struct user_ctx_t *user;
-    union gtp_packet packet;
-    struct fteid_t  fteid;
-    struct qos_t    *qos;
-    size_t peerlen;
-    struct sockaddr_in  *peer;
-    union gtpie_member ie[13], ie_bearer_ctx[3];
-    int hlen, sock, a;
-    uint32_t length, ielen, ienum=0;
-    uint8_t bytefield[30], *tmp;
-    struct nodeinfo_t pgwInfo;
+/*     struct user_ctx_t *user; */
+/*     union gtp_packet packet; */
+/*     struct fteid_t  fteid; */
+/*     struct qos_t    *qos; */
+/*     size_t peerlen; */
+/*     struct sockaddr_in  *peer; */
+/*     union gtpie_member ie[13], ie_bearer_ctx[3]; */
+/*     int hlen, sock, a; */
+/*     uint32_t length, ielen, ienum=0; */
+/*     uint8_t bytefield[30], *tmp; */
+/*     struct nodeinfo_t pgwInfo; */
 
-    log_msg(LOG_DEBUG, 0, "Enter");
-    /*  Send Create Context Request to SGW*/
-    /******************************************************************************/
-    user = PDATA->user_ctx;
-    qos = &(user->ebearer->qos);
+/*     log_msg(LOG_DEBUG, 0, "Enter"); */
+/*     /\*  Send Create Context Request to SGW*\/ */
+/*     /\******************************************************************************\/ */
+/*     user = PDATA->user_ctx; */
+/*     qos = &(user->ebearer->qos); */
 
-    length = get_default_gtp(2, GTP2_CREATE_SESSION_REQ, &packet);
+/*     length = get_default_gtp(2, GTP2_CREATE_SESSION_REQ, &packet); */
 
-    /*IMSI*/
-    ie[ienum].tliv.i=0;
-    ie[ienum].tliv.t=GTPV2C_IE_IMSI;
-    dec2tbcd(ie[ienum].tliv.v, &ielen, PDATA->user_ctx->imsi);
-    ie[ienum].tliv.l=hton16(ielen);
-    ienum++;
-    /*MSISDN*/
-    ie[ienum].tliv.i=0;
-    ie[ienum].tliv.t=GTPV2C_IE_MSISDN;
-    dec2tbcd(ie[ienum].tliv.v, &ielen, PDATA->user_ctx->msisdn);
-    ie[ienum].tliv.l=hton16(ielen);
-    ienum++;
-    /*MEI*/
-    ie[ienum].tliv.i=0;
-    ie[ienum].tliv.t=GTPV2C_IE_MEI;
-    dec2tbcd(ie[ienum].tliv.v, &ielen, PDATA->user_ctx->imsi);
-    ie[ienum].tliv.l=hton16(ielen);
-    ienum++;
-    /*RAT type*/
-    ie[ienum].tliv.i=0;
-    ie[ienum].tliv.l=hton16(1);
-    ie[ienum].tliv.t=GTPV2C_IE_RAT_TYPE;
-    ie[ienum].tliv.v[0]=6;                  /*Type 6= EUTRAN*/
-    ienum++;
-    /*F-TEID*/
-    ie[ienum].tliv.i=0;
-    ie[ienum].tliv.l=hton16(9);
-    ie[ienum].tliv.t=GTPV2C_IE_FTEID;
-    fteid.ipv4=1;
-    fteid.ipv6=0;
-    fteid.iface= hton8(S11_MME);
-    fteid.teid = hton32(PDATA->user_ctx->S11MMETeid);
-    fteid.addr.addrv4 = SELF_ON_SIG->ipv4;
-    ie[ienum].tliv.l=hton16(FTEID_IP4_SIZE);
-    memcpy(ie[ienum].tliv.v, &fteid, FTEID_IP4_SIZE);
-    ienum++;
-    /*F-TEID PGW S5/S8 Address for Control Plane or PMIP */
-    ie[ienum].tliv.i=1;
-    ie[ienum].tliv.l=hton16(FTEID_IP4_SIZE);
-    ie[ienum].tliv.t=GTPV2C_IE_FTEID;
-    fteid.ipv4=1;
-    fteid.ipv6=0;
-    fteid.iface= hton8(S5S8C_PGW);
-    fteid.teid = hton32(0);
-    getNode(&pgwInfo, PGW, PDATA->user_ctx);
-    fteid.addr.addrv4 = pgwInfo.addrv4.s_addr;
-    memcpy(ie[ienum].tliv.v, &fteid, FTEID_IP4_SIZE);
-    ienum++;
-    /*APN*/
-    ie[ienum].tliv.i=0;
-    ie[ienum].tliv.l=hton16(strlen(user->aPname));
-    ie[ienum].tliv.t=GTPV2C_IE_APN;
-    sprintf(ie[ienum].tliv.v, user->aPname, strlen(user->aPname));
-    ienum++;
+/*     /\*IMSI*\/ */
+/*     ie[ienum].tliv.i=0; */
+/*     ie[ienum].tliv.t=GTPV2C_IE_IMSI; */
+/*     dec2tbcd(ie[ienum].tliv.v, &ielen, PDATA->user_ctx->imsi); */
+/*     ie[ienum].tliv.l=hton16(ielen); */
+/*     ienum++; */
+/*     /\*MSISDN*\/ */
+/*     ie[ienum].tliv.i=0; */
+/*     ie[ienum].tliv.t=GTPV2C_IE_MSISDN; */
+/*     dec2tbcd(ie[ienum].tliv.v, &ielen, PDATA->user_ctx->msisdn); */
+/*     ie[ienum].tliv.l=hton16(ielen); */
+/*     ienum++; */
+/*     /\*MEI*\/ */
+/*     ie[ienum].tliv.i=0; */
+/*     ie[ienum].tliv.t=GTPV2C_IE_MEI; */
+/*     dec2tbcd(ie[ienum].tliv.v, &ielen, PDATA->user_ctx->imsi); */
+/*     ie[ienum].tliv.l=hton16(ielen); */
+/*     ienum++; */
+/*     /\*RAT type*\/ */
+/*     ie[ienum].tliv.i=0; */
+/*     ie[ienum].tliv.l=hton16(1); */
+/*     ie[ienum].tliv.t=GTPV2C_IE_RAT_TYPE; */
+/*     ie[ienum].tliv.v[0]=6;                  /\*Type 6= EUTRAN*\/ */
+/*     ienum++; */
+/*     /\*F-TEID*\/ */
+/*     ie[ienum].tliv.i=0; */
+/*     ie[ienum].tliv.l=hton16(9); */
+/*     ie[ienum].tliv.t=GTPV2C_IE_FTEID; */
+/*     fteid.ipv4=1; */
+/*     fteid.ipv6=0; */
+/*     fteid.iface= hton8(S11_MME); */
+/*     fteid.teid = hton32(PDATA->user_ctx->S11MMETeid); */
+/*     fteid.addr.addrv4 = SELF_ON_SIG->ipv4; */
+/*     ie[ienum].tliv.l=hton16(FTEID_IP4_SIZE); */
+/*     memcpy(ie[ienum].tliv.v, &fteid, FTEID_IP4_SIZE); */
+/*     ienum++; */
+/*     /\*F-TEID PGW S5/S8 Address for Control Plane or PMIP *\/ */
+/*     ie[ienum].tliv.i=1; */
+/*     ie[ienum].tliv.l=hton16(FTEID_IP4_SIZE); */
+/*     ie[ienum].tliv.t=GTPV2C_IE_FTEID; */
+/*     fteid.ipv4=1; */
+/*     fteid.ipv6=0; */
+/*     fteid.iface= hton8(S5S8C_PGW); */
+/*     fteid.teid = hton32(0); */
+/*     getNode(&pgwInfo, PGW, PDATA->user_ctx); */
+/*     fteid.addr.addrv4 = pgwInfo.addrv4.s_addr; */
+/*     memcpy(ie[ienum].tliv.v, &fteid, FTEID_IP4_SIZE); */
+/*     ienum++; */
+/*     /\*APN*\/ */
+/*     ie[ienum].tliv.i=0; */
+/*     ie[ienum].tliv.l=hton16(strlen(user->aPname)); */
+/*     ie[ienum].tliv.t=GTPV2C_IE_APN; */
+/*     sprintf(ie[ienum].tliv.v, user->aPname, strlen(user->aPname)); */
+/*     ienum++; */
 
-    /*PAA*/
-    ie[ienum].tliv.i=0;
-    ie[ienum].tliv.l=hton16(5);
-    ie[ienum].tliv.t=GTPV2C_IE_PAA;
-    bytefield[0]=0x01;  /*PDN Type  IPv4 */
-    memset(bytefield+1, 0, 4);   /*IP = 0.0.0.0*/
-    memcpy(ie[ienum].tliv.v, bytefield, 5);
-    ienum++;
-    /*Serving Network*/
-    ie[ienum].tliv.i=0;
-    ie[ienum].tliv.l=hton16(3);
-    ie[ienum].tliv.t=GTPV2C_IE_SERVING_NETWORK;
-    memcpy(ie[ienum].tliv.v, PDATA->user_ctx->tAI.sn, 3);
-    ienum++;
-    /*PDN type*/
-    ie[ienum].tliv.i=0;
-    ie[ienum].tliv.l=hton16(1);
-    ie[ienum].tliv.t=GTPV2C_IE_PDN_TYPE;
-    bytefield[0]=user->pdn_type; /* PDN type IPv4*/
-    memcpy(ie[ienum].tliv.v, bytefield, 1);
-    ienum++;
-    /*APN restriction*/
-    ie[ienum].tliv.i=0;
-    ie[ienum].tliv.l=hton16(1);
-    ie[ienum].tliv.t=GTPV2C_IE_APN_RESTRICTION;
-    bytefield[0]=0x00; /* APN restriction*/
-    memcpy(ie[ienum].tliv.v, bytefield, 1);
-    ienum++;
-    /*Selection Mode*/
-    ie[ienum].tliv.i=0;
-    ie[ienum].tliv.l=hton16(1);
-    ie[ienum].tliv.t=GTPV2C_IE_SELECTION_MODE;
-    bytefield[0]=0x01; /* Selection Mode*/
-    memcpy(ie[ienum].tliv.v, bytefield, 1);
-    ienum++;
+/*     /\*PAA*\/ */
+/*     ie[ienum].tliv.i=0; */
+/*     ie[ienum].tliv.l=hton16(5); */
+/*     ie[ienum].tliv.t=GTPV2C_IE_PAA; */
+/*     bytefield[0]=0x01;  /\*PDN Type  IPv4 *\/ */
+/*     memset(bytefield+1, 0, 4);   /\*IP = 0.0.0.0*\/ */
+/*     memcpy(ie[ienum].tliv.v, bytefield, 5); */
+/*     ienum++; */
+/*     /\*Serving Network*\/ */
+/*     ie[ienum].tliv.i=0; */
+/*     ie[ienum].tliv.l=hton16(3); */
+/*     ie[ienum].tliv.t=GTPV2C_IE_SERVING_NETWORK; */
+/*     memcpy(ie[ienum].tliv.v, PDATA->user_ctx->tAI.sn, 3); */
+/*     ienum++; */
+/*     /\*PDN type*\/ */
+/*     ie[ienum].tliv.i=0; */
+/*     ie[ienum].tliv.l=hton16(1); */
+/*     ie[ienum].tliv.t=GTPV2C_IE_PDN_TYPE; */
+/*     bytefield[0]=user->pdn_type; /\* PDN type IPv4*\/ */
+/*     memcpy(ie[ienum].tliv.v, bytefield, 1); */
+/*     ienum++; */
+/*     /\*APN restriction*\/ */
+/*     ie[ienum].tliv.i=0; */
+/*     ie[ienum].tliv.l=hton16(1); */
+/*     ie[ienum].tliv.t=GTPV2C_IE_APN_RESTRICTION; */
+/*     bytefield[0]=0x00; /\* APN restriction*\/ */
+/*     memcpy(ie[ienum].tliv.v, bytefield, 1); */
+/*     ienum++; */
+/*     /\*Selection Mode*\/ */
+/*     ie[ienum].tliv.i=0; */
+/*     ie[ienum].tliv.l=hton16(1); */
+/*     ie[ienum].tliv.t=GTPV2C_IE_SELECTION_MODE; */
+/*     bytefield[0]=0x01; /\* Selection Mode*\/ */
+/*     memcpy(ie[ienum].tliv.v, bytefield, 1); */
+/*     ienum++; */
 
-    /*Protocol Configuration Options*/
-    if(user->pco[0]==0x27){
-        ie[ienum].tliv.i=0;
-        ie[ienum].tliv.l=hton16(user->pco[1]);
-        ie[ienum].tliv.t=GTPV2C_IE_PCO;
-        tmp = user->pco+2;
-        memcpy(ie[ienum].tliv.v, tmp, user->pco[1]);
-        ienum++;
-    }
-    /*Bearer contex*/
-        /*EPS Bearer ID */
-        ie_bearer_ctx[0].tliv.i=0;
-        ie_bearer_ctx[0].tliv.l=hton16(1);
-        ie_bearer_ctx[0].tliv.t=GTPV2C_IE_EBI;
-        ie_bearer_ctx[0].tliv.v[0]=0x05; /*EBI = 5,  EBI > 4, see 3GPP TS 24.007 11.2.3.1.5  EPS bearer identity */
-        /* Bearer QoS */
-        ie_bearer_ctx[1].tliv.i=0;
-        ie_bearer_ctx[1].tliv.l=hton16(sizeof(struct qos_t));
-        ie_bearer_ctx[1].tliv.t=GTPV2C_IE_BEARER_LEVEL_QOS;
-        memcpy(ie_bearer_ctx[1].tliv.v, qos, sizeof(struct qos_t));
-        /*EPS Bearer TFT */
-        /*ie_bearer_ctx[2].tliv.i=0;
-        ie_bearer_ctx[2].tliv.l=hton16(3);
-        ie_bearer_ctx[2].tliv.t=GTPV2C_IE_BEARER_TFT;
-        bytefield[0]=0x01;
-        bytefield[1]=0x01;
-        bytefield[2]=0x01;
-        memcpy(ie_bearer_ctx[2].tliv.v, bytefield, 3);
-    gtp2ie_encaps_group(GTPV2C_IE_BEARER_CONTEXT, 0, &ie[12], ie_bearer_ctx, 3);*/
-    gtp2ie_encaps_group(GTPV2C_IE_BEARER_CONTEXT, 0, &ie[ienum], ie_bearer_ctx, 2);
-    ienum++;
-    gtp2ie_encaps(ie, ienum, &packet, &length);
+/*     /\*Protocol Configuration Options*\/ */
+/*     if(user->pco[0]==0x27){ */
+/*         ie[ienum].tliv.i=0; */
+/*         ie[ienum].tliv.l=hton16(user->pco[1]); */
+/*         ie[ienum].tliv.t=GTPV2C_IE_PCO; */
+/*         tmp = user->pco+2; */
+/*         memcpy(ie[ienum].tliv.v, tmp, user->pco[1]); */
+/*         ienum++; */
+/*     } */
+/*     /\*Bearer contex*\/ */
+/*         /\*EPS Bearer ID *\/ */
+/*         ie_bearer_ctx[0].tliv.i=0; */
+/*         ie_bearer_ctx[0].tliv.l=hton16(1); */
+/*         ie_bearer_ctx[0].tliv.t=GTPV2C_IE_EBI; */
+/*         ie_bearer_ctx[0].tliv.v[0]=0x05; /\*EBI = 5,  EBI > 4, see 3GPP TS 24.007 11.2.3.1.5  EPS bearer identity *\/ */
+/*         /\* Bearer QoS *\/ */
+/*         ie_bearer_ctx[1].tliv.i=0; */
+/*         ie_bearer_ctx[1].tliv.l=hton16(sizeof(struct qos_t)); */
+/*         ie_bearer_ctx[1].tliv.t=GTPV2C_IE_BEARER_LEVEL_QOS; */
+/*         memcpy(ie_bearer_ctx[1].tliv.v, qos, sizeof(struct qos_t)); */
+/*         /\*EPS Bearer TFT *\/ */
+/*         /\*ie_bearer_ctx[2].tliv.i=0; */
+/*         ie_bearer_ctx[2].tliv.l=hton16(3); */
+/*         ie_bearer_ctx[2].tliv.t=GTPV2C_IE_BEARER_TFT; */
+/*         bytefield[0]=0x01; */
+/*         bytefield[1]=0x01; */
+/*         bytefield[2]=0x01; */
+/*         memcpy(ie_bearer_ctx[2].tliv.v, bytefield, 3); */
+/*     gtp2ie_encaps_group(GTPV2C_IE_BEARER_CONTEXT, 0, &ie[12], ie_bearer_ctx, 3);*\/ */
+/*     gtp2ie_encaps_group(GTPV2C_IE_BEARER_CONTEXT, 0, &ie[ienum], ie_bearer_ctx, 2); */
+/*     ienum++; */
+/*     gtp2ie_encaps(ie, ienum, &packet, &length); */
 
-    /*Packet header modifications*/
-    packet.gtp2l.h.seq = hton24(getNextSeq(SELF_ON_SIG));
-    packet.gtp2l.h.tei = user->s11.teid;
+/*     /\*Packet header modifications*\/ */
+/*     packet.gtp2l.h.seq = hton24(getNextSeq(SELF_ON_SIG)); */
+/*     packet.gtp2l.h.tei = user->s11.teid; */
 
-    /*Debug information*/
-    /*printf("packet length %d\n",length);
-    print_packet(&packet, length);*/
+/*     /\*Debug information*\/ */
+/*     /\*printf("packet length %d\n",length); */
+/*     print_packet(&packet, length);*\/ */
 
-    /*******************************************************************/
-    /*Get SGW addr*/
-    struct nodeinfo_t sgw;
-    getNode(&sgw, SGW, user);
-    sock = PDATA->s11->fd;
-    peer = (struct sockaddr_in *)&(PDATA->s11->peerAddr);
-    peer->sin_family = AF_INET;
-    peer->sin_port = htons(GTP2C_PORT);
-    peer->sin_addr = sgw.addrv4;
-    PDATA->s11->socklen = sizeof(struct sockaddr_in);
+/*     /\*******************************************************************\/ */
+/*     /\*Get SGW addr*\/ */
+/*     struct nodeinfo_t sgw; */
+/*     getNode(&sgw, SGW, user); */
+/*     sock = PDATA->s11->fd; */
+/*     peer = (struct sockaddr_in *)&(PDATA->s11->peerAddr); */
+/*     peer->sin_family = AF_INET; */
+/*     peer->sin_port = htons(GTP2C_PORT); */
+/*     peer->sin_addr = sgw.addrv4; */
+/*     PDATA->s11->socklen = sizeof(struct sockaddr_in); */
 
-    peerlen = PDATA->s11->socklen;
+/*     peerlen = PDATA->s11->socklen; */
 
-    if (sendto(sock, &packet, length, 0, (struct sockaddr *)peer, peerlen) < 0) {
-        log_errpack(LOG_ERR, errno, (struct sockaddr_in *)peer, &packet, length,
-                "Sendto(fd=%d, msg=%lx, len=%d) failed", sock, (unsigned long) &packet, length);
-        return;
-    }
-    /*******************************************************************/
+/*     if (sendto(sock, &packet, length, 0, (struct sockaddr *)peer, peerlen) < 0) { */
+/*         log_errpack(LOG_ERR, errno, (struct sockaddr_in *)peer, &packet, length, */
+/*                 "Sendto(fd=%d, msg=%lx, len=%d) failed", sock, (unsigned long) &packet, length); */
+/*         return; */
+/*     } */
+/*     /\*******************************************************************\/ */
 
-    /*  Add User context to storage*/
-    /*store_user_ctx(user);*/
+/*     /\*  Add User context to storage*\/ */
+/*     /\*store_user_ctx(user);*\/ */
 
-};
+/* }; */
 
 void TASK_MME_S11___processHandler(S11_user_t u, S11_Signal sig){
 
@@ -813,134 +817,134 @@ void TASK_MME_S11___processHandler(S11_user_t u, S11_Signal sig){
     }
 };
 
-void TASK_MME_S11___Forge_ModifyBearerReqAttach(S11_user_t u, S11_Signal sig){
-    struct user_ctx_t *user;
-    union gtp_packet packet;
-    struct fteid_t  fteid;
-    size_t peerlen;
-    struct sockaddr_in  *peer;
-    union gtpie_member ie[13], ie_bearer_ctx[3];
-    int hlen, sock, a;
-    uint32_t length, fteid_size;
+/* void TASK_MME_S11___Forge_ModifyBearerReqAttach(S11_user_t u, S11_Signal sig){ */
+/*     struct user_ctx_t *user; */
+/*     union gtp_packet packet; */
+/*     struct fteid_t  fteid; */
+/*     size_t peerlen; */
+/*     struct sockaddr_in  *peer; */
+/*     union gtpie_member ie[13], ie_bearer_ctx[3]; */
+/*     int hlen, sock, a; */
+/*     uint32_t length, fteid_size; */
 
-    log_msg(LOG_DEBUG, 0, "Enter");
-    /*  Send Create Context Request to SGW*/
-  /******************************************************************************/
-    user = PDATA->user_ctx;
+/*     log_msg(LOG_DEBUG, 0, "Enter"); */
+/*     /\*  Send Create Context Request to SGW*\/ */
+/*   /\******************************************************************************\/ */
+/*     user = PDATA->user_ctx; */
 
-    length = get_default_gtp(2, GTP2_MODIFY_BEARER_REQ, &packet);
+/*     length = get_default_gtp(2, GTP2_MODIFY_BEARER_REQ, &packet); */
 
-    /*F-TEID*/
-    ie[0].tliv.i=0;
-    ie[0].tliv.t=GTPV2C_IE_FTEID;
-    ie[0].tliv.l=hton16(FTEID_IP4_SIZE);
-    fteid.ipv4=1;
-    fteid.ipv6=0;
-    fteid.iface= hton8(S11_MME);
-    fteid.teid = hton32(PDATA->user_ctx->S11MMETeid);
-    fteid.addr.addrv4 = SELF_ON_SIG->ipv4;
-    memcpy(ie[0].tliv.v, &fteid, FTEID_IP4_SIZE);
+/*     /\*F-TEID*\/ */
+/*     ie[0].tliv.i=0; */
+/*     ie[0].tliv.t=GTPV2C_IE_FTEID; */
+/*     ie[0].tliv.l=hton16(FTEID_IP4_SIZE); */
+/*     fteid.ipv4=1; */
+/*     fteid.ipv6=0; */
+/*     fteid.iface= hton8(S11_MME); */
+/*     fteid.teid = hton32(PDATA->user_ctx->S11MMETeid); */
+/*     fteid.addr.addrv4 = SELF_ON_SIG->ipv4; */
+/*     memcpy(ie[0].tliv.v, &fteid, FTEID_IP4_SIZE); */
 
-    /*Bearer contex*/
-        /*EPS Bearer ID */
-        ie_bearer_ctx[0].tliv.i=0;
-        ie_bearer_ctx[0].tliv.l=hton16(1);
-        ie_bearer_ctx[0].tliv.t=GTPV2C_IE_EBI;
-        ie_bearer_ctx[0].tliv.v[0]=user->ebearer[0].id;
-        /* fteid S1-U eNB*/
-        memcpy(&fteid, &(user->ebearer[0].s1u_eNB), sizeof(struct fteid_t));
-        ie_bearer_ctx[1].tliv.i=0;
-        ie_bearer_ctx[1].tliv.t=GTPV2C_IE_FTEID;
-        if(fteid.ipv4 == 1 && fteid.ipv6 == 0){
-            fteid_size = FTEID_IP4_SIZE;
-        }else if (fteid.ipv4 == 0 && fteid.ipv6 == 1){
-            fteid_size = FTEID_IP6_SIZE;
-        }else{
-            fteid_size = FTEID_IP46_SIZE;
-        }
-        ie_bearer_ctx[1].tliv.l=hton16(fteid_size);
-        memcpy(ie_bearer_ctx[1].tliv.v, &fteid, fteid_size);
-    gtp2ie_encaps_group(GTPV2C_IE_BEARER_CONTEXT, 0, &ie[1], ie_bearer_ctx, 2);
-    gtp2ie_encaps(ie, 2, &packet, &length);
+/*     /\*Bearer contex*\/ */
+/*         /\*EPS Bearer ID *\/ */
+/*         ie_bearer_ctx[0].tliv.i=0; */
+/*         ie_bearer_ctx[0].tliv.l=hton16(1); */
+/*         ie_bearer_ctx[0].tliv.t=GTPV2C_IE_EBI; */
+/*         ie_bearer_ctx[0].tliv.v[0]=user->ebearer[0].id; */
+/*         /\* fteid S1-U eNB*\/ */
+/*         memcpy(&fteid, &(user->ebearer[0].s1u_eNB), sizeof(struct fteid_t)); */
+/*         ie_bearer_ctx[1].tliv.i=0; */
+/*         ie_bearer_ctx[1].tliv.t=GTPV2C_IE_FTEID; */
+/*         if(fteid.ipv4 == 1 && fteid.ipv6 == 0){ */
+/*             fteid_size = FTEID_IP4_SIZE; */
+/*         }else if (fteid.ipv4 == 0 && fteid.ipv6 == 1){ */
+/*             fteid_size = FTEID_IP6_SIZE; */
+/*         }else{ */
+/*             fteid_size = FTEID_IP46_SIZE; */
+/*         } */
+/*         ie_bearer_ctx[1].tliv.l=hton16(fteid_size); */
+/*         memcpy(ie_bearer_ctx[1].tliv.v, &fteid, fteid_size); */
+/*     gtp2ie_encaps_group(GTPV2C_IE_BEARER_CONTEXT, 0, &ie[1], ie_bearer_ctx, 2); */
+/*     gtp2ie_encaps(ie, 2, &packet, &length); */
 
-    /*Packet header modifications*/
-    packet.gtp2l.h.seq = hton24(getNextSeq(SELF_ON_SIG));
-    packet.gtp2l.h.tei = user->s11.teid;
+/*     /\*Packet header modifications*\/ */
+/*     packet.gtp2l.h.seq = hton24(getNextSeq(SELF_ON_SIG)); */
+/*     packet.gtp2l.h.tei = user->s11.teid; */
 
-    /*******************************************************************/
-    sock = PDATA->s11->fd;
-    peer = (struct sockaddr_in *)&(PDATA->s11->peerAddr);
-    peer->sin_family = AF_INET;
-    peer->sin_port = htons(GTP2C_PORT);
-    peer->sin_addr.s_addr = user->s11.addr.addrv4;
-    PDATA->s11->socklen = sizeof(struct sockaddr_in);
+/*     /\*******************************************************************\/ */
+/*     sock = PDATA->s11->fd; */
+/*     peer = (struct sockaddr_in *)&(PDATA->s11->peerAddr); */
+/*     peer->sin_family = AF_INET; */
+/*     peer->sin_port = htons(GTP2C_PORT); */
+/*     peer->sin_addr.s_addr = user->s11.addr.addrv4; */
+/*     PDATA->s11->socklen = sizeof(struct sockaddr_in); */
 
-    peerlen = PDATA->s11->socklen;
+/*     peerlen = PDATA->s11->socklen; */
 
-    if (sendto(sock, &packet, length, 0, (struct sockaddr *)peer, peerlen) < 0) {
-        log_errpack(LOG_ERR, errno, (struct sockaddr_in *)peer, &packet, length,
-                "Sendto(fd=%d, msg=%lx, len=%d) failed", sock, (unsigned long) &packet, length);
-        return;
-    }
-    /*******************************************************************/
+/*     if (sendto(sock, &packet, length, 0, (struct sockaddr *)peer, peerlen) < 0) { */
+/*         log_errpack(LOG_ERR, errno, (struct sockaddr_in *)peer, &packet, length, */
+/*                 "Sendto(fd=%d, msg=%lx, len=%d) failed", sock, (unsigned long) &packet, length); */
+/*         return; */
+/*     } */
+/*     /\*******************************************************************\/ */
 
-}
+/* } */
 
-uint8_t TASK_MME_S11___validate_ModifyBearerReq(S11_user_t u, S11_Signal sig){
-    struct t_message *msg;
-    union gtpie_member *ie[GTPIE_SIZE], *bearerCtxGroupIE[GTPIE_SIZE];
-    uint8_t value[40];
-    uint16_t vsize;
-    uint32_t numIE;
-    struct fteid_t fteid;
-    struct in_addr s1uaddr;
+/* uint8_t TASK_MME_S11___validate_ModifyBearerReq(S11_user_t u, S11_Signal sig){ */
+/*     struct t_message *msg; */
+/*     union gtpie_member *ie[GTPIE_SIZE], *bearerCtxGroupIE[GTPIE_SIZE]; */
+/*     uint8_t value[40]; */
+/*     uint16_t vsize; */
+/*     uint32_t numIE; */
+/*     struct fteid_t fteid; */
+/*     struct in_addr s1uaddr; */
 
-    msg = (struct t_message *)signal->data;
+/*     msg = (struct t_message *)signal->data; */
 
-    /*  TODO @Vicent Check message mandatory IE*/
-    log_msg(LOG_DEBUG, 0, "Parsing Modify Bearer Req");
+/*     /\*  TODO @Vicent Check message mandatory IE*\/ */
+/*     log_msg(LOG_DEBUG, 0, "Parsing Modify Bearer Req"); */
 
-    gtp2ie_decap(ie, &(msg->packet), msg->length);
-    if(ntoh32(msg->packet.gtp.gtp2l.h.tei) != PDATA->user_ctx->S11MMETeid){
-        log_msg(LOG_WARNING, 0, "TEID incorrect 0x%x != 0x%x", ntoh32(msg->packet.gtp.gtp2l.h.tei), PDATA->user_ctx->S11MMETeid);
-        return 1;
-    }
+/*     gtp2ie_decap(ie, &(msg->packet), msg->length); */
+/*     if(ntoh32(msg->packet.gtp.gtp2l.h.tei) != PDATA->user_ctx->S11MMETeid){ */
+/*         log_msg(LOG_WARNING, 0, "TEID incorrect 0x%x != 0x%x", ntoh32(msg->packet.gtp.gtp2l.h.tei), PDATA->user_ctx->S11MMETeid); */
+/*         return 1; */
+/*     } */
 
-    /* Cause*/
-    gtp2ie_gettliv(ie, GTPV2C_IE_CAUSE, 0, value, &vsize);
-    if(value!= NULL && vsize>0){
-        if(value[0]!=GTPV2C_CAUSE_REQUEST_ACCEPTED){
-            log_msg(LOG_WARNING, 0, "Create Session request rejected Cause %d", value[0]);
-            return 1;
-        }
-    }
-
-
-    /* Bearer Context*/
-    gtp2ie_gettliv(ie, GTPV2C_IE_BEARER_CONTEXT, 0, value, &vsize);
-    if(value!= NULL && vsize>0){
-        gtp2ie_decaps_group(bearerCtxGroupIE, &numIE, value, vsize);
-
-        /* EPS Bearer ID*/
-        gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_EBI, 0, value, &vsize);
-        if(vsize != 1 && PDATA->user_ctx->ebearer[0].id != *value){
-            log_msg(LOG_ERR, 0, "EPC Bearer ID %u != %u received", PDATA->user_ctx->ebearer[0].id, value);
-            return 1;
-        }
+/*     /\* Cause*\/ */
+/*     gtp2ie_gettliv(ie, GTPV2C_IE_CAUSE, 0, value, &vsize); */
+/*     if(value!= NULL && vsize>0){ */
+/*         if(value[0]!=GTPV2C_CAUSE_REQUEST_ACCEPTED){ */
+/*             log_msg(LOG_WARNING, 0, "Create Session request rejected Cause %d", value[0]); */
+/*             return 1; */
+/*         } */
+/*     } */
 
 
-        /* F-TEID S1-U (SGW)*/
-        gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_FTEID, 0, value, &vsize);
-        if(value!= NULL && vsize>0){
-            memcpy(&fteid, value, vsize);
-            if(memcmp(&(PDATA->user_ctx->ebearer[0].s1u_sgw), value, vsize) != 0){
-                log_msg(LOG_ERR, 0, "S1-U SGW FEID not corresponds to the stored one");
-                return 1;
-            }
-        }
-    }
-    return 0;
-}
+/*     /\* Bearer Context*\/ */
+/*     gtp2ie_gettliv(ie, GTPV2C_IE_BEARER_CONTEXT, 0, value, &vsize); */
+/*     if(value!= NULL && vsize>0){ */
+/*         gtp2ie_decaps_group(bearerCtxGroupIE, &numIE, value, vsize); */
+
+/*         /\* EPS Bearer ID*\/ */
+/*         gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_EBI, 0, value, &vsize); */
+/*         if(vsize != 1 && PDATA->user_ctx->ebearer[0].id != *value){ */
+/*             log_msg(LOG_ERR, 0, "EPC Bearer ID %u != %u received", PDATA->user_ctx->ebearer[0].id, value); */
+/*             return 1; */
+/*         } */
+
+
+/*         /\* F-TEID S1-U (SGW)*\/ */
+/*         gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_FTEID, 0, value, &vsize); */
+/*         if(value!= NULL && vsize>0){ */
+/*             memcpy(&fteid, value, vsize); */
+/*             if(memcmp(&(PDATA->user_ctx->ebearer[0].s1u_sgw), value, vsize) != 0){ */
+/*                 log_msg(LOG_ERR, 0, "S1-U SGW FEID not corresponds to the stored one"); */
+/*                 return 1; */
+/*             } */
+/*         } */
+/*     } */
+/*     return 0; */
+/* } */
 
 void TASK_MME_S11___Forge_CreateIndirectDataForwardingTunnel(S11_user_t u, S11_Signal sig){
     union gtp_packet packet;
@@ -1123,51 +1127,53 @@ gpointer S11_newUserAttach(gpointer s11_h, struct user_ctx_t *user,
                         void(*cb)(gpointer), gpointer args){
     log_msg(LOG_DEBUG, 0, "enter S11_newUserAttach()");
 
-	S11_t *self = (S11_t *) s11_h;
+    S11_t *self = (S11_t *) s11_h;
 
     /* New MME TEID for the new user*/
-	S11_user_t *u = s11_newUser(self, user);
+    gpointer u = s11_newSession(self, user);
 
-	u->state = STATE_attach;
-	u->state(u, S11_attach);
+    /* u->state = STATE_attach; */
+    /* u->state(u, S11_attach); */
+    attach(u, cb, args);
 
-	//cb(args);
-	return u;
+    //cb(args);
+    return u;
 }
 
 
 void S11_Attach_ModifyBearerReq(gpointer s11_user, void(*cb)(gpointer), gpointer args){
     log_msg(LOG_DEBUG, 0, "enter");
 
-    u->state = STATE_attach;
-	u->state(u, S11_ModifyBearer);
+    /* u->state = STATE_attach; */
+    /* u->state(u, S11_ModifyBearer); */
+    modBearer(u, cb, args);
 
-	//cb(args);
+    //cb(args);
 }
 
 void S11_dettach(gpointer s11_user, void(*cb)(gpointer), gpointer args){
     log_msg(LOG_DEBUG, 0, "enter");
 
     u->state = STATE_Delete_User_Session;
-	u->state(u, S11_detach);
+    u->state(u, S11_detach);
 
-	//cb(args);
+    //cb(args);
 }
 
 void S11_ReleaseAccessBearers(gpointer s11_user, void(*cb)(gpointer), gpointer args){
     log_msg(LOG_DEBUG, 0, "enter");
 
     u->state = STATE_ReleaseAccessBearers;
-	u->state(u, S11_releaseAccessBearers);
+    u->state(u, S11_releaseAccessBearers);
 
-	//cb(args);
+    //cb(args);
 }
 
 /* void S11_CreateIndirectDataForwardingTunnel(gpointer s11_user, void(*cb)(gpointer), gpointer args){ */
 /*     log_msg(LOG_DEBUG, 0, "enter"); */
 
 /*     u->state = STATE_CreateIndirectDataForwardingTunnel; */
-/* 	u->state(u, S11_createIndirectDataForwardingTunnel); */
+/*      u->state(u, S11_createIndirectDataForwardingTunnel); */
 
-/* 	//cb(args); */
+/*      //cb(args); */
 /* } */
