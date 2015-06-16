@@ -15,47 +15,50 @@
  */
 
 #include "S11_WDel.h"
+#include "logmgr.h"
+#include "S11_FSMConfig.h"
+#include "gtp.h"
 
 
-static void processMsg(gpointer){
-	GError *err = NULL;
-	parseIEs(self);
-	switch(msg->packet.gtp.gtp2l.h.type){
-	case GTP2_DELETE_SESSION_RSP:
-		if(!accepted(self)){
-			log_msg(LOG_WARNING, 0, "Create Session request rejected "
-			        "Cause %d", cause(self));
-		}
-		parseDelCtxRsp(self, &err);
-		if(err!=NULL){
-			log_msg(LOG_ERROR, 0, err->message);
-			g_error_free (err);
-			return;
-		}
-		returnControlAndRemoveSession(self);	
+static void processMsg(gpointer self){
+    GError *err = NULL;
+    parseIEs(self);
+    switch(getMsgType(self)){
+    case GTP2_DELETE_SESSION_RSP:
+        if(!accepted(self)){
+            log_msg(LOG_WARNING, 0, "Create Session request rejected "
+                    "Cause %d", cause(self));
+        }
+        parseDelCtxRsp(self, &err);
+        if(err!=NULL){
+            log_msg(LOG_ERR, 0, err->message);
+            g_error_free (err);
+            return;
+        }
+        returnControlAndRemoveSession(self);
         break;
-	default:
-		log_msg(LOG_DEBUG, 0, "Msg for this state not Implemented");
-		break;
-	}
+    default:
+        log_msg(LOG_DEBUG, 0, "Msg for this state not Implemented");
+        break;
+    }
 }
 
-static void attach(gpointer){
-	
+static void attach(gpointer self){
+
 }
 
-static void detach(gpointer){
-	
+static void detach(gpointer self){
+
 }
 
-static void modBearer(gpointer){
-	
+static void modBearer(gpointer self){
+
 }
 
 
 void linkWDel(S11_State* s){
-	s->processMsg = processMsg;
-	s->attach = attach;
-	s->detach =  detach;
-	s->modBearer = modBearer;
+    s->processMsg = processMsg;
+    s->attach = attach;
+    s->detach =  detach;
+    s->modBearer = modBearer;
 }

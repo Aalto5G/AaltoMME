@@ -7,7 +7,7 @@
  */
 
 /**
- * @file   errmagr.h
+ * @file   logmgr.h
  * @author Vicent Ferrer
  * @date   March, 2013
  * @brief  Error managment functions.

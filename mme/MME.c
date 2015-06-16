@@ -105,7 +105,7 @@ int init_sctp_srv(const char *src, int port){
     bzero( (void *)&servaddr, sizeof(servaddr) );
     servaddr.sin_family = AF_INET;
     inet_pton(AF_INET, src, &(servaddr.sin_addr));
-    servaddr.sin_addr.s_addr = addr;
+    /* servaddr.sin_addr.s_addr = addr; */
     servaddr.sin_port = htons(port);
 
     /* Turn off bind address checking and allow port numbers to be reused*/
@@ -244,8 +244,6 @@ int mme_run(struct mme_t *self){
     /*NULL initizalization required on hash table*/
     self->sessionht_byTEID = NULL;
     self->sessionht_byS1APID = NULL;
-
-    self->seq = 0;
 
     /*Init user storage*/
     init_storage_system();
@@ -661,10 +659,6 @@ struct SessionStruct_t *getPendingResponseByUES1APID(struct mme_t *mme, uint32_t
     }
     s->pendingRsp=0;
     return s;
-}
-
-unsigned int getNextSeq(struct mme_t *mme){
-    return mme->seq++;
 }
 
 unsigned int newTeid(){

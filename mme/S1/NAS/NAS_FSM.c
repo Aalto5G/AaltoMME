@@ -485,25 +485,29 @@ void stateEMM_CommonProcedureInitiated(uint8_t *returnbuffer, uint32_t *bsize, G
 
         /* Check XRES == RES*/
         if(authRsp->authParam.l == 8){
-	        if(memcmp(authRsp->authParam.v, user->sec_ctx.xRES, 8)!=0){
-		        log_msg(LOG_WARNING, 0, "NAS: Authentication Failed for user: %llu",user->imsi);
-		        return;
-	        }
+	        /* if(memcmp(authRsp->authParam.v, user->sec_ctx.xRES, 8)!=0){ */
+		    /*     log_msg(LOG_WARNING, 0, "NAS: Authentication Failed for user: %llu",user->imsi); */
+		    /*     return; */
+	        /* } */
         }else{
 	        log_msg(LOG_WARNING, 0, "NAS: Authentication Parameter has a wrong lenght");
 	        return;
         }
-        
+
+        user->stateNAS_EMM = EMM_Deregistered;
         /*Continue the attach procedure after authentication
          * @TODO Comment the following line and uncomment the next ones to activate the Security Mode Procedure*/
-        run_parent(signal);
+        s6a_UpdateLocation(SELF_ON_SIG->s6a, user,
+                           (void(*)(gpointer)) run_parent,
+                           (gpointer)signal);
+
         /*sendFirstStoredSignal(signal->processTo);*/
 
         /*Send security Mode command*/
         /* TASK_SecModeCommand(returnbuffer, bsize, msg, signal);
         addToPendingResponse(PDATA)
         */
-        user->stateNAS_EMM = EMM_Deregistered;
+        
 
     }else if(msg->plain.eMM.messageType ==AuthenticationFailure){
 	    authFail = (AuthenticationFailure_t*)&(msg->plain.eMM);

@@ -15,12 +15,14 @@
  */
 
 #include "S11_WCtxRsp.h"
-
+#include "logmgr.h"
+#include "S11_FSMConfig.h"
+#include "gtp.h"
 
 static void processMsg(gpointer self){
 	GError *err = NULL;
 	parseIEs(self);
-	switch(msg->packet.gtp.gtp2l.h.type){
+	switch(getMsgType(self)){
 	case GTP2_CREATE_SESSION_RSP:
 		if(!accepted(self)){
 			log_msg(LOG_WARNING, 0, "Create Session request rejected "
@@ -28,7 +30,7 @@ static void processMsg(gpointer self){
 		}
 		parseCtxRsp(self, &err);
 		if(err!=NULL){
-			log_msg(LOG_ERROR, 0, err->message);
+			log_msg(LOG_ERR, 0, err->message);
 			g_error_free (err);
 			return;
 		}
@@ -41,16 +43,16 @@ static void processMsg(gpointer self){
 	}
 }
 
-static void attach(gpointer){
-	log_msg(LOG_ERROR, 0, "Not Implemented");
+static void attach(gpointer self){
+	log_msg(LOG_ERR, 0, "Not Implemented");
 }
 
-static void detach(gpointer){
-	log_msg(LOG_ERROR, 0, "Not Implemented");
+static void detach(gpointer self){
+	log_msg(LOG_ERR, 0, "Not Implemented");
 }
 
-static void modBearer(gpointer){
-	log_msg(LOG_ERROR, 0, "Not Implemented");
+static void modBearer(gpointer self){
+	log_msg(LOG_ERR, 0, "Not Implemented");
 }
 
 

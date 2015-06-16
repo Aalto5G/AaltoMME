@@ -30,14 +30,14 @@ enum t_signal_name{
     other signals related to S11 interface are here
     ***********************************************/
 
-	S11_new_user_test, /*Test Signal*/
-	S11_attach, /*4*/
-	S11_ModifyBearer,
-	S11_detach,
-	S11_createIndirectDataForwardingTunnel,
-    S11_handler_ready,
-    S11_handler_error,
-    S11_releaseAccessBearers,
+	/* S11_new_user_test, /\*Test Signal*\/ */
+	/* S11_attach, /\*4*\/ */
+	/* S11_ModifyBearer, */
+	/* S11_detach, */
+	/* S11_createIndirectDataForwardingTunnel, */
+    /* S11_handler_ready, */
+    /* S11_handler_error, */
+    /* S11_releaseAccessBearers, */
 
 
 	/**********************************************

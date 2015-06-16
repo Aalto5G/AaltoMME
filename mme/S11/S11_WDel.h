@@ -19,7 +19,7 @@
 
 #include "S11_State.h"
 
-typedef{
+typedef struct{
 	S11STATE
 }S11_WDel;
 

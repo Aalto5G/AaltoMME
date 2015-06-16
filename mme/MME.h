@@ -91,7 +91,7 @@ struct t_message{
     }packet;                 ;  /*  data received as part of the message*/
     uint32_t                length;         /*  Packet lenght*/
     struct EndpointStruct_t peer;           /*  Peer endpoint struct*/
-	const char              srcAddr[INET6_ADDRSTRLEN];
+	char                    srcAddr[INET6_ADDRSTRLEN];
 };
 
 /* Procedure transaction states in the network : 3FPP 24.301 clause 6.1.3.3*/
@@ -246,7 +246,6 @@ struct mme_t{
     struct EndpointStruct_t command;
     struct SessionStruct_t  *sessionht_byTEID;    /*Session Hash table to store the processes waiting for a response, */
     struct SessionStruct_t  *sessionht_byS1APID;  /*Session Hash table to store the processes waiting for a response, */
-    uint32_t                seq : 24 ;
     struct timeval          start;   /* Test Variable*/
     uint32_t                procTime;
 	uint32_t                uE_DNS;  /*IP address to be used on the PDN by the UEs*/
@@ -289,8 +288,6 @@ extern struct SessionStruct_t *getPendingResponseByTEID(struct mme_t *mme, uint3
 
 /* Removes session from hash table */
 extern struct SessionStruct_t *getPendingResponseByUES1APID(struct mme_t *mme, uint32_t mME_UE_S1AP_ID);
-
-extern unsigned int getNextSeq(struct mme_t *mme);
 
 extern unsigned int newTeid();
 

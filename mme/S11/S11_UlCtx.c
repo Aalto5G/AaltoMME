@@ -15,21 +15,22 @@
  */
 
 #include "S11_UlCtx.h"
+#include "logmgr.h"
+#include "S11_FSMConfig.h"
 
-
-static void processMsg(gpointer){
-	log_msg(LOG_ERROR, 0, "Not Implemented");
+static void processMsg(gpointer self){
+	log_msg(LOG_ERR, 0, "Not Implemented");
 }
 
-static void attach(gpointer){
-	log_msg(LOG_ERROR, 0, "Not Implemented");
+static void attach(gpointer self){
+	log_msg(LOG_ERR, 0, "Not Implemented");
 }
 
-static void detach(gpointer){
-	log_msg(LOG_ERROR, 0, "Not Implemented");
+static void detach(gpointer self){
+	log_msg(LOG_ERR, 0, "Not Implemented");
 }
 
-static void modBearer(gpointer){
+static void modBearer(gpointer self){
 	log_msg(LOG_DEBUG, 0, "Sending Modify Bearer Request");
 	sendModifyBearerReq(self);
 	changeState(self, wModBearerRsp);

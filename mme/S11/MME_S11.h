@@ -48,10 +48,24 @@ void s11_deleteSession(gpointer s11_h, gpointer u);
 
 /**
  * @brief File descriptor accessor
- * @param [in]  s11_h Engine reference
+ * @param [in]  s11_h s11 stack handler
  * @return file descriptor
  */
 const int s11_fg(gpointer s11_h);
+
+/**
+ * @brief Provides the next sequence number to be sent
+ * @param [in]  s11_h s11 stack handler
+ * @return sequence number
+ */
+const unsigned int getNextSeq(gpointer s11_h);
+
+/**
+ * @brief Provides the local IP address in string format
+ * @param [in]  s11_h s11 stack handler
+ * @return Local IP address in string format
+ */
+const char *s11_getLocalAddress(gpointer s11_h);
 
 /* ======================================================================
  * S11 MME State Machine API
@@ -82,14 +96,14 @@ void S11_Attach_ModifyBearerReq(gpointer s11_user, void(*cb)(gpointer), gpointer
  * @param [in]  session User session structure
  *
  */
-void S11_dettach(struct t_engine_data *engine, struct SessionStruct_t *session);
+void S11_dettach(gpointer s11_user, void(*cb)(gpointer), gpointer args);
 
 /**@brief Trigger Indirect Data Forwarding Tunnel
  * @param [in]  engine Engine reference
  * @param [in]  session User session structure
  *
  */
-void S11_CreateIndirectDataForwardingTunnel(struct t_engine_data *engine, struct SessionStruct_t *session);
+/* void S11_CreateIndirectDataForwardingTunnel(struct t_engine_data *engine, struct SessionStruct_t *session); */
 
 /**@brief Release Access Bearers
  * @param [in]  engine Engine reference
@@ -98,7 +112,6 @@ void S11_CreateIndirectDataForwardingTunnel(struct t_engine_data *engine, struct
  */
 /* void S11_ReleaseAccessBearers(struct t_engine_data *engine, struct SessionStruct_t *session); */
 
-
-
+void S11_ReleaseAccessBearers(gpointer s11_user, void(*cb)(gpointer), gpointer args);
 
 #endif /* MME_S11_HFILE */

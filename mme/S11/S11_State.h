@@ -23,15 +23,15 @@
 
 #include <glib.h>
 
-#include "S11_User.h"
+typedef void (*S11_event)(gpointer);
 
 #define S11STATE \
-	void *(processMsg)(gpointer);	    /*  */ \
-	void *(attach)(gpointer);	    /*  */ \
-	void *(detach)(gpointer);	    /*  */ \
-	void *(modBearer)(gpointer);	/* Modify Bearer */ \
+	S11_event processMsg;	    /*  */ \
+	S11_event attach;	    /*  */ \
+	S11_event detach;	    /*  */ \
+	S11_event modBearer;	/* Modify Bearer */ \
 
-typedef{
+typedef struct{
 	S11STATE;
 }S11_State;
 

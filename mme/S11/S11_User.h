@@ -20,8 +20,9 @@
 #include <glib.h>
 
 #include "MME.h"
+#include "S11_State.h"
 
-gpointer s11u_newUser(struct user_ctx_t *user);
+gpointer s11u_newUser(gpointer s11, struct user_ctx_t *user);
 
 void s11u_freeUser(gpointer self);
 
@@ -37,7 +38,12 @@ void modBearer(gpointer self, void(*cb)(gpointer), gpointer args);
 
 gboolean s11u_hasPendingResp(gpointer self);
 
-const int *s11u_getTEIDp(gpointer self);
+int *s11u_getTEIDp(gpointer self);
+
+
+/* API to config*/
+
+void s11u_setState(gpointer self, S11_State *s);
 
 
 /*API to the States*/
@@ -48,6 +54,8 @@ void returnControlAndRemoveSession(gpointer u);
 
 void parseIEs(gpointer u);
 
+const int getMsgType(const gpointer u);
+
 
 void sendCreateSessionReq(gpointer u);
 
@@ -56,7 +64,7 @@ void sendModifyBearerReq(gpointer u);
 void sendDeleteSessionReq(gpointer u);
 
 
-const gbool accepted(gpointer u);
+const gboolean accepted(gpointer u);
 
 const int cause(gpointer u);
 

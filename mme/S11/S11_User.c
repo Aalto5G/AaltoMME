@@ -18,14 +18,16 @@
 #include "S11_FSMConfig.h"
 #include "MME_S11.h"
 #include "nodemgr.h"
+#include "logmgr.h"
 
 #include <string.h>
+#include <netinet/in.h>
 
 #include "gtpie.h"
 
 typedef struct{
     gpointer    s11;    /**< s11 stack handler*/
-    S11_STATE state;  /**< s11 state for this user*/
+    S11_State *state;  /**< s11 state for this user*/
     uint32_t  lTEID;  /**< local control TEID*/
     uint32_t  rTEID;  /**< remote control TEID*/
     struct sockaddr     rAddr;       /**<Peer IP address, IPv4 or IPv6*/
@@ -36,7 +38,7 @@ typedef struct{
     union gtp_packet iMsg;
     uint32_t iMsglen;
     union gtpie_member *ie[GTPIE_SIZE];
-    uint8 cause;
+    uint8_t cause;
     void(*cb)(gpointer);
     gpointer args;
 }S11_user_t;
@@ -49,14 +51,15 @@ parse_error (void)
   return g_quark_from_static_string ("gtpv2-parse-error");
 }
 
-gpointer s11u_newUser(struct user_ctx_t *user){
+gpointer s11u_newUser(gpointer s11, struct user_ctx_t *user){
     struct nodeinfo_t sgw;
     struct sockaddr_in *peer;
 
-    S11_user_t *self = g_new(S11_user_t, 1);
+    S11_user_t *self = g_new0(S11_user_t, 1);
     self->lTEID = newTeid();
     self->rTEID = 0;
     self->user  = user;
+    self->s11 = s11;
 
     /*Get SGW addr*/
     getNode(&sgw, SGW, user);
@@ -74,97 +77,114 @@ void s11u_freeUser(gpointer self){
     g_free(self);
 }
 
+static validateSourceAddr(S11_user_t* self, const char * src){
+    char r[INET6_ADDRSTRLEN];
+
+    switch(self->rAddr.sa_family){
+    case AF_INET:
+        inet_ntop(AF_INET, &(self->rAddr), r, INET_ADDRSTRLEN);
+        break;
+    case AF_INET6:
+        inet_ntop(AF_INET6, &(self->rAddr), r, INET6_ADDRSTRLEN);
+        break;
+    }
+    return strcmp(r, src) == 0;
+}
 
 void processMsg(gpointer u, const struct t_message *msg){
     S11_user_t *self = (S11_user_t*)u;
 
     if(!validateSourceAddr(self, msg->srcAddr)){
-	    log_msg(LOG_WARNING, 0, "S11 - Wrong S-GW source (%s)."
-	            "Ignoring packet", msg->srcAddr);
-        return
+        log_msg(LOG_WARNING, 0, "S11 - Wrong S-GW source (%s)."
+                "Ignoring packet", msg->srcAddr);
+        return;
     }
 
-    self->iMsgLen = msg->length;
-    memcpy(self->iMsg, msg->packet.gtp, msg->length);
+    self->iMsglen = msg->length;
+    memcpy(&(self->iMsg), &(msg->packet.gtp), msg->length);
 
-    self->state.processMsg(self);
+    self->state->processMsg(self);
 }
 
-void attach(gpointer self, void(*cb)(gpointer), gpointer args){
-	self->cb = cb;
-    self->args = args;
-    self->state.attach(self);
-}
-
-void detach(gpointer self, void(*cb)(gpointer), gpointer args){
+void attach(gpointer session, void(*cb)(gpointer), gpointer args){
+    S11_user_t *self = (S11_user_t*)session;
     self->cb = cb;
     self->args = args;
-    self->state.detach(self);
+    self->state->attach(self);
 }
 
-void modBearer(gpointer self, void(*cb)(gpointer), gpointer args){
-	self->cb = cb;
+void detach(gpointer session, void(*cb)(gpointer), gpointer args){
+    S11_user_t *self = (S11_user_t*)session;
+    self->cb = cb;
     self->args = args;
-    self->state.modBearer(self);
+    self->state->detach(self);
+}
+
+void modBearer(gpointer session, void(*cb)(gpointer), gpointer args){
+    S11_user_t *self = (S11_user_t*)session;
+    self->cb = cb;
+    self->args = args;
+    self->state->modBearer(self);
 }
 
 
-gboolean s11_UserhasPendingResp(gpointer self){
+gboolean s11u_hasPendingResp(gpointer self){
     return TRUE;
 }
 
 
-const int *s11u_getTEIDp(gpointer u){
+int *s11u_getTEIDp(gpointer u){
     S11_user_t *self = (S11_user_t*)u;
     return &(self->lTEID);
 }
 
-static send(S11_user_t* self){
-	/*Packet header modifications*/
-    self->oMsg.gtp2l.h.seq = hton24(getNextSeq(self->mme));
-    self->oMsg.gtp2l.h.tei = self->user->s11.teid;
-    
-    if (sendto(s11_fg(self->s11), &(self->oMsg), self->oMsglen, 0,
-               (struct sockaddr *)self->rAddr, self->rAddrLen) < 0) {
-        log_errpack(LOG_ERR, errno, (struct sockaddr_in *)self->rAddr,
-                    &(self->oMsg), self->oMsglen,
-                    "Sendto(fd=%d, msg=%lx, len=%d) failed",
-                    sock, (unsigned long) &packet, length);
-    }
+void s11u_setState(gpointer u, S11_State *s){
+    S11_user_t *self = (S11_user_t*)u;
+    self->state = s;
 }
 
-static validateSourceAddr(S11_user_t* self, const char * src){
-    const char r[INET6_ADDRSTRLE];
+static void s11_send(S11_user_t* self){
+    log_msg(LOG_WARNING, 0, "TEST %p", self->s11);
+    const int sock = s11_fg(self->s11);
+    log_msg(LOG_WARNING, 0, "TEST %u", sock);
+    /*Packet header modifications*/
+    self->oMsg.gtp2l.h.seq = hton24(getNextSeq(self->s11));
+    self->oMsg.gtp2l.h.tei = self->rTEID;
 
-    switch(self->rAddr.sin_family){
-    case AF_INET:
-	    inet_ntop(AF_INET, &(self->rAddr.sin_addr), r, INET_ADDRSTRLEN);
-	    break;
-    case AF_INET6:
-	    inet_ntop(AF_INET6, &(self->rAddr.sin6_addr), r, INET6_ADDRSTRLEN);
-	    break;
+
+    if (sendto(sock, &(self->oMsg), self->oMsglen, 0,
+                   &(self->rAddr), self->rAddrLen) < 0) {
+log_errpack(LOG_ERR, errno, (struct sockaddr_in *)&(self->rAddr),
+            &(self->oMsg), self->oMsglen,
+            "Sendto(fd=%d, msg=%lx, len=%d) failed",
+            sock, (unsigned long) &(self->oMsg), self->oMsglen);
     }
-    return strcmp(r, src) == 0;
 }
-
 
 
 void returnControl(gpointer u){
-	self->cb(self->args);
+    S11_user_t *self = (S11_user_t*)u;
+    self->cb(self->args);
 }
 
 void returnControlAndRemoveSession(gpointer u){
-	void(*cb)(gpointer);
+    S11_user_t *self = (S11_user_t*)u;
+    void(*cb)(gpointer);
     gpointer args;
-	cb = self->cb;
-	args = self->args;
-	s11_deleteSession(self->s11);
-	cb(args);
+    cb = self->cb;
+    args = self->args;
+    s11_deleteSession(self->s11, self);
+    cb(args);
 }
 
 void parseIEs(gpointer u){
-	S11_user_t *self = (S11_user_t*)u;
-	gtp2ie_decap(self->ie, &(self->iMsg), self->iMsglen);
+    S11_user_t *self = (S11_user_t*)u;
+    gtp2ie_decap(self->ie, &(self->iMsg), self->iMsglen);
+}
+
+const int getMsgType(const gpointer u){
+    S11_user_t *self = (S11_user_t*)u;
+    return self->iMsg.gtp2l.h.type;
 }
 
 void sendCreateSessionReq(gpointer u){
@@ -217,7 +237,7 @@ void sendCreateSessionReq(gpointer u){
     fteid.iface= hton8(S11_MME);
     fteid.teid = hton32(self->user->S11MMETeid);
     inet_pton(AF_INET,
-              mme_getLocalAddress(self->mme),
+              s11_getLocalAddress(self->s11),
               &(fteid.addr.addrv4));
     ie[ienum].tliv.l=hton16(FTEID_IP4_SIZE);
     memcpy(ie[ienum].tliv.v, &fteid, FTEID_IP4_SIZE);
@@ -307,16 +327,20 @@ void sendCreateSessionReq(gpointer u){
         bytefield[2]=0x01;
         memcpy(ie_bearer_ctx[2].tliv.v, bytefield, 3);
     gtp2ie_encaps_group(GTPV2C_IE_BEARER_CONTEXT, 0, &ie[12], ie_bearer_ctx, 3);*/
+        ie[ienum];
+    log_msg(LOG_WARNING, 0, "TEST %p, %p", self, ie[ienum]);
     gtp2ie_encaps_group(GTPV2C_IE_BEARER_CONTEXT, 0, &ie[ienum],
                         ie_bearer_ctx, 2);
     ienum++;
+    log_msg(LOG_WARNING, 0, "TEST %p, %p", self, &(ie[ienum-1]));
+    exit(0);
     gtp2ie_encaps(ie, ienum, &(self->oMsg), &(self->oMsglen));
-
-    send(self);
+    log_msg(LOG_WARNING, 0, "TEST %p", self->s11);
+    s11_send(self);
 }
 
 void sendModifyBearerReq(gpointer u){
-	S11_user_t *self = (S11_user_t*)u;
+    S11_user_t *self = (S11_user_t*)u;
     struct fteid_t  fteid;
     union gtpie_member ie[13], ie_bearer_ctx[3];
     int hlen, a;
@@ -324,7 +348,7 @@ void sendModifyBearerReq(gpointer u){
 
     log_msg(LOG_DEBUG, 0, "Enter");
     /*  Send Create Context Request to SGW*/
-    /******************************************************************************/    
+    /******************************************************************************/
 
     self->oMsglen = get_default_gtp(2, GTP2_MODIFY_BEARER_REQ, &(self->oMsg));
 
@@ -337,7 +361,7 @@ void sendModifyBearerReq(gpointer u){
     fteid.iface= hton8(S11_MME);
     fteid.teid = hton32(self->user->S11MMETeid);
     inet_pton(AF_INET,
-              mme_getLocalAddress(self->mme),
+              s11_getLocalAddress(self->s11),
               &(fteid.addr.addrv4));
     memcpy(ie[0].tliv.v, &fteid, FTEID_IP4_SIZE);
 
@@ -363,11 +387,11 @@ void sendModifyBearerReq(gpointer u){
     gtp2ie_encaps_group(GTPV2C_IE_BEARER_CONTEXT, 0, &ie[1], ie_bearer_ctx, 2);
     gtp2ie_encaps(ie, 2, &(self->oMsg), &(self->oMsglen));
 
-    send(self);
+    s11_send(self);
 }
 
 void sendDeleteSessionReq(gpointer u){
-	S11_user_t *self = (S11_user_t*)u;
+    S11_user_t *self = (S11_user_t*)u;
 
     union gtpie_member ie[13];
 
@@ -385,66 +409,65 @@ void sendDeleteSessionReq(gpointer u){
 
     gtp2ie_encaps(ie, 1, &(self->oMsg), &(self->oMsglen));
 
-	send(self);
+    s11_send(self);
 }
 
-const gbool accepted(gpointer u){
-	S11_user_t *self = (S11_user_t*)u;
-	uint16_t vsize;
-	uint8_t value[2];
+const gboolean accepted(gpointer u){
+    S11_user_t *self = (S11_user_t*)u;
+    uint16_t vsize;
+    uint8_t value[2];
 
-	/* Cause*/
-	gtp2ie_gettliv(&(self->ie), GTPV2C_IE_CAUSE, 0, &value, &vsize);
-	if(vsize=2){
-		self->cause = value[0];
-		return value[0]==GTPV2C_CAUSE_REQUEST_ACCEPTED);
-	else{
-		log_msg(LOG_ERROR, 0, "GTPv2 Cause IE Parse Error");
-		return;
-	}
+    /* Cause*/
+    gtp2ie_gettliv(self->ie, GTPV2C_IE_CAUSE, 0, value, &vsize);
+    if(vsize=2){
+        self->cause = value[0];
+        return value[0]==GTPV2C_CAUSE_REQUEST_ACCEPTED;
+    }else{
+        log_msg(LOG_ERR, 0, "GTPv2 Cause IE Parse Error");
+        return;
+    }
 }
 
 const int cause(gpointer u){
-	S11_user_t *self = (S11_user_t*)u;
-	union gtpie_member ie;
-	uint16_t vsize;
-	uint8_t value[2];
+    S11_user_t *self = (S11_user_t*)u;
+    uint16_t vsize;
+    uint8_t value[2];
 
-	gtp2ie_gettliv(&(self->ie), GTPV2C_IE_CAUSE, 0, value, &vsize);
+    gtp2ie_gettliv(self->ie, GTPV2C_IE_CAUSE, 0, value, &vsize);
     if(vsize=2){
-	    return value[0];
+        return value[0];
     }else{
-	    log_msg(LOG_ERROR, 0, "GTPv2 Cause IE Parse Error");
-	    return;
+        log_msg(LOG_ERR, 0, "GTPv2 Cause IE Parse Error");
+        return;
     }
 }
 
 void parseCtxRsp(gpointer u, GError **err){
-	S11_user_t *self = (S11_user_t*)u;
+    S11_user_t *self = (S11_user_t*)u;
     union gtpie_member *bearerCtxGroupIE[GTPIE_SIZE];
     uint8_t value[40];
     uint16_t vsize;
     uint32_t numIE;
     struct fteid_t fteid;
     struct in_addr s1uaddr;
-    
-	/* F-TEID S11 (SGW)*/
-    gtp2ie_gettliv(&(self->ie), GTPV2C_IE_FTEID, 0, value, &vsize);
+
+    /* F-TEID S11 (SGW)*/
+    gtp2ie_gettliv(self->ie, GTPV2C_IE_FTEID, 0, value, &vsize);
     if(value!= NULL && vsize>0){
         memcpy(&(self->user->s11), value, vsize);
-        log_msg(LOG_DEBUG, 0, "S11 Sgw teid = %x into", hton32(self->user->s11.teid));
+        log_msg(LOG_DEBUG, 0, "S11 Sgw teid = %x into", hton32(self->rTEID));
     }
 
 
     /* F-TEID S5 /S8 (PGW)*/
-    gtp2ie_gettliv(&(self->ie), GTPV2C_IE_FTEID, 1, value, &vsize);
+    gtp2ie_gettliv(self->ie, GTPV2C_IE_FTEID, 1, value, &vsize);
     if(value!= NULL && vsize>0){
         memcpy(&(self->user->s5s8), value, vsize);
         log_msg(LOG_DEBUG, 0, "S5/S8 Pgw teid = %x into", hton32(self->user->s5s8.teid));
     }
 
     /* PDN Address Allocation - PAA*/
-    gtp2ie_gettliv(&(self->ie), GTPV2C_IE_PAA, 0, value, &vsize);
+    gtp2ie_gettliv(self->ie, GTPV2C_IE_PAA, 0, value, &vsize);
     if(value!= NULL && vsize>0){
         memcpy(&(self->user->pAA), value, vsize);
         log_msg(LOG_DEBUG, 0, "PDN Allocated Addr type %u", self->user->pAA.type);
@@ -453,7 +476,7 @@ void parseCtxRsp(gpointer u, GError **err){
 
     vsize=0;
     /* Protocol Configuration Options PCO*/
-    gtp2ie_gettliv(&(self->ie), GTPV2C_IE_PCO, 0, value, &vsize);
+    gtp2ie_gettliv(self->ie, GTPV2C_IE_PCO, 0, value, &vsize);
     if(value!= NULL && vsize>0){
         memcpy(&(self->user->pco[2]), value, vsize);
         self->user->pco[1]= (uint8_t) ntoh16(vsize);
@@ -461,7 +484,7 @@ void parseCtxRsp(gpointer u, GError **err){
     }
 
     /* Bearer Context*/
-    gtp2ie_gettliv(&(self->ie), GTPV2C_IE_BEARER_CONTEXT, 0, value, &vsize);
+    gtp2ie_gettliv(self->ie, GTPV2C_IE_BEARER_CONTEXT, 0, value, &vsize);
     if(value!= NULL && vsize>0){
         gtp2ie_decaps_group(bearerCtxGroupIE, &numIE, value, vsize);
 
@@ -490,8 +513,8 @@ void parseCtxRsp(gpointer u, GError **err){
 }
 
 void parseModBearerRsp(gpointer u, GError **err){
-	S11_user_t *self = (S11_user_t*)u;
-    union gtpie_member *ie[GTPIE_SIZE], *bearerCtxGroupIE[GTPIE_SIZE];
+    S11_user_t *self = (S11_user_t*)u;
+    union gtpie_member *bearerCtxGroupIE[GTPIE_SIZE];
     uint8_t value[40];
     uint16_t vsize;
     uint32_t numIE;
@@ -501,18 +524,18 @@ void parseModBearerRsp(gpointer u, GError **err){
     log_msg(LOG_DEBUG, 0, "Parsing Modify Bearer Req");
 
     /* Bearer Context*/
-    gtp2ie_gettliv(&(self->ie), GTPV2C_IE_BEARER_CONTEXT, 0, value, &vsize);
+    gtp2ie_gettliv(self->ie, GTPV2C_IE_BEARER_CONTEXT, 0, value, &vsize);
     if(value!= NULL && vsize>0){
         gtp2ie_decaps_group(bearerCtxGroupIE, &numIE, value, vsize);
 
         /* EPS Bearer ID*/
         gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_EBI, 0, value, &vsize);
         if(vsize != 1 && self->user->ebearer[0].id != *value){
-	        g_set_error (err,
-	                     PARSE_ERROR,                 // error domain
-	                     1,            // error code
-	                     "EPC Bearer ID %u != %u received",
-	                     self->user->ebearer[0].id, value);
+            g_set_error (err,
+                         PARSE_ERROR,                 // error domain
+                         1,            // error code
+                         "EPC Bearer ID %u != %u received",
+                         self->user->ebearer[0].id, value);
             return;
         }
 
@@ -521,22 +544,22 @@ void parseModBearerRsp(gpointer u, GError **err){
         if(value!= NULL && vsize>0){
             memcpy(&fteid, value, vsize);
             if(memcmp(&(self->user->ebearer[0].s1u_sgw), value, vsize) != 0){
-	            g_set_error (err,
-	                         PARSE_ERROR,                 // error domain
-	                         1,            // error code
-	                         "S1-U SGW FEID not corresponds to the stored one",
-	                         self->user->ebearer[0].id, value);
-	            return;
+                g_set_error (err,
+                             PARSE_ERROR,                 // error domain
+                             1,            // error code
+                             "S1-U SGW FEID not corresponds to the stored one",
+                             self->user->ebearer[0].id, value);
+                return;
             }
         }
     }
 }
 
 void parseDelCtxRsp(gpointer u, GError **err){
-	S11_user_t *self = (S11_user_t*)u;
+    S11_user_t *self = (S11_user_t*)u;
 
-	log_msg(LOG_DEBUG, 0, "Parsing Delete Session RSP.");
+    log_msg(LOG_DEBUG, 0, "Parsing Delete Session RSP.");
 
-	/*  Delete node info*/
-	self->user->s11.teid = hton32(0);
+    /*  Delete node info*/
+    self->rTEID = 0;
 }
