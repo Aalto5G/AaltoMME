@@ -20,7 +20,7 @@ AM_CFLAGS = -Wall -I$(top_srcdir)/S1AP/shared
 S1APtest_SOURCES = S1APtest.c
 
 # Linker options for a.out
-S1APtest_LDFLAGS = $(top_srcdir)/S1AP/src/libs1ap.la
+S1APtest_LDFLAGS = $(top_builddir)/S1AP/src/libs1ap.la
 
 # Compiler options for a.out
 #S1APtest__CPPFLAGS = -Wall -I$(top_srcdir)/S1AP/shared

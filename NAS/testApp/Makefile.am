@@ -20,7 +20,7 @@ AM_CFLAGS = -Wall -I$(top_srcdir)/NAS/shared
 NAStest_SOURCES = NAStest.c
 
 # Linker options for a.out
-NAStest_LDFLAGS = $(top_srcdir)/NAS/src/libnas.la
+NAStest_LDFLAGS = $(top_builddir)/NAS/src/libnas.la
 
 # Compiler options for a.out
 #NAStest__CPPFLAGS = -Wall -I$(top_srcdir)/S1AP/shared
