@@ -95,7 +95,7 @@ void gtp_errpack(int pri, char *fn, int ln, struct sockaddr_in *peer,
 
 const char* gtp_version()
 {
-  return VERSION;
+	return "1.0";//VERSION;
 }
 
 
