@@ -17,6 +17,7 @@
 #define COMM_HFILE
 
 #include <event2/event.h>
+#include <glib.h>
 #include "signals.h"
 #include "commands_msg.h"
 
@@ -24,14 +25,15 @@
 
 /**@brief Initializes a UDP server
  * @param [in] servPort Server port number
- * @returns socket file descriptor
+ * @returns pointer to command server stack
  *
  * Internally can socket and bind system calls */
-extern int servcommand_init(const int servPort);
+extern gpointer servcommand_init(gpointer mme, const int servPort);
+extern gpointer servcommand_stop(gpointer serv_h);
 
 /**@brief Accept callback used to read the commands
  *
  * LibEvent defined callback. Used to receive the command when the file descriptor is set as active */
-extern void cmd_accept(evutil_socket_t listener, short event, void *arg);
+//extern void cmd_accept(evutil_socket_t listener, short event, void *arg);
 
 #endif /*COMM_HFILE*/

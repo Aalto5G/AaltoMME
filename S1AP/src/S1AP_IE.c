@@ -18,6 +18,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <inttypes.h>
 
 #include "S1AP_IE.h"
 #include "S1APlog.h"
@@ -2334,7 +2335,7 @@ void free_UEAggregateMaximumBitrate(void * data){
  * */
 void show_UEAggregateMaximumBitrate(void * data){
     UEAggregateMaximumBitrate_t *self = (UEAggregateMaximumBitrate_t*)data;
-    printf("\t\t\t UEAggregateMaximumBitrateDL : %llu, uEaggregateMaximumBitRateUL : %llu\n",
+    printf("\t\t\t UEAggregateMaximumBitrateDL : %" PRIu64 ", uEaggregateMaximumBitRateUL : %" PRIu64 "\n",
             self->uEaggregateMaximumBitRateDL.rate, self->uEaggregateMaximumBitRateUL.rate);
 
     if(self->opt == 0x1 && self->iEext!=NULL){
@@ -2442,8 +2443,8 @@ void free_GBR_QosInformation(void * data){
 void show_GBR_QosInformation(void * data){
     GBR_QosInformation_t *self = (GBR_QosInformation_t*)data;
 
-    printf("\t\t\te-RAB-MaximumBitrateDL : %llu, e-RAB-MaximumBitrateUL : %llu,\n"
-            "\t\t\te-RAB-GuaranteedBitrateDL : %llu, e-RAB-GuaranteedBitrateUL : %llu\n",
+    printf("\t\t\te-RAB-MaximumBitrateDL : %" PRIu64 ", e-RAB-MaximumBitrateUL : %" PRIu64 ",\n"
+            "\t\t\te-RAB-GuaranteedBitrateDL : %" PRIu64 ", e-RAB-GuaranteedBitrateUL : %" PRIu64 "\n",
             self->eRAB_GuaranteedBitrateDL.rate, self->eRAB_GuaranteedBitrateUL.rate,
             self->eRAB_MaximumBitrateDL.rate, self->eRAB_MaximumBitrateUL.rate);
 

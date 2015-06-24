@@ -20,6 +20,7 @@
 #include "MME_Controller.h"
 #include "NAS.h"
 #include "MME_S6a.h"
+#include "MME_S11.h"
 #include <stdio.h>
 
 
@@ -171,7 +172,7 @@ void stateESM_BearerContextInactive(uint8_t *returnbuffer, uint32_t *bsize, Gene
             TASK_PDNConnectivityReqParse(returnbuffer, bsize, msg, signal);
 
             /*Enter S11 State Machine to set user context*/
-            user->s11 = S11_newUserAttach(SELF_ON_SIG->s11, user,
+            user->s11 = (gpointer) S11_newUserAttach(SELF_ON_SIG->s11, user,
                               (void(*)(gpointer)) sendFirstStoredSignal,
                               (gpointer)PDATA->sessionHandler);
         }

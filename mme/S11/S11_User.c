@@ -532,7 +532,7 @@ void parseModBearerRsp(gpointer u, GError **err){
                          PARSE_ERROR,                 // error domain
                          1,            // error code
                          "EPC Bearer ID %u != %u received",
-                         self->user->ebearer[0].id, value);
+                         self->user->ebearer[0].id, *value);
             return;
         }
 
@@ -544,8 +544,7 @@ void parseModBearerRsp(gpointer u, GError **err){
                 g_set_error (err,
                              PARSE_ERROR,                 // error domain
                              1,            // error code
-                             "S1-U SGW FEID not corresponds to the stored one",
-                             self->user->ebearer[0].id, value);
+                             "S1-U SGW FEID not corresponds to the stored one");
                 return;
             }
         }

@@ -151,15 +151,12 @@ int mme_init_ifaces(struct mme_t *self){
 
     /*LibEvent structures*/
     struct event_base *base;
-    struct event *listener_S11, *listener_command, *listener_S1, *listener_Ctrl;
     uint32_t addr = 0;
 
     self->s6a = s6a_init((gpointer)self);
 
     /*Init command server, returns server file descriptor*/
-    self->command.fd = servcommand_init(COMMAND_PORT);
-    self->command.portState=opened;
-    log_msg(LOG_INFO, 0, "Open command server on file descriptor %d, port %d", self->command.fd, COMMAND_PORT);
+    self->cmd = servcommand_init(self, COMMAND_PORT);
 
     /*Init S11 server*/
     self->s11 = s11_init((gpointer)self);
@@ -184,10 +181,7 @@ int mme_close_ifaces(struct mme_t *self){
 
     s6a_free(self->s6a);
 
-    if( self->command.portState != closed){
-        close(self->command.fd);
-        self->command.portState = closed;
-    }
+    servcommand_stop(self->cmd);
 
     s11_free(self->s11);
 
@@ -219,6 +213,10 @@ void mme_registerRead(struct mme_t *self, int fd, event_callback_fn cb, void * a
 
 void mme_deregisterRead(struct mme_t *self, int fd){
     g_hash_table_remove(self->ev_readers, &fd);
+}
+
+struct event_base *mme_getEventBase(struct mme_t *self){
+	return self->evbase;
 }
 
 
@@ -274,7 +272,7 @@ int mme_run(struct mme_t *self){
 
     mme_init_ifaces(self);
 
-    mme_registerRead(self, self->command.fd, cmd_accept, self);
+    //mme_registerRead(self, self->command.fd, cmd_accept, self);
     mme_registerRead(self, self->s1.fd, s1_accept_new_eNB, self);
     mme_registerRead(self, self->ctrl.fd, ctrl_accept, self);
 
@@ -288,13 +286,13 @@ int mme_run(struct mme_t *self){
 
 
     /*Dealocation */
-    engine_process_stop(self->command.handler);
+    //engine_process_stop(self->command.handler);
     //engine_process_stop(self->s11.handler);
     engine_process_stop(self->ctrl.handler);
 
     mme_deregisterRead(self, self->ctrl.fd);
     mme_deregisterRead(self, self->s1.fd);
-    mme_deregisterRead(self, self->command.fd);
+    //mme_deregisterRead(self, self->command.fd);
 
     mme_close_ifaces(self);
 

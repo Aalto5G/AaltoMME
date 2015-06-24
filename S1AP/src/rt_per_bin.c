@@ -45,7 +45,7 @@ void printf_buffer(uint8_t* buf, uint32_t blen){
 
     len = blen%8==0?blen/8:blen/8+1;
 
-    snprintf((char*)buf2, 1000, "Buffer: len %u:\n", (size_t)blen);
+    snprintf((char*)buf2, 1000, "Buffer: len %lu:\n", (size_t)blen);
     pos = strlen((char*)buf2);
     for(n=0; n<len; n++) {
         if ((pos+4)<1000) {

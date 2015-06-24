@@ -89,7 +89,7 @@ struct t_message{
         union gtp_packet    gtp;
         struct sdn_packet   sdnp;
     }packet;                 ;  /*  data received as part of the message*/
-    uint32_t                length;         /*  Packet lenght*/
+    size_t                  length;         /*  Packet lenght*/
     struct EndpointStruct_t peer;           /*  Peer endpoint struct*/
 	char                    srcAddr[INET6_ADDRSTRLEN];
 };
@@ -241,9 +241,9 @@ struct mme_t{
 	GHashTable *            ev_readers;                     /*< Listener events accessed by socket*/
 	gpointer                s6a;
 	gpointer                s11;
+	gpointer                cmd;
     uint32_t                nums1conn;                      /*< Number of S1 Connections*/
     struct SessionStruct_t  *s1apUsersbyLocalID[MAX_UE];    /*< UE MME ID to session relation vector*/
-    struct EndpointStruct_t command;
     struct SessionStruct_t  *sessionht_byTEID;    /*Session Hash table to store the processes waiting for a response, */
     struct SessionStruct_t  *sessionht_byS1APID;  /*Session Hash table to store the processes waiting for a response, */
     struct timeval          start;   /* Test Variable*/
@@ -300,7 +300,7 @@ extern struct EndpointStruct_t *get_ep_with_GlobalID(struct mme_t *mme, TargeteN
 /* Accessors                                      */
 /**************************************************/
 
-extern const ServedGUMMEIs_t *mme_getservedGUMMEIs(const struct mme_t *mme);
+extern const ServedGUMMEIs_t *mme_getServedGUMMEIs(const struct mme_t *mme);
 
 extern const char *mme_getLocalAddress(const struct mme_t *mme);
 
@@ -327,5 +327,7 @@ void mme_registerRead(struct mme_t *self, int fd,
  * Deregisters a callback registered with mme_registerRead
  */
 void mme_deregisterRead(struct mme_t *self, int fd);
+
+struct event_base *mme_getEventBase(struct mme_t *self);
 
 #endif /* MME_HFILE */

@@ -40,9 +40,9 @@ mme_SOURCES = MME_engine.c \
 				Controller/MME_Controller.c
 
 # Linker options
-mme_LDFLAGS = -B$(top_srcdir)/libgtp/ -lgtp $(top_srcdir)/S1AP/src/libs1ap.la $(top_srcdir)/NAS/src/libnas.la `mysql_config --libs_r`
+mme_LDFLAGS = $(top_srcdir)/libgtp/libgtp.la  $(top_srcdir)/S1AP/libs1ap.la $(top_srcdir)/NAS/src/libnas.la `mysql_config --libs_r`
 
-mme_LDADD = -levent -ls1ap -lnas -lconfig -lsctp $(GLIB_LIBS) $(GOBJECT_LIBS) #$(INTI_LIBS)
+mme_LDADD = -levent -lgtp -ls1ap -lnas -lconfig -lsctp $(GLIB_LIBS) $(GOBJECT_LIBS) #$(INTI_LIBS)
 
 # Compiler options
 mme_CFLAGS = `mysql_config --cflags` \

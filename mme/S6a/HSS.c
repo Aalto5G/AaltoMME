@@ -207,7 +207,7 @@ static void HSS_newAuthVec(struct user_ctx_t *user){
     mcc = user->imsi/1000000000000;
     mnc = (user->imsi/10000000000)%100;
 
-    sprintf(query, authparams, mcc, mnc, user->imsi%10000000000);
+    sprintf(query, authparams, mcc, mnc, user->imsi%10000000000ULL);
 
     if (mysql_query(HSSConnection, query)){
         log_msg(LOG_ERR, mysql_errno(HSSConnection), "%s", mysql_error(HSSConnection));
@@ -222,7 +222,7 @@ static void HSS_newAuthVec(struct user_ctx_t *user){
     num_rows =mysql_num_rows(result);
     if(num_rows != 1){
         mysql_free_result(result);
-        log_msg(LOG_ERR, 0, "Unexpected number of rows %llu. \n %s", num_rows, query);
+        log_msg(LOG_ERR, 0, "Unexpected number of rows %" PRIu64 ". \n %s", num_rows, query);
         return;
     }
     row = mysql_fetch_row(result);
@@ -257,7 +257,7 @@ static void HSS_newAuthVec(struct user_ctx_t *user){
     sprintf(query, insertAuthVector,
             mcc,
             mnc,
-            user->imsi%10000000000,
+            user->imsi%10000000000ULL,
             user->ksi.id,
             bin_to_strhex(ik,16, str_ik),
             bin_to_strhex(ck,16, str_ck),
@@ -271,7 +271,7 @@ static void HSS_newAuthVec(struct user_ctx_t *user){
             bin_to_strhex(opc,16, str_opc),
             mcc,
             mnc,
-            user->imsi%10000000000 );
+            user->imsi%10000000000ULL);
 
     /*log_msg(LOG_DEBUG, 0, "%s", query);*/
 
@@ -295,7 +295,7 @@ static void HSS_recoverAuthVec(struct user_ctx_t *user){
     mnc = (user->imsi/10000000000)%100;
 
     /*Chech if there is any Auth vector already stored*/
-    sprintf(query, get_auth_vec, mcc, mnc, user->imsi%10000000000, 0);
+    sprintf(query, get_auth_vec, mcc, mnc, (uint64_t)user->imsi%10000000000ULL, 0);
 
     if (mysql_query(HSSConnection, query)){
         log_msg(LOG_ERR, mysql_errno(HSSConnection), "%s", mysql_error(HSSConnection));
@@ -353,7 +353,7 @@ void HSS_syncAuthVec(struct user_ctx_t *user, uint8_t * auts){
     mcc = user->imsi/1000000000000;
     mnc = (user->imsi/10000000000)%100;
 
-    sprintf(query, authparams, mcc, mnc, user->imsi%10000000000);
+    sprintf(query, authparams, mcc, mnc, (uint64_t)user->imsi%10000000000ULL);
 
     if (mysql_query(HSSConnection, query)){
         log_msg(LOG_ERR, mysql_errno(HSSConnection), "%s", mysql_error(HSSConnection));
@@ -368,7 +368,7 @@ void HSS_syncAuthVec(struct user_ctx_t *user, uint8_t * auts){
     num_rows =mysql_num_rows(result);
     if(num_rows != 1){
         mysql_free_result(result);
-        log_msg(LOG_ERR, 0, "Unexpected number of rows %llu. \n %s", num_rows, query);
+        log_msg(LOG_ERR, 0, "Unexpected number of rows %" PRIu64 ". \n %s", num_rows, query);
         return;
     }
     row = mysql_fetch_row(result);
@@ -408,7 +408,7 @@ void HSS_syncAuthVec(struct user_ctx_t *user, uint8_t * auts){
 		    sprintf(query, insertAuthVector,
 		            mcc,
 		            mnc,
-		            user->imsi%10000000000,
+		            user->imsi%10000000000ULL,
 		            user->ksi.id,
 		            bin_to_strhex(ik,16, str_ik),
 		            bin_to_strhex(ck,16, str_ck),
@@ -422,7 +422,7 @@ void HSS_syncAuthVec(struct user_ctx_t *user, uint8_t * auts){
 		            bin_to_strhex(opc,16, str_opc),
 		            mcc,
 		            mnc,
-		            user->imsi%10000000000 );
+		            user->imsi%10000000000ULL);
 
 		    /*log_msg(LOG_DEBUG, 0, "%s", query);*/
 
@@ -458,7 +458,7 @@ void HSS_UpdateLocation(struct user_ctx_t *user, const ServedGUMMEIs_t * sGUMMEI
             sGUMMEIs->item[0]->servedMMECs->item[0]->s[0],
             bin_to_strhex(sGUMMEIs->item[0]->servedGroupIDs->item[0]->s,2,mmegi),
             0,
-            mcc, mnc, user->imsi%10000000000);
+            mcc, mnc, user->imsi%10000000000ULL);
 
     if (mysql_query(HSSConnection, query)){
         log_msg(LOG_ERR, mysql_errno(HSSConnection), "%s", mysql_error(HSSConnection));
@@ -467,7 +467,7 @@ void HSS_UpdateLocation(struct user_ctx_t *user, const ServedGUMMEIs_t * sGUMMEI
 
     /*Get Subscriber info*/
     sprintf(query, get_subscriber_profile,
-            mcc, mnc, user->imsi%10000000000, 0);
+            mcc, mnc, user->imsi%10000000000ULL, 0);
 
     if (mysql_query(HSSConnection, query)){
         log_msg(LOG_ERR, mysql_errno(HSSConnection), "%s", mysql_error(HSSConnection));

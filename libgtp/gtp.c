@@ -55,7 +55,7 @@ void gtp_err(int priority, char *filename, int linenum, char *fmt, ...) {
   syslog(priority, "%s: %d: %s", filename, linenum, buf);
 }
 
-void gtp_errpack(int pri, char *fn, int ln, struct sockaddr_in *peer,
+void gtp_errpack(int pri, char *fn, int ln, struct sockaddr *peer_g,
 		 void *pack, unsigned len, char *fmt, ...) {
 
   va_list args;
@@ -63,6 +63,7 @@ void gtp_errpack(int pri, char *fn, int ln, struct sockaddr_in *peer,
   char buf2[ERRMSG_SIZE];
   unsigned int n;
   int pos;
+  struct sockaddr_in *peer = (struct sockaddr_in *)peer_g;
 
   va_start(args, fmt);
   vsnprintf(buf, ERRMSG_SIZE, fmt, args);
