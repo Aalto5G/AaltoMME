@@ -1,9 +1,9 @@
 dnl Process this file with autoconf to produce a configure script.
 
-AC_PREREQ(2.59)
 AC_INIT([mme],[1.0],[vicent.ferrerguasch@aalto.fi])
-AC_PROG_CC
-
+AC_PREREQ(2.59)
+AC_CONFIG_AUX_DIR([build-aux])
+AC_CONFIG_MACRO_DIR([m4])
 AC_CANONICAL_SYSTEM
 
 # Checks for programs.
@@ -14,6 +14,7 @@ AC_PROG_CPP
 AC_PROG_INSTALL
 AC_PROG_LN_S
 AC_PROG_MAKE_SET
+AM_PROG_AR
 dnl Initialize Libtool
 LT_INIT
 dnl Check if Libtool is present
@@ -54,7 +55,7 @@ AC_FUNC_REALLOC
 AC_CHECK_FUNCS([bzero gettimeofday inet_ntoa memmove memset socket strdup strerror strtoull])
 
 dnl Initialize automake
-AM_INIT_AUTOMAKE([1.9 foreign subdir-objects])
+AM_INIT_AUTOMAKE([1.11 -Wall -Werror foreign subdir-objects])
 
 WITH_MYSQL()
 
@@ -119,8 +120,6 @@ AC_CONFIG_FILES(Makefile
                 libgtp/include/Makefile
                 TestProgram/Makefile
                 S1AP/Makefile
-                S1AP/src/Makefile
-                S1AP/testApp/Makefile
                 NAS/Makefile
                 NAS/src/Makefile
                 NAS/testApp/Makefile
