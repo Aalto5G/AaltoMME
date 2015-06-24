@@ -74,4 +74,6 @@ void parseModBearerRsp(gpointer u, GError **err);
 
 void parseDelCtxRsp(gpointer u, GError **err);
 
+void s11u_setS11fteid(gpointer u, gpointer fteid_h);
+
 #endif /* S11_USER_HFILE */

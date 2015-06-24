@@ -269,7 +269,7 @@ static void TASK_MME_Controller___userAttach(Signal *signal){
 	case  1: /* IPv4*/
 		ipv4addr.s_addr = user->pAA.addr.ipv4;
 		sprintf(tmp_str, "\"ue_ipv4addr\": \"%s\",", inet_ntoa(ipv4addr));
-		log_msg(LOG_DEBUG, 0, "UE: Only IPv4 address is present %d",user->pAA.addr.ipv4);
+		log_msg(LOG_DEBUG, 0, "UE: Only IPv4 address is present %s", inet_ntoa(ipv4addr));
 		break;
 	case 2: /* IPv6*/
 		inet_ntop(AF_INET6, &user->pAA.addr.ipv6, straddr, sizeof(straddr));

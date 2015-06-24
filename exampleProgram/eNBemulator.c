@@ -87,6 +87,7 @@ void s1_accept(evutil_socket_t listener, short event, void *arg){
             printfbuffer(buffer, in);
         }
     }else{
+	    printf("Nothing received, closing \n");
         /*Close socket*/
         close(listener);
         /*Delete event*/

@@ -23,7 +23,7 @@
 #include <string.h>
 #include <netinet/in.h>
 
-#include "gtpie.h"
+#include "gtp.h"
 
 typedef struct{
     gpointer    s11;    /**< s11 stack handler*/
@@ -71,6 +71,7 @@ gpointer s11u_newUser(gpointer s11, struct user_ctx_t *user){
 
     /*Initial state noCtx*/
     changeState(self, noCtx);
+    return self;
 }
 
 void s11u_freeUser(gpointer self){
@@ -449,7 +450,8 @@ void parseCtxRsp(gpointer u, GError **err){
     /* F-TEID S11 (SGW)*/
     gtp2ie_gettliv(self->ie, GTPV2C_IE_FTEID, 0, value, &vsize);
     if(value!= NULL && vsize>0){
-        memcpy(&(self->user->s11), value, vsize);
+	    /* memcpy(&(self->user->s11), value, vsize); */
+	    s11u_setS11fteid(self, value);
         log_msg(LOG_DEBUG, 0, "S11 Sgw teid = %x into", hton32(self->rTEID));
     }
 
@@ -557,4 +559,17 @@ void parseDelCtxRsp(gpointer u, GError **err){
 
     /*  Delete node info*/
     self->rTEID = 0;
+}
+
+
+void s11u_setS11fteid(gpointer u, gpointer fteid_h){
+	struct fteid_t* fteid = (struct fteid_t*) fteid_h;
+	S11_user_t *self = (S11_user_t*)u;
+
+	if(fteid->iface != S11S4_SGW)
+		g_error("Unexpected interface type, S11S4_SGW expected");
+
+	/*TODO validate addr*/
+
+	self->rTEID = fteid->teid;
 }
