@@ -248,7 +248,7 @@ int gtp2ie_encaps_group(int type, int instance, void *to, union gtpie_member ie[
     ie_dst->tliv.t=type;
     ie_dst->tliv.i=instance;
     ie_dst->tliv.l=0;
-    p = to+4;
+    p = (unsigned char *)ie_dst->tliv.v;
     /*memset(p, 0, sizeof(union gtpie_member));*/
     end = p + GTPIE_MAX;
     for (i=0; i<size; i++) {

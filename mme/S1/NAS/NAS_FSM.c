@@ -167,7 +167,7 @@ void stateESM_BearerContextInactive(uint8_t *returnbuffer, uint32_t *bsize, Gene
         break;
     default:
         if( msg->plain.eSM.messageType == PDNConnectivityRequest ){
-            PDATA->s11 = &(SELF_ON_SIG->s11);   /*Select SGW endpoint structure before entering to S11 state machine*/
+	        //PDATA->s11 = &(SELF_ON_SIG->s11);   /*Select SGW endpoint structure before entering to S11 state machine*/
             TASK_PDNConnectivityReqParse(returnbuffer, bsize, msg, signal);
 
             /*Enter S11 State Machine to set user context*/

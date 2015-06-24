@@ -59,14 +59,14 @@ gpointer s11u_newUser(gpointer s11, struct user_ctx_t *user){
     self->lTEID = newTeid();
     self->rTEID = 0;
     self->user  = user;
-    self->s11 = s11;
+    self->s11   = s11;
 
     /*Get SGW addr*/
     getNode(&sgw, SGW, user);
     peer = (struct sockaddr_in *)&(self->rAddr);
     peer->sin_family = AF_INET;
     peer->sin_port = htons(GTP2C_PORT);
-    peer->sin_addr = sgw.addrv4;
+    peer->sin_addr.s_addr = sgw.addrv4.s_addr;
     self->rAddrLen = sizeof(struct sockaddr_in);
 
     /*Initial state noCtx*/
@@ -82,10 +82,12 @@ static validateSourceAddr(S11_user_t* self, const char * src){
 
     switch(self->rAddr.sa_family){
     case AF_INET:
-        inet_ntop(AF_INET, &(self->rAddr), r, INET_ADDRSTRLEN);
+	    inet_ntop(AF_INET, &(((struct sockaddr_in*)&(self->rAddr))->sin_addr),
+	              r, INET_ADDRSTRLEN);
         break;
     case AF_INET6:
-        inet_ntop(AF_INET6, &(self->rAddr), r, INET6_ADDRSTRLEN);
+	    inet_ntop(AF_INET6, &(((struct sockaddr_in6*)&(self->rAddr))->sin6_addr),
+	              r, INET6_ADDRSTRLEN);
         break;
     }
     return strcmp(r, src) == 0;
@@ -144,20 +146,18 @@ void s11u_setState(gpointer u, S11_State *s){
 }
 
 static void s11_send(S11_user_t* self){
-    log_msg(LOG_WARNING, 0, "TEST %p", self->s11);
-    const int sock = s11_fg(self->s11);
-    log_msg(LOG_WARNING, 0, "TEST %u", sock);
-    /*Packet header modifications*/
+	const int sock = s11_fg(self->s11);
+	/*Packet header modifications*/
     self->oMsg.gtp2l.h.seq = hton24(getNextSeq(self->s11));
     self->oMsg.gtp2l.h.tei = self->rTEID;
 
 
     if (sendto(sock, &(self->oMsg), self->oMsglen, 0,
                    &(self->rAddr), self->rAddrLen) < 0) {
-log_errpack(LOG_ERR, errno, (struct sockaddr_in *)&(self->rAddr),
-            &(self->oMsg), self->oMsglen,
-            "Sendto(fd=%d, msg=%lx, len=%d) failed",
-            sock, (unsigned long) &(self->oMsg), self->oMsglen);
+	    log_errpack(LOG_ERR, errno, (struct sockaddr_in *)&(self->rAddr),
+	                &(self->oMsg), self->oMsglen,
+	                "Sendto(fd=%d, msg=%lx, len=%d) failed",
+	                sock, (unsigned long) &(self->oMsg), self->oMsglen);
     }
 }
 
@@ -191,7 +191,7 @@ void sendCreateSessionReq(gpointer u){
     S11_user_t *self = (S11_user_t*)u;
     struct fteid_t  fteid;
     struct qos_t    *qos;
-    union gtpie_member ie[13], ie_bearer_ctx[3];
+    union gtpie_member ie[14], ie_bearer_ctx[3];
     int hlen, a;
     uint32_t ielen, ienum=0;
     uint8_t bytefield[30], *tmp;
@@ -235,7 +235,7 @@ void sendCreateSessionReq(gpointer u){
     fteid.ipv4=1;
     fteid.ipv6=0;
     fteid.iface= hton8(S11_MME);
-    fteid.teid = hton32(self->user->S11MMETeid);
+    fteid.teid = hton32(self->lTEID);
     inet_pton(AF_INET,
               s11_getLocalAddress(self->s11),
               &(fteid.addr.addrv4));
@@ -327,15 +327,10 @@ void sendCreateSessionReq(gpointer u){
         bytefield[2]=0x01;
         memcpy(ie_bearer_ctx[2].tliv.v, bytefield, 3);
     gtp2ie_encaps_group(GTPV2C_IE_BEARER_CONTEXT, 0, &ie[12], ie_bearer_ctx, 3);*/
-        ie[ienum];
-    log_msg(LOG_WARNING, 0, "TEST %p, %p", self, ie[ienum]);
     gtp2ie_encaps_group(GTPV2C_IE_BEARER_CONTEXT, 0, &ie[ienum],
                         ie_bearer_ctx, 2);
     ienum++;
-    log_msg(LOG_WARNING, 0, "TEST %p, %p", self, &(ie[ienum-1]));
-    exit(0);
     gtp2ie_encaps(ie, ienum, &(self->oMsg), &(self->oMsglen));
-    log_msg(LOG_WARNING, 0, "TEST %p", self->s11);
     s11_send(self);
 }
 

@@ -135,7 +135,7 @@ void log_errpack_(int pri, char *fn, const char *func, int ln, int en, struct so
   va_end(args);
   buf[SYSERR_MSGSIZE-1] = 0;
 
-  snprintf(buf2, SYSERR_MSGSIZE, "Packet from %s:%u, length: %d, content:",
+  snprintf(buf2, SYSERR_MSGSIZE, "Packet from/to %s:%u, length: %d, content:",
 	   inet_ntoa(peer->sin_addr),
 	   ntohs(peer->sin_port),
 	   len);

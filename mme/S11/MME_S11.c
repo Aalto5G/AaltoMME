@@ -25,7 +25,7 @@
 #include "logmgr.h"
 #include "nodemgr.h"
 #include "storagesys.h"
-#include "gtpie.h"
+#include "gtp.h"
 #include "MME.h"
 
 #include "S11_FSMConfig.h"
@@ -163,10 +163,17 @@ void s11_accept(evutil_socket_t listener, short event, void *arg){
     gpointer session;    /* S11_user_t * u; */
     const char str[INET6_ADDRSTRLEN];
 
+    log_msg(LOG_DEBUG, 0, "Enter");
+
     msg = newMsg();
     msg->packet.gtp.flags=0x0;
-    gtp2_recv(listener, &(msg->packet.gtp), &(msg->length),
-              &peer, &peerlen);
+    if (gtp2_recv(listener, &(msg->packet.gtp), &(msg->length),
+                  &peer, &peerlen) != 0 ){
+	    log_errpack(LOG_ERR, errno, (struct sockaddr_in *)&(peer),
+	                &(msg->packet.gtp), msg->length,
+	                "gtp2_recv(fd=%d, msg=%lx, len=%d) failed",
+	                listener, (unsigned long) &(msg->packet.gtp), msg->length);
+    }
 
     switch(peer.sa_family){
     case AF_INET:

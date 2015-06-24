@@ -37,8 +37,32 @@
 char *msgpath[] = {"/home/vicent/S1APmsg/S1AP_id-S1Setup.s1",
         "/home/vicent/S1APmsg/S1AP_id-initialUEMessageReq.s1",
         "/home/vicent/S1APmsg/S1AP_id-uplinkNASTransport.s1",
-        "/home/vicent/S1APmsg/S1AP_id-uplinkNASTransport-SecurityModeComplete.s1"
+        /* "/home/vicent/S1APmsg/S1AP_id-uplinkNASTransport-SecurityModeComplete.s1" */
+        "/home/vicent/S1APmsg/S1AP_id-InitialContextSetup_Rsp.s1",
+        "/home/vicent/S1APmsg/S1AP_id-uplinkNASTransport_AttachComplete.s1"
 };
+
+void send_testMsg(int sock, int sid, int i){
+	FILE *f;
+	uint8_t buffer[500];
+	int  n, ret;
+	f = fopen(msgpath[i], "rb");
+	if (f){
+		n = fread(buffer, 1, 500, f);
+	}
+	else{
+		printf("error opening file\n");
+	}
+	fclose(f);
+
+	 ret = sctp_sendmsg( sock, (void *)buffer, (size_t)n, NULL, 0,
+	                     SCTP_S1AP_PPID, 0, sid, 0, 0 );
+	 if (ret<0){
+		 log_msg(LOG_DEBUG, errno, "sctp_sendmsg error");
+		 close(sock);
+		 exit(1);
+	 }
+}
 
 
 void s1_accept(evutil_socket_t listener, short event, void *arg){
@@ -69,23 +93,13 @@ void s1_accept(evutil_socket_t listener, short event, void *arg){
         event_free(ev);
     }
 
-    if(i<3){
-        f = fopen(msgpath[i], "rb");
-          if (f){
-              n = fread(buffer, 1, 500, f);
-          }
-          else{
-              printf("error opening file\n");
-          }
-          fclose(f);
-
-          ret = sctp_sendmsg( listener, (void *)buffer, (size_t)n, NULL, 0, SCTP_S1AP_PPID, 0, sndrcvinfo.sinfo_stream, 0, 0 );
-
-          if (ret<0){
-            log_msg(LOG_DEBUG, errno, "sctp_sendmsg error");
-            close(listener);
-          }
-          i++;
+    if(i<5){
+	    send_testMsg(listener, sndrcvinfo.sinfo_stream, i);
+	    i++;
+	    if(i==4){
+		    send_testMsg(listener, sndrcvinfo.sinfo_stream, i);
+		    i++;
+	    }
     }else{
         exit (0);
     }
