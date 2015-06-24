@@ -1,7 +1,7 @@
 dnl Process this file with autoconf to produce a configure script.
 
 AC_PREREQ(2.59)
-AC_INIT([gtp],[1.0],[vicent.ferrerguasch@aalto.fi])
+AC_INIT([mme],[1.0],[vicent.ferrerguasch@aalto.fi])
 AC_PROG_CC
 
 AC_CANONICAL_SYSTEM
@@ -67,18 +67,19 @@ dnl CFLAGS=$(echo "$CFLAGS" | $SED -e 's/-O[0-9]*//g')
 changequote([,])
 
 dnl This mechanism allows one to enable debug compilations...
-AC_ARG_ENABLE(debug,
-[  --enable-debug     enable debugging and disable optimization],
-[  if test "$enable_debug" = "yes"; then
-      DEBUG_CFLAGS="-g3 -pg -fprofile-arcs -ftest-coverage -DDEBUG"
-   else
-      DEBUG_CFLAGS="-O2 -DNDEBUG"
-   fi
-]
-)
+dnl AC_ARG_ENABLE(debug,
+dnl [  --enable-debug     enable debugging and disable optimization],
+dnl [  if test "$enable_debug" = "yes"; then
+dnl       DEBUG_CFLAGS="-g3 -pg -fprofile-arcs -ftest-coverage -DDEBUG"
+dnl       LDFLAGS="-g"
+dnl    else
+dnl       DEBUG_CFLAGS="-O2 -DNDEBUG"
+dnl    fi
+dnl ]
+dnl )
 
-AM_CONDITIONAL(ENABLE_DEBUG, test "$enable_debug" = "yes")
-CFLAGS="$DEBUG_CFLAGS"
+dnl AM_CONDITIONAL(ENABLE_DEBUG, test "$enable_debug" = "yes")
+dnl CFLAGS="$DEBUG_CFLAGS"
 
 
 ###########################
