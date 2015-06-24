@@ -59,19 +59,18 @@ AM_INIT_AUTOMAKE([1.9 foreign subdir-objects])
 WITH_MYSQL()
 
 dnl this allows us specify individual liking flags for each target
-AM_PROG_CC_C_O 
+dnl AM_PROG_CC_C_O 
 
-dnl remove optimization flags
-changequote({,})
-dnl CFLAGS=$(echo "$CFLAGS" | $SED -e 's/-O[0-9]*//g')
-changequote([,])
+dnl dnl remove optimization flags
+dnl changequote({,})
+dnl dnl CFLAGS=$(echo "$CFLAGS" | $SED -e 's/-O[0-9]*//g')
+dnl changequote([,])
 
-dnl This mechanism allows one to enable debug compilations...
+dnl dnl This mechanism allows one to enable debug compilations...
 dnl AC_ARG_ENABLE(debug,
 dnl [  --enable-debug     enable debugging and disable optimization],
 dnl [  if test "$enable_debug" = "yes"; then
 dnl       DEBUG_CFLAGS="-g3 -pg -fprofile-arcs -ftest-coverage -DDEBUG"
-dnl       LDFLAGS="-g"
 dnl    else
 dnl       DEBUG_CFLAGS="-O2 -DNDEBUG"
 dnl    fi

@@ -18,5 +18,5 @@ libnas_la_LDFLAGS =
 
 # Compiler options. Here we are adding the include directory
 # to be searched for headers included in the source code.
-#libs1ap_la_CPPFLAGS = -I$(top_srcdir)/S1AP/include -I$(top_srcdir)/S1AP/shared
+libnas_la_CPPFLAGS = -I$(top_srcdir)/NAS/include -I$(top_srcdir)/NAS/shared
 
