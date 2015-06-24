@@ -31,46 +31,37 @@ set(EXECUTABLE_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
 set(COMMON_INCLUDES ${PROJECT_SOURCE_DIR}/Common
-	/usr/include/mysql)
+    /usr/include/mysql)
 set(COMMON_SRC ${PROJECT_SOURCE_DIR}/Common/logmgr.c)
 
-include_directories(${COMMON_INCLUDES} ${GLIB2_INCLUDE_DIRS} ${MYSQL_INCLUDE_DIR})
+include_directories(
+  ${COMMON_INCLUDES}
+  ${GLIB2_INCLUDE_DIRS}
+  ${MYSQL_INCLUDE_DIR}
+  mme/
+  mme/S1
+  mme/S6a
+  mme/S6a/hmac
+  mme/S6a/milenage
+  mme/S1/NAS
+  mme/S11
+  mme/Controller)
 
-set(MME_SRCS
-  	mme/MME_test.c
-	mme/MME_engine.c
-	mme/S1/MME_S1.c
-	mme/S1/NAS/NAS_FSM.c
-	mme/S6a/hmac/sha2.c
-	mme/S6a/hmac/hmac_sha2.c
-	mme/S6a/milenage/aes.c
-	mme/S6a/milenage/milenage.c
-	mme/S6a/MME_S6a.c
-	mme/S6a/HSS.c
-	mme/S11/MME_S11.c
-	mme/commands.c
-	mme/MME.c
-	mme/nodemgr.c
-	mme/storagesys.c
-	mme/Controller/MME_Controller.c
-)
+FILE(GLOB_RECURSE MME_SRCS "mme/*.c")
 
-include_directories( 	mme/
-			mme/S1
-			mme/S6a
-			mme/S6a/hmac
-			mme/S6a/milenage
-			mme/S1/NAS
-			mme/S11
-			mme/Controller
-)
 
 ################################
 # Normal Executables
 ################################
 add_executable(${PROJECT_NAME} ${COMMON_SRC} ${MME_SRCS} mme/mme.cfg)
 
-target_link_libraries(${PROJECT_NAME} gtp s1ap nas ${SCTP_LIBRARIES} ${LIBEVENT_LIBRARIES} ${LIBCONFIG_LIBRARIES} ${MYSQL_LIBRARIES} ${GLIB2_LIBRARIES})
+target_link_libraries( ${PROJECT_NAME}
+  gtp s1ap nas
+  ${SCTP_LIBRARIES}
+  ${LIBEVENT_LIBRARIES}
+  ${LIBCONFIG_LIBRARIES}
+  ${MYSQL_LIBRARIES}
+  ${GLIB2_LIBRARIES})
 
 install(TARGETS ${PROJECT_NAME} DESTINATION /usr/bin COMPONENT binaries)
 install(FILES mme/mme.cfg DESTINATION ~/ COMPONENT config)
@@ -109,7 +100,7 @@ include_directories(SDN/shared)
 # build a CPack driven installer package
 ################################
 include(InstallRequiredSystemLibraries)
-set(CPACK_RESOURCE_FILE_LICENSE  
+set(CPACK_RESOURCE_FILE_LICENSE
      "${CMAKE_CURRENT_SOURCE_DIR}/COPYING")
 set(CPACK_PACKAGE_VERSION_MAJOR "${${PROJECT_NAME}_VERSION_MAJOR}")
 set(CPACK_PACKAGE_VERSION_MINOR "${${PROJECT_NAME}_VERSION_MINOR}")
