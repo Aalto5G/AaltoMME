@@ -10,8 +10,8 @@ project(${PROJECT_NAME})
 
 FILE(GLOB_RECURSE S1AP_SRCS "src/*.c")
 
-include_directories(${PROJECT_SOURCE_DIR}/shared)
 include_directories(${PROJECT_SOURCE_DIR}/include)
+include_directories(${PROJECT_SOURCE_DIR}/shared)
 
 ################################
 # Normal Libraries & Executables
@@ -21,7 +21,12 @@ include_directories(${PROJECT_SOURCE_DIR}/include)
 # own executable. Separating out main() means you can add this library to be
 # used elsewhere.
 
+#target_link_libraries(gtp)
+
 add_executable (testS1APApp testApp/S1APtest.c)
 target_link_libraries(testS1APApp s1ap)
 
 add_library(${PROJECT_NAME} ${S1AP_SRCS})
+
+#install (TARGETS ${PROJECT_NAME} DESTINATION bin)
+#install (FILES ${PROJECT_SOURCE_DIR}/include/*.h DESTINATION include)
