@@ -39,139 +39,145 @@ typedef struct{
 }CommandSrv_t;
 
 typedef struct{
-	struct evbuffer    *output;
-	struct evbuffer    *input;
-	struct bufferevent *bev;
+    struct evbuffer    *output;
+    struct evbuffer    *input;
+    struct bufferevent *bev;
 }CommandConn_t;
 
 const char banner[] = ""
-	"**************************************************\n"
-	"*          Welcome to the MME cmd shell          *\n"
-	"**************************************************\n";
+    "**************************************************\n"
+    "*          Welcome to the MME cmd shell          *\n"
+    "**************************************************\n";
 
 const char prompt[] = "mme > ";
 
 const char *menu_msg(){
-	return "Menu:\n"
-		"\tl level \tsend log level\n"
-		"\th option \tshow option possible arguments\n"
-		"\tm \t\tshow this menu\n"
-		"\tq \t\tquit console\n";
+    return "Menu:\n"
+        "\tl level \tsend log level\n"
+        "\th option \tshow option possible arguments\n"
+        "\tm \t\tshow this menu\n"
+        "\tq \t\tquit console\n";
 }
 
 /* #define conn_print(self, fmt, ...)\ */
-/* 	evbuffer_add_printf( (* self ).output, fmt,  __VA_ARGS__) */
+/*  evbuffer_add_printf( (* self ).output, fmt,  __VA_ARGS__) */
 
-static int conn_print(CommandConn_t *self, const char* fmt1, ...){
-	va_list args;
-	int r;
-	va_start(args, fmt1);
-	r = evbuffer_add_vprintf(self->output, fmt1, args);
-	va_end(args);
-	return r;
+static int conn_vprint(CommandConn_t *self, const char* fmt, va_list args){
+    return evbuffer_add_vprintf(self->output, fmt, args);
+}
+
+static int conn_print(CommandConn_t *self, const char* fmt, ...){
+    va_list args;
+    int r;
+    va_start(args, fmt);
+    r = conn_vprint(self, fmt, args);
+    va_end(args);
+    return r;
 }
 
 static void conn_stop(CommandConn_t *self){
-	conn_print(self, "");
-	bufferevent_free(self->bev);
-	g_free(self);
+    conn_print(self, "");
+    bufferevent_free(self->bev);
+    g_free(self);
 }
 
 void help_log_menu(CommandConn_t *self){
-	conn_print(self,
-	           "Debug levels:\n"
-	           "This determines the importance of the message."
-	           " The levels are, in order of decreasing importance:\n"
-	           "\t%d \tLOG_EMERG   system is unusable\n"
-	           "\t%d \tLOG_ALERT   action must be taken immediately\n"
-	           "\t%d \tLOG_CRIT    critical conditions\n"
-	           "\t%d \tLOG_ERR     error conditions\n"
-	           "\t%d \tLOG_WARNING warning conditions\n"
-	           "\t%d \tLOG_NOTICE  normal, but significant, condition\n"
-	           "\t%d \tLOG_INFO    informational message\n"
-	           "\t%d \tLOG_DEBUG   debug-level message\n",
-	           0,1,2,3,4,5,6,7);
-	/* LOG_EMERG, LOG_ALERT, LOG_CRIT, LOG_ERR, */
-	/* 	LOG_WARNING, LOG_NOTICE, LOG_INFO, LOG_DEBUG); */
+    conn_print(self,
+               "Debug levels:\n"
+               "This determines the importance of the message."
+               " The levels are, in order of decreasing importance:\n"
+               "\t%d \tLOG_EMERG   system is unusable\n"
+               "\t%d \tLOG_ALERT   action must be taken immediately\n"
+               "\t%d \tLOG_CRIT    critical conditions\n"
+               "\t%d \tLOG_ERR     error conditions\n"
+               "\t%d \tLOG_WARNING warning conditions\n"
+               "\t%d \tLOG_NOTICE  normal, but significant, condition\n"
+               "\t%d \tLOG_INFO    informational message\n"
+               "\t%d \tLOG_DEBUG   debug-level message\n",
+               0,1,2,3,4,5,6,7);
+    /* LOG_EMERG, LOG_ALERT, LOG_CRIT, LOG_ERR, */
+    /*  LOG_WARNING, LOG_NOTICE, LOG_INFO, LOG_DEBUG); */
 }
 
 static void process_line(CommandConn_t* self, char * line, size_t len){
-	uint32_t args;
-	char help_arg, option;
-	switch(line[0]){
-	case 'l':
-		sscanf(line, "%c %d\n", &option, &args);
-		log_msg(LOG_DEBUG, 0, "Recv debug lvl change req: %d", args);
-		change_logger_lvl(args);
-		break;
-	case 'm':
-		conn_print(self, menu_msg());
-		break;
-	case 'h':
-		sscanf(line, "%c %c\n", &option, &help_arg);
-		switch(help_arg){
-		case 'l':
-			help_log_menu(self);
-			break;
-		default:
-			conn_print(self, "Option not available\n");
-			break;
-		}
-		break;
-	case 'q':
-		conn_stop(self);
-		return;
-	default:
-		conn_print(self, "Option not available: %c\n", line[0]);
-		break;
-	}
-	conn_print(self, prompt);
+    uint32_t args;
+    char help_arg, option;
+    switch(line[0]){
+    case 'l':
+        sscanf(line, "%c %d\n", &option, &args);
+        log_msg(LOG_DEBUG, 0, "Recv debug lvl change req: %d", args);
+        change_logger_lvl(args);
+        break;
+    case 'm':
+        conn_print(self, menu_msg());
+        break;
+    case 'h':
+        sscanf(line, "%c %c\n", &option, &help_arg);
+        switch(help_arg){
+        case 'l':
+            help_log_menu(self);
+            break;
+        default:
+            conn_print(self, "Option not available\n");
+            break;
+        }
+        break;
+    case 'q':
+        conn_stop(self);
+        return;
+    default:
+        conn_print(self, "Option not available: %c\n", line[0]);
+        break;
+    }
+    conn_print(self, prompt);
 }
 
 static void cmd_read_cb(struct bufferevent *bev, void *ctx){
-	char *line;
-	size_t len;
-	CommandConn_t* self = (CommandConn_t* ) ctx;
+    char *line;
+    size_t len;
+    CommandConn_t* self = (CommandConn_t* ) ctx;
 
-	/* This callback is invoked when there is data to read on bev. */
-	struct evbuffer *input = bufferevent_get_input(bev);
-	line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
+    /* This callback is invoked when there is data to read on bev. */
+    struct evbuffer *input = bufferevent_get_input(bev);
+    line = evbuffer_readln(input, &len, EVBUFFER_EOL_LF);
 
-	process_line(self, line, len);
+    process_line(self, line, len);
 }
 
 static void cmd_event_cb(struct bufferevent *bev, short events, void *ctx){
-	CommandConn_t* self = (CommandConn_t* ) ctx;
-        if (events & BEV_EVENT_ERROR)
-                perror("Error from bufferevent");
-        if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR)) {
-                bufferevent_free(bev);
-        }
+    CommandConn_t* self = (CommandConn_t* ) ctx;
+    if (events & BEV_EVENT_ERROR)
+        perror("Error from bufferevent");
+    if (events & (BEV_EVENT_EOF | BEV_EVENT_ERROR)) {
+        bufferevent_free(bev);
+    }
 }
 
 static void accept_conn_cb(struct evconnlistener *listener,
-                           evutil_socket_t fd, struct sockaddr *address, int socklen,
+                           evutil_socket_t fd,
+                           struct sockaddr *address,
+                           int socklen,
                            void *ctx){
-	CommandConn_t* self = g_new0(CommandConn_t, 1);
-	/* We got a new connection! Set up a bufferevent for it. */
-	struct event_base *base = evconnlistener_get_base(listener);
+    CommandConn_t* self = g_new0(CommandConn_t, 1);
+    /* We got a new connection! Set up a bufferevent for it. */
+    struct event_base *base = evconnlistener_get_base(listener);
 
-	self->bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
-	self->output = bufferevent_get_output(self->bev);
-	self->input = bufferevent_get_input(self->bev);
-	
-	bufferevent_setcb(self->bev, cmd_read_cb, NULL, cmd_event_cb, self);
-	
-	bufferevent_enable(self->bev, EV_READ|EV_WRITE);
-	
-	conn_print(self, banner);
-	conn_print(self, menu_msg());
-	conn_print(self, prompt);
+    self->bev = bufferevent_socket_new(base, fd, BEV_OPT_CLOSE_ON_FREE);
+    self->output = bufferevent_get_output(self->bev);
+    self->input = bufferevent_get_input(self->bev);
+
+    bufferevent_setcb(self->bev, cmd_read_cb, NULL, cmd_event_cb, self);
+
+    bufferevent_enable(self->bev, EV_READ|EV_WRITE);
+
+    conn_print(self, banner);
+    conn_print(self, menu_msg());
+    conn_print(self, prompt);
 }
 
 gpointer servcommand_init(gpointer mme, const int servPort){
 
-	CommandSrv_t* self = g_new0(CommandSrv_t, 1);
+    CommandSrv_t* self = g_new0(CommandSrv_t, 1);
     struct sockaddr_in sin;
     int servSock;
     struct event_base * base = mme_getEventBase(mme);
@@ -198,9 +204,9 @@ gpointer servcommand_init(gpointer mme, const int servPort){
 }
 
 extern gpointer servcommand_stop(gpointer serv_h){
-	CommandSrv_t* self = serv_h;
-	evconnlistener_free(self->listener);
-	g_free(self);
+    CommandSrv_t* self = serv_h;
+    evconnlistener_free(self->listener);
+    g_free(self);
 }
 
 
@@ -224,11 +230,14 @@ void cmd_accept_old(evutil_socket_t listener, short event, void *arg){
     addrlen = sizeof(struct sockaddr_in);
     /*Read command*/
     addrlen = sizeof(struct sockaddr_in);
-    if ((status = recvfrom(listener, &cpack, sizeof(struct comm_tlv), 0, (struct sockaddr *) &src_addr, &addrlen)) < 0 ) {
+    if ((status = recvfrom(listener, &cpack, sizeof(struct comm_tlv), 0,
+                           (struct sockaddr *) &src_addr, &addrlen)) < 0 ) {
         log_msg(LOG_ERR, errno, "recvfrom() returned less than 0");
         return;
     }
-    log_msg(LOG_DEBUG, 0,"Recvfrom %s:%d command: %d", inet_ntoa(src_addr.sin_addr), src_addr.sin_port, (enum t_comm_name)cpack.t);
+    log_msg(LOG_DEBUG, 0,"Recvfrom %s:%d command: %d",
+            inet_ntoa(src_addr.sin_addr),
+            src_addr.sin_port, (enum t_comm_name)cpack.t);
 
     switch((enum t_comm_name)cpack.t){
     case debug_level:
