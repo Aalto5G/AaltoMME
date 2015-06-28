@@ -66,7 +66,7 @@ static int conn_print(CommandConn_t *self, const char* fmt1, ...){
 	va_list args;
 	int r;
 	va_start(args, fmt1);
-	r = evbuffer_add_printf(self->output, fmt1, args);
+	r = evbuffer_add_vprintf(self->output, fmt1, args);
 	va_end(args);
 	return r;
 }
@@ -79,20 +79,18 @@ static void conn_stop(CommandConn_t *self){
 
 void help_log_menu(CommandConn_t *self){
 	conn_print(self,
-	           "Debug levels: %d %d\n", 0, 1);
-	/* conn_print(self,  */
-	/*            "Debug levels:\n"  */
-	/*            "This determines the importance of the message." */
-	/*            " The levels are, in order of decreasing importance:\n"  */
-	/*            "\t%d \tLOG_EMERG   system is unusable\n" */
-	/*            "\t%d \tLOG_ALERT   action must be taken immediately\n" */
-	/*            "\t%d \tLOG_CRIT    critical conditions\n" */
-	/*            "\t%d \tLOG_ERR     error conditions\n" */
-	/*            "\t%d \tLOG_WARNING warning conditions\n" */
-	/*            "\t%d \tLOG_NOTICE  normal, but significant, condition\n" */
-	/*            "\t%d \tLOG_INFO    informational message\n" */
-	/*            "\t%d \tLOG_DEBUG   debug-level message\n", */
-	/*            0,1,2,3,4,5,6,7); */
+	           "Debug levels:\n"
+	           "This determines the importance of the message."
+	           " The levels are, in order of decreasing importance:\n"
+	           "\t%d \tLOG_EMERG   system is unusable\n"
+	           "\t%d \tLOG_ALERT   action must be taken immediately\n"
+	           "\t%d \tLOG_CRIT    critical conditions\n"
+	           "\t%d \tLOG_ERR     error conditions\n"
+	           "\t%d \tLOG_WARNING warning conditions\n"
+	           "\t%d \tLOG_NOTICE  normal, but significant, condition\n"
+	           "\t%d \tLOG_INFO    informational message\n"
+	           "\t%d \tLOG_DEBUG   debug-level message\n",
+	           0,1,2,3,4,5,6,7);
 	/* LOG_EMERG, LOG_ALERT, LOG_CRIT, LOG_ERR, */
 	/* 	LOG_WARNING, LOG_NOTICE, LOG_INFO, LOG_DEBUG); */
 }
