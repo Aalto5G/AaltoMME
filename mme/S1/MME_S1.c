@@ -384,7 +384,7 @@ static int STATE_S1_Active(Signal *signal){
 	        S11_Attach_ModifyBearerReq(PDATA->user_ctx->s11,
 	                                   (void(*)(gpointer)) sendFirstStoredSignal,
 	                                   (gpointer)PDATA->sessionHandler);
-            Controller_newHandover(PROC->engine, PDATA);
+	        Controller_newHandover(SELF_ON_SIG->sdnCtrl, PDATA->user_ctx);
             signal->name = S1_PathSwitchACK;
             save = 1;
         }else{
@@ -454,7 +454,7 @@ static int STATE_S1_Active(Signal *signal){
                 S11_Attach_ModifyBearerReq(PDATA->user_ctx->s11,
                                            (void(*)(gpointer)) sendFirstStoredSignal,
                                            (gpointer)PDATA->sessionHandler);
-                Controller_newHandover(PROC->engine, PDATA);
+                Controller_newHandover(SELF_ON_SIG->sdnCtrl, PDATA->user_ctx);
             }
 
         }

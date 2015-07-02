@@ -91,12 +91,6 @@ add_subdirectory(NAS)
 include_directories(NAS/shared)
 
 ################################
-# Common SDN definitions
-################################
-
-include_directories(SDN/shared)
-
-################################
 # build a CPack driven installer package
 ################################
 include(InstallRequiredSystemLibraries)

@@ -402,7 +402,7 @@ void stateEMM_Registered(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg_t
             S11_dettach(user->s11,
                         (void(*)(gpointer)) sendFirstStoredSignal,
                         (gpointer)PDATA->sessionHandler);
-            Controller_newDetach(PROC->engine, PDATA);
+            Controller_newDetach(SELF_ON_SIG->sdnCtrl, user);
         }
     }else if (msg->plain.eMM.messageType == TrackingAreaUpdateRequest){
         if(TASK_Validate_TAUReq(NULL, NULL, msg, signal)==0){
@@ -450,7 +450,7 @@ void stateEMM_SpecificProcedureInitiated(uint8_t *returnbuffer, uint32_t *bsize,
         TASK_AttachComplete(returnbuffer, bsize, msg, signal);
         user->stateNAS_EMM = EMM_Registered;
         MME_MEASURE_PROC_TIME
-        Controller_newAttach(PROC->engine, PDATA);
+	    Controller_newAttach(SELF_ON_SIG->sdnCtrl, user);
         log_msg(LOG_DEBUG, 0, "NAS: Received Attach Complete, transition to EMM_Registered - time = %u us", SELF_ON_SIG->procTime);
 
         return;

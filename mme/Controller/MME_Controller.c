@@ -28,210 +28,76 @@
 #include "nodemgr.h"
 #include "storagesys.h"
 
-
+#define CONTROLLER_PORT 12345
 #define PACKET_MAX      8196
 
+typedef struct{
+	gpointer        mme;
+	int             fd;
+	struct sockaddr addr;
+	size_t          addrlen;
+}SDNCtrl_t;
 
-/* ======================================================================
- * TASK Prototypes
- * ====================================================================== */
-static void TASK_MME_Controller___userAttach(Signal *signal);
+void ctrl_accept(evutil_socket_t listener, short event, void *arg){
 
-static void TASK_MME_Controller___userDetach(Signal *signal);
+    uint32_t teid;
 
-static void TASK_MME_Controller___userHandover(Signal *signal);
+    SDNCtrl_t *self = (SDNCtrl_t *)arg;
 
-void Controller_newAttach(struct t_engine_data *engine, struct SessionStruct_t *session);
-void Controller_newDetach(struct t_engine_data *engine, struct SessionStruct_t *session);
-void Controller_newHandover(struct t_engine_data *engine, struct SessionStruct_t *session);
-int ctrlp_recv(int sockfd, struct sdn_packet *packet, size_t *len, struct sockaddr_in *peer, socklen_t *peerlen);
-struct t_process *Controller_handler_create(struct t_engine_data *engine, struct t_process *owner);
+    log_msg(LOG_DEBUG, 0, "New SDN Controller message recv");
+}
 
+gpointer sdnCtrl_init(gpointer mme){
+	struct nodeinfo_t ctrlInfo;
+	struct sockaddr_in *peer;
 
-/* ======================================================================
- * SDN Controller FSM State Implementations
- * ====================================================================== */
-static int STATE_New_User_Attach(Signal *signal){
+	SDNCtrl_t *self = g_new0(SDNCtrl_t, 1);
 
-	INIT_TIME_MEASUREMENT_ENVIRONMENT
-	log_msg(LOG_DEBUG, 0, "Entered the STATE_New_User_Attach");
+	self->mme = mme;
+	self->fd =init_udp_srv(mme_getLocalAddress(self->mme), CONTROLLER_PORT);
+    log_msg(LOG_INFO, 0, "Open SDN Controller server on file descriptor %d, port %d", self->fd, CONTROLLER_PORT);
+	getNode(&ctrlInfo, CTRL, NULL);
 
-	switch (signal->name){
-	case Controller_new_user_attach:
-		TASK_MME_Controller___userAttach(signal);
-		log_msg(LOG_DEBUG, 0, "Controller: Sent new user attach message to SDN Controller - time = %u us", SELF_ON_SIG->procTime);
-		break;
-	default:
-		log_msg(LOG_DEBUG, 0, "Controller: Received Signal is not implemented: %d", signal->name);
-		break;
+	peer = (struct sockaddr_in *)&(self->addr);
+	peer->sin_family = AF_INET;
+	peer->sin_port = htons(CONTROLLER_PORT);
+	peer->sin_addr.s_addr = ctrlInfo.addrv4.s_addr;
+	self->addrlen = sizeof(struct sockaddr_in);
+
+	/*mme_registerRead(self->mme, self->fd, ctrl_accept, self);*/
+
+	return self;
+}
+
+void sdnCtrl_free(gpointer ctrl_h){
+	SDNCtrl_t *self = (SDNCtrl_t*)ctrl_h;
+	close(self->fd);
+	g_free(self);
+}
+
+static void sdnCtrl_send(SDNCtrl_t *self, char* msg){
+	size_t len = strlen(msg);
+	if (sendto(self->fd, msg, len, 0,
+	           &(self->addr), self->addrlen) < 0) {
+		log_errpack(LOG_ERR, errno, (struct sockaddr_in *)&(self->addr),
+		            msg, len,
+		            "Sendto(fd=%d, msg=%s) failed",
+		            self->fd, msg);
 	}
-
-	process_stop(PROC); /*Free process structure*/
-	return 0;   /*free signal & send stored signals on process*/
-}
-
-static int STATE_Existing_User_Detach(Signal *signal){
-
-	INIT_TIME_MEASUREMENT_ENVIRONMENT
-	log_msg(LOG_DEBUG, 0, "Entered the STATE_Existing_User_Detach");
-
-	switch (signal->name){
-	case Controller_user_detach:
-		TASK_MME_Controller___userDetach(signal);
-		log_msg(LOG_DEBUG, 0, "Controller: Sent existing user detach message to SDN Controller - time = %u us", SELF_ON_SIG->procTime);
-		break;
-	default:
-		log_msg(LOG_DEBUG, 0, "Controller: Received Signal is not implemented: %d", signal->name);
-		break;
-	}
-
-	process_stop(PROC); /*Free process structure*/
-	return 0;   /*free signal & send stored signals on process*/
-}
-
-static int STATE_Existing_User_Handover(Signal *signal){
-
-	INIT_TIME_MEASUREMENT_ENVIRONMENT
-	log_msg(LOG_DEBUG, 0, "Entered the STATE_Existing_User_Detach");
-
-	switch (signal->name){
-	case Controller_user_handover:
-		TASK_MME_Controller___userHandover(signal);
-		log_msg(LOG_DEBUG, 0, "Controller: Sent existing user detach message to SDN Controller - time = %u us", SELF_ON_SIG->procTime);
-		break;
-	default:
-		log_msg(LOG_DEBUG, 0, "Controller: Received Signal is not implemented: %d", signal->name);
-		break;
-	}
-
-	process_stop(PROC); /*Free process structure*/
-	return 0;   /*free signal & send stored signals on process*/
-}
-
-static int STATE_Handle_Recv_Msg_C(Signal *signal){
-
-	INIT_TIME_MEASUREMENT_ENVIRONMENT
-
-	Signal *output;
-	log_msg(LOG_DEBUG, 0, "Controller Enter STATE_Handle_Recv_Msg.");
-	switch(signal->name){
-	default:
-		log_msg(LOG_DEBUG, 0, "Unknown message type received %d", signal->name);
-		break;
-	}
-
-	process_stop(PROC); /*Free process structure*/
-	return 0;   /*free signal & send stored signals on process*/
-}
-
-
-/* ======================================================================
- * SDN Controller API Implementation
- * ====================================================================== */
-
-struct t_process *Controller_handler_create(struct t_engine_data *engine, struct t_process *owner)
-{
-	struct t_process *pSelf = (struct t_process *)NULL;  /* agent process */
-	pSelf = process_create(engine, STATE_Handle_Recv_Msg_C, NULL, owner);
-	return pSelf;
-}
-
-void Controller_newAttach(struct t_engine_data *engine, struct SessionStruct_t *session)
-{
-	Signal *output;
-	struct t_process *proc;
-	log_msg(LOG_DEBUG, 0, "Entered the Controller_newAttach method");
-
-	/*Create a new process to manage the Controller state machine. The older session handler is stored as parent
-	 * to return once the Controller state machine ends*/
-	proc = process_create(engine, STATE_New_User_Attach, (void *)session, session->sessionHandler);
-
-	output = new_signal(proc);
-	output->name = Controller_new_user_attach;
-	output->priority = MAXIMUM_PRIORITY;
-	signal_send(output);
-
-}
-
-void Controller_newDetach(struct t_engine_data *engine, struct SessionStruct_t *session)
-{
-	Signal *output;
-	struct t_process *proc;
-	log_msg(LOG_DEBUG, 0, "Entered the Controller_newDetach method");
-
-	/*Create a new process to manage the Controller state machine. The older session handler is stored as parent
-	 * to return once the Controller state machine ends*/
-	proc = process_create(engine, STATE_Existing_User_Detach, (void *)session, session->sessionHandler);
-
-	output = new_signal(proc);
-	output->name = Controller_user_detach;
-	output->priority = MAXIMUM_PRIORITY;
-	signal_send(output);
-
-}
-
-void Controller_newHandover(struct t_engine_data *engine, struct SessionStruct_t *session)
-{
-	Signal *output;
-	struct t_process *proc;
-	log_msg(LOG_DEBUG, 0, "Entered the Controller_newHandover method");
-
-	/*Create a new process to manage the Controller state machine. The older session handler is stored as parent
-	 * to return once the Controller state machine ends*/
-	proc = process_create(engine, STATE_Existing_User_Handover, (void *)session, session->sessionHandler);
-
-	output = new_signal(proc);
-	output->name = Controller_user_handover;
-	output->priority = MAXIMUM_PRIORITY;
-	signal_send(output);
-
-}
-
-int ctrlp_recv(int sockfd, struct sdn_packet *packet, size_t *len, struct sockaddr_in *peer, socklen_t *peerlen)
-{
-	unsigned char buffer[PACKET_MAX];
-	int status=0;
-	struct sdn_packet *pack = NULL;
-	*len = 0;
-
-	*peerlen = sizeof(struct sockaddr_in);
-	if ((status = recvfrom(sockfd, buffer, sizeof(buffer), 0,
-			(struct sockaddr *) peer, peerlen)) < 0 ) {
-		if (errno == EAGAIN)
-			return 0;
-		else return -1;
-	}
-
-	pack = (struct sdn_packet *) (buffer);
-	/*
-	 * Do some validation with the ctrl packet.
-	 * 1. Check that the flags are proper. - No error flag
-	 * 2. Some other status flags as per the requirement.
-	 */
-	memcpy((void *)packet, (void *)buffer, status);
-	*len=status;
-	return 0;
 }
 
 
 /* ======================================================================
  * TASK Implementations
  * ====================================================================== */
-static void TASK_MME_Controller___userAttach(Signal *signal){
+static void TASK_MME_Controller___userAttach(SDNCtrl_t* self, struct user_ctx_t *user){
 
 	/* This function is used to send the message to the SDN controller that a new user has
 	 * attached to the eNB. For this, it creates a structure of type ctrl_message
 	 * which contains the IP of the SGW, GTP tunnel Ids etc.
 	 */
 
-	struct sdn_packet packet = {0};
-	struct user_ctx_t *user;
-	struct sockaddr_in  *peer;
 	uint32_t tunnelId;
-	int sock;
-	size_t peerlen;
-	uint32_t length;
-	struct nodeinfo_t ctrlInfo;
 	uint8_t packet_str[PACKET_MAX], tmp_str[PACKET_MAX];
 	uint8_t straddr[INET6_ADDRSTRLEN];
 	struct in_addr ipv4enb, ipv4gw, ipv4addr;
@@ -255,9 +121,6 @@ static void TASK_MME_Controller___userAttach(Signal *signal){
 		"\"notes\": \"Attach of an UE to the network\"}";
 
 	log_msg(LOG_DEBUG, 0, "Entered the task for sending user Attach to SDN Controller");
-
-	user = PDATA->user_ctx;
-	getNode(&ctrlInfo, CTRL, NULL);
 
 	/* ======================================================================
 	 * Setting values in the packet
@@ -299,46 +162,23 @@ static void TASK_MME_Controller___userAttach(Signal *signal){
 			);
 
 
-	log_msg(LOG_DEBUG, 0, "Uplink   Tunnel Id: %"PRIu32,ntohl(packet.uL_gtp_teid));
-	log_msg(LOG_DEBUG, 0, "Downlink Tunnel Id: %"PRIu32,ntohl(packet.dL_gtp_teid));
-
-
+	/* log_msg(LOG_DEBUG, 0, "Uplink   Tunnel Id: %"PRIu32,ntohl(packet.uL_gtp_teid)); */
+	/* log_msg(LOG_DEBUG, 0, "Downlink Tunnel Id: %"PRIu32,ntohl(packet.dL_gtp_teid)); */
 
 	/* ======================================================================
 	 * Sending packet
 	 * ====================================================================== */
-
-	sock = SELF_ON_SIG->ctrl.fd;
-	peer = (struct sockaddr_in *)&(SELF_ON_SIG->ctrl.peerAddr);
-	peer->sin_family = AF_INET;
-	peer->sin_port = htons(CONTROLLER_PORT);
-	peer->sin_addr.s_addr = ctrlInfo.addrv4.s_addr;
-	peerlen = sizeof(struct sockaddr_in);
-	length = strlen(packet_str);
-	if (sendto(sock, &packet_str, length, 0, (struct sockaddr *)peer, peerlen) < 0) {
-		log_errpack(LOG_ERR, errno, (struct sockaddr_in *)peer, &packet, length,
-				"Sendto(fd=%d, msg=%lx, len=%d) failed", sock, (unsigned long) &packet, length);
-		return;
-	}
+	sdnCtrl_send(self, packet_str);
 	log_msg(LOG_DEBUG, 0, "Sent the new user attach message to SDN Controller");
-	/*print_packet(&packet, length);*/
-
 }
 
-static void TASK_MME_Controller___userDetach(Signal *signal){
+static void TASK_MME_Controller___userDetach(SDNCtrl_t* self, struct user_ctx_t *user){
 	/*
 	 * This function is used to send the message to the SDN controller that an existing user has
 	 * detached from the eNB. For this, it creates a structure of type ctrl_message
 	 * which contains the IP of the SGW, GTP tunnel Ids etc. */
 
-	struct sdn_packet packet = {0};
-	struct user_ctx_t *user;
-	struct sockaddr_in  *peer;
 	uint32_t tunnelId;
-	int sock;
-	size_t peerlen;
-	uint32_t length;
-	struct nodeinfo_t ctrlInfo;
 	uint8_t packet_str[PACKET_MAX], tmp_str[PACKET_MAX];
 	uint8_t straddr[INET6_ADDRSTRLEN];
 	struct in_addr ipv4enb, ipv4gw, ipv4addr;
@@ -362,9 +202,6 @@ static void TASK_MME_Controller___userDetach(Signal *signal){
 		"\"notes\": \"Detach of an UE from the network\"}";
 
 	log_msg(LOG_DEBUG, 0, "Entered the task for sending user Detach to SDN Controller");
-
-	user = PDATA->user_ctx;
-	getNode(&ctrlInfo, CTRL, NULL);
 
 	/* ======================================================================
 	 * Setting values in the packet
@@ -405,45 +242,21 @@ static void TASK_MME_Controller___userDetach(Signal *signal){
 			);
 
 
-	log_msg(LOG_DEBUG, 0, "Uplink   Tunnel Id: %"PRIu32,ntohl(packet.uL_gtp_teid));
-	log_msg(LOG_DEBUG, 0, "Downlink Tunnel Id: %"PRIu32,ntohl(packet.dL_gtp_teid));
-
-
 	/* ======================================================================
 	 * Sending packet
 	 * ====================================================================== */
-
-	sock = SELF_ON_SIG->ctrl.fd;
-	peer = (struct sockaddr_in *)&(SELF_ON_SIG->ctrl.peerAddr);
-	peer->sin_family = AF_INET;
-	peer->sin_port = htons(CONTROLLER_PORT);
-	peer->sin_addr.s_addr = ctrlInfo.addrv4.s_addr;
-	peerlen = sizeof(struct sockaddr_in);
-	length = strlen(packet_str);
-	if (sendto(sock, &packet_str, length, 0, (struct sockaddr *)peer, peerlen) < 0) {
-		log_errpack(LOG_ERR, errno, (struct sockaddr_in *)peer, &packet_str, length,
-				"Sendto(fd=%d, msg=%lx, len=%d) failed", sock, (unsigned long) &packet, length);
-		return;
-	}
+	sdnCtrl_send(self, packet_str);
 	log_msg(LOG_DEBUG, 0, "Sent the user detach message to SDN Controller");
-	/*print_packet(&packet, length);*/
 }
 
-/* TODO: Get the correct GTP-TEIDs */
-static void TASK_MME_Controller___userHandover(Signal *signal){
+static void TASK_MME_Controller___userHandover(SDNCtrl_t* self, struct user_ctx_t *user){
 	/*
 	 * This function is used to send two messages to the SDN controller that an existing user has
 	 * moved from one eNB to another eNB. For this, it creates a structure of type ctrl_message
 	 * which contains the IP of the SGW, GTP tunnel Ids etc. */
 
 
-	struct user_ctx_t *user;
-	struct sockaddr_in  *peer;
 	uint32_t tunnelId;
-	int sock;
-	size_t peerlen;
-	uint32_t length;
-	struct nodeinfo_t ctrlInfo;
 	uint8_t packet_str[PACKET_MAX], tmp_str[PACKET_MAX];
 	uint8_t straddr[INET6_ADDRSTRLEN];
 	struct in_addr ipv4enb, ipv4enb_tgt, ipv4gw, ipv4addr;
@@ -470,10 +283,6 @@ static void TASK_MME_Controller___userHandover(Signal *signal){
 
     log_msg(LOG_DEBUG, 0, "Entered the task for sending user Handover to SDN Controller");
 
-    user = PDATA->user_ctx;
-
-    getNode(&ctrlInfo, CTRL, PDATA->user_ctx);
-
     /* ======================================================================
 	 * Setting values in the packet
 	 * ====================================================================== */
@@ -497,14 +306,6 @@ static void TASK_MME_Controller___userHandover(Signal *signal){
 	}
 
 
-    //      /* 4. Target SGW ip address */
-	//      packet.tgt_s_sgw.ipv4 = user->ebearer[0].s1u_sgw.addr.addrv4;
-	//      /* 5. GTP Tunnel Endpoint ID at eNB */
-	//      packet.uL_gtp_teid = user->ebearer[0].s1u_sgw.teid;
-	//      /* 6. GTP Tunnel Endpoint ID at PGW */
-	//      packet.dL_gtp_teid = user->ebearer[0].s5s8u.teid;
-	//      /* 7. IP address of the eNB to which the UE is connected */
-	//      packet.eNB.ipv4 = user->eNBAddr4.s_addr;
     ipv4enb_tgt.s_addr = user->ebearer[0].s1u_eNB.addr.addrv4;
     ipv4enb.s_addr = user->hoCtx.old_ebearers[0].s1u_eNB.addr.addrv4;
 	ipv4gw.s_addr = user->ebearer[0].s1u_sgw.addr.addrv4;
@@ -528,19 +329,29 @@ static void TASK_MME_Controller___userHandover(Signal *signal){
 	/* ======================================================================
 	 * Sending packet
 	 * ====================================================================== */
-
-	sock = SELF_ON_SIG->ctrl.fd;
-	peer = (struct sockaddr_in *)&(SELF_ON_SIG->ctrl.peerAddr);
-	peer->sin_family = AF_INET;
-	peer->sin_port = htons(CONTROLLER_PORT);
-	peer->sin_addr.s_addr = ctrlInfo.addrv4.s_addr;
-	peerlen = sizeof(struct sockaddr_in);
-	length = strlen(packet_str);
-	if (sendto(sock, &packet_str, length, 0, (struct sockaddr *)peer, peerlen) < 0) {
-		log_errpack(LOG_ERR, errno, (struct sockaddr_in *)peer, &packet_str, length,
-				"Sendto(fd=%d, msg=%lx, len=%d) failed", sock, (unsigned long) &packet_str, length);
-		return;
-	}
+	sdnCtrl_send(self, packet_str);
 	log_msg(LOG_DEBUG, 0, "Sent the user detach message to SDN Controller");
-	/*print_packet(&packet, length);*/
+}
+
+/* ======================================================================
+ * SDN Controller API Implementation
+ * ====================================================================== */
+
+void Controller_newAttach(gpointer ctrl, struct user_ctx_t *user){
+	SDNCtrl_t* self = (SDNCtrl_t*)ctrl;
+	log_msg(LOG_DEBUG, 0, "Entered the Controller_newAttach method");
+
+	TASK_MME_Controller___userAttach(self, user);
+}
+
+void Controller_newDetach(gpointer ctrl, struct user_ctx_t *user){
+	SDNCtrl_t* self = (SDNCtrl_t*)ctrl;
+	log_msg(LOG_DEBUG, 0, "Entered the Controller_newDetach method");
+	TASK_MME_Controller___userDetach(self, user);
+}
+
+void Controller_newHandover(gpointer ctrl, struct user_ctx_t *user){
+	SDNCtrl_t* self = (SDNCtrl_t*)ctrl;
+	log_msg(LOG_DEBUG, 0, "Entered the Controller_newHandover method");
+	TASK_MME_Controller___userHandover(self, user);
 }

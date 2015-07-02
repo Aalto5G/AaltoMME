@@ -167,9 +167,7 @@ int mme_init_ifaces(struct mme_t *self){
     log_msg(LOG_INFO, 0, "Open S1 server on file descriptor %d, port %d", self->s1.fd, S1AP_PORT);
 
     /*Init Controller server*/
-    self->ctrl.fd =init_udp_srv(self->ipv4, CONTROLLER_PORT);
-    self->ctrl.portState=opened;
-    log_msg(LOG_INFO, 0, "Open SDN Controller server on file descriptor %d, port %d", self->ctrl.fd, CONTROLLER_PORT);
+    self->sdnCtrl = sdnCtrl_init((gpointer)self);
 
     return 0;
 }
@@ -274,7 +272,6 @@ int mme_run(struct mme_t *self){
 
     //mme_registerRead(self, self->command.fd, cmd_accept, self);
     mme_registerRead(self, self->s1.fd, s1_accept_new_eNB, self);
-    mme_registerRead(self, self->ctrl.fd, ctrl_accept, self);
 
     /*Create event for processing SIGINT*/
     kill_event = evsignal_new(self->evbase, SIGINT, kill_handler, self);
@@ -516,40 +513,6 @@ void s1_accept_new_eNB(evutil_socket_t listener, short event, void *arg){
     log_msg(LOG_INFO, 0, "new eNB added");
 }
 
-void ctrl_accept(evutil_socket_t listener, short event, void *arg){
-
-    uint32_t teid;
-    struct SessionStruct_t *session;
-    Signal *output;
-    struct t_message *msg;
-    struct t_message msg1;
-
-    struct mme_t *mme = (struct mme_t *)arg;
-
-    msg = newMsg();
-    /* TODO @Robin Recv message from UDP socket*/
-    ctrlp_recv(listener, &(msg->packet.sdnp), &(msg->length), (struct sockaddr_in*)&(msg->peer.peerAddr), &(msg->peer.socklen));
-    msg->peer.fd = listener;
-
-    /*Debugging*/
-    /*printf("ctrl_accept(): Packet received: \n");
-    print_packet(&(msg->packet), msg->length);*/
-
-    /*Is this necessary?*/
-    msg->peer.portState = opened;
-    /********************/
-
-
-    /* Manage new request*/
-    log_msg(LOG_DEBUG, 0, "New SDN Controller message recv");
-    output = new_signal(Controller_handler_create(mme->engine, NULL));
-    output->name=Controller_handler_ready;
-    output->priority = MAXIMUM_PRIORITY;
-
-    output->data = (void *)msg;
-    output->freedataFunc = freeMsg;
-    signal_send(output);
-}
 
 void kill_handler(evutil_socket_t listener, short event, void *arg){
   struct mme_t *mme = (struct mme_t *)arg;

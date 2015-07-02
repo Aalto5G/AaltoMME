@@ -123,7 +123,6 @@ AC_CONFIG_FILES(Makefile
                 NAS/Makefile
                 NAS/src/Makefile
                 NAS/testApp/Makefile
-                MMEcmd/Makefile
                 mme/Makefile)
                 
 AC_OUTPUT

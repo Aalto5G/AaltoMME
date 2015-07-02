@@ -18,8 +18,8 @@
 
 #include <event2/event.h>
 #include <glib.h>
-#include "signals.h"
-#include "commands_msg.h"
+
+#define COMMAND_PORT 5000
 
 /*Public functions*/
 

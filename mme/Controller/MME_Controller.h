@@ -8,15 +8,13 @@
 
 /**
  * @file   MME_Controller.h
- * @Author Robin Babujee Jerome
- * @date November 2013
+ * @Author Vicent Ferrer Guasch
+ * @date July 2015
  * @brief MME Controller interface protocol state machine.
  */
 
 #ifndef MME_CONTROLLER_HFILE
 #define MME_CONTROLLER_HFILE
-
-#define CONTROLLER_PORT 12345
 
 #include "MME.h"
 
@@ -25,47 +23,46 @@
  * MME Controller State Machine API
  * ====================================================================== */
 
-/**@brief Attach new user
- * @param [in]  engine Engine reference
- * @param [in]  session User session structure
- *
- * Used to pass the session to the Controller State machine. The previous state machine shall include the signal to return.
+/**@brief Create SDN interface
+ * @param [in]  mme reference to the mme
+ * @return the reference to the sdn ctrl interface
+ * 
+ * The returned reference will be used in the calls to this API. Remember to
+ * free the reference after use with sdnCtrl_free
  */
-void Controller_newAttach(struct t_engine_data *engine, struct SessionStruct_t *session);
+gpointer sdnCtrl_init(gpointer mme);
 
-/**@brief Detach UE
- * @param [in]  engine Engine reference
- * @param [in]  session User session structure
- *
- * Used to pass the session to the Controller State machine. The previous state machine shall include the signal to return.
- */
-void Controller_newDetach(struct t_engine_data *engine, struct SessionStruct_t *session);
 
-/**@brief Handover UE from one src eNB to dest eNB
- * @param [in]  engine Engine reference
- * @param [in]  session User session structure
+/**@brief Delete SDN interface
+ * @param [in]  ctrl_h reference to the interface
  *
- * Used to pass the session to the Controller State machine. The previous state machine shall include the signal to return.
+ * Function to delete the ctrl interface structure
  */
-void Controller_newHandover(struct t_engine_data *engine, struct SessionStruct_t *session);
+void sdnCtrl_free(gpointer ctrl_h);
 
-/**@brief Receive a packet from the SDN Controller
- * @param [in]  socket fd
- * @param [in]  sdn_packet pointer
- * @param [in]  length pointer
- * @param [in]  EndpointStruct for peer
- * @param [in]  length of EndpointStruct
- *
- * Used to receive a packet from the SDN Controller.
- */
-int ctrlp_recv(int sockfd, struct sdn_packet *packet, size_t *len, struct sockaddr_in *peer, socklen_t *peerlen);
 
-/**@brief Create Controller process structure
- * @param [in]  engine Engine reference
- * @param [in]  owner Parent process.
+/**@brief Attach new user event
+ * @param [in]  ctrl pointer to the SDN controller interface
+ * @param [in]  user User information
  *
- * Used to start a state machine once a packet is received from the controller.
+ * Used to pass the session to the Controller State machine.
  */
-struct t_process *Controller_handler_create(struct t_engine_data *engine, struct t_process *owner);
+void Controller_newAttach(gpointer ctrl, struct user_ctx_t *user);
+
+/**@brief Detach UE event
+ * @param [in]  ctrl pointer to the SDN controller interface
+ * @param [in]  user User information
+ *
+ * Used to pass the session to the Controller State machine.
+ */
+void Controller_newDetach(gpointer ctrl, struct user_ctx_t *user);
+
+/**@brief Handover UE from one src eNB to dest eNB event
+ * @param [in]  ctrl pointer to the SDN controller interface
+ * @param [in]  user User information
+ *
+ * Used to pass the session to the Controller State machine.
+ */
+void Controller_newHandover(gpointer ctrl, struct user_ctx_t *user);
 
 #endif /* MME_CONTROLLER_HFILE */

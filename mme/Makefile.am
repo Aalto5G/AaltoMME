@@ -57,6 +57,5 @@ mme_CFLAGS = `mysql_config --cflags` \
 			 -I$(top_srcdir)/S1AP/shared \
 			 -I$(top_srcdir)/mme/S1/NAS \
 			 -I$(top_srcdir)/NAS/shared \
-			 -I$(top_srcdir)/SDN/shared \
 			 -I$(top_srcdir)/mme/S11 \
 			 -I$(top_srcdir)/mme/Controller

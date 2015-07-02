@@ -32,7 +32,6 @@
 #include "uthash.h"
 #include "gtp.h"
 #include "NAS_Definitions.h"
-#include "SDNMessages.h"
 #include "S1AP.h"
 #include "S6a.h"
 
@@ -87,7 +86,6 @@ struct t_message{
     union{
         uint8_t             raw[65547];
         union gtp_packet    gtp;
-        struct sdn_packet   sdnp;
     }packet;                 ;  /*  data received as part of the message*/
     size_t                  length;         /*  Packet lenght*/
     struct EndpointStruct_t peer;           /*  Peer endpoint struct*/
@@ -242,6 +240,7 @@ struct mme_t{
 	gpointer                s6a;
 	gpointer                s11;
 	gpointer                cmd;
+	gpointer                sdnCtrl;
     uint32_t                nums1conn;                      /*< Number of S1 Connections*/
     struct SessionStruct_t  *s1apUsersbyLocalID[MAX_UE];    /*< UE MME ID to session relation vector*/
     struct SessionStruct_t  *sessionht_byTEID;    /*Session Hash table to store the processes waiting for a response, */
