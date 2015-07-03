@@ -107,7 +107,7 @@ static void TASK_MME_Controller___userAttach(SDNCtrl_t* self, struct user_ctx_t 
 		"\"version\": \"%d\","
 		"\"msg_type\": \"attach\","
 		"\"msg\": {"
-			"\"plmn\": \"%u%.2u\","
+			"\"plmn\": \"%.3llu%.2llu\","
 			"\"ue_msisdn\": \"%llu\","
 			"%s"
 			/*"\"ue_ipv4addr\": \"10.10.255.254\","*/
@@ -116,8 +116,8 @@ static void TASK_MME_Controller___userAttach(SDNCtrl_t* self, struct user_ctx_t 
 			"\"gtp_teid_ul\": \"%u\","
 			"\"gtp_enb_ipv4addr\": \"%s\","
 			"\"gtp_teid_dl\": \"%u\","
-			"\"gtp_qci\": \"%u\""
-			"},"
+		    "\"gtp_qci\": \"%u\""
+		"},"
 		"\"notes\": \"Attach of an UE to the network\"}";
 
 	log_msg(LOG_DEBUG, 0, "Entered the task for sending user Attach to SDN Controller");
@@ -148,19 +148,18 @@ static void TASK_MME_Controller___userAttach(SDNCtrl_t* self, struct user_ctx_t 
 	ipv4enb.s_addr = user->ebearer[0].s1u_eNB.addr.addrv4;
 	ipv4gw.s_addr = user->ebearer[0].s1u_sgw.addr.addrv4;
 
-	sprintf(packet_str, packet_pattern,
-			1,												/* Version*/
-			user->imsi/1000000000000,						/*MCC*/
-			(user->imsi/10000000000)%100,					/*MNC*/
-			user->msisdn,									/*MSISDN*/
-			tmp_str,
-			inet_ntop(AF_INET, &ipv4gw, ip_sgw, INET_ADDRSTRLEN),								/*SPGW endpoint IP Address*/
-			ntohl(user->ebearer[0].s1u_sgw.teid),			/*UL TEID*/
-			inet_ntop(AF_INET, &ipv4enb, ip_enb, INET_ADDRSTRLEN),							/*eNB endpoint IP Address*/
-			ntohl(user->ebearer[0].s1u_eNB.teid),			/*DL TEID*/
-			user->ebearer[0].qos.qci						/*QCI*/
-			);
-
+	snprintf(packet_str, PACKET_MAX, packet_pattern,
+	         1,												/* Version*/
+	         user->imsi/1000000000000,						/*MCC*/
+	         (user->imsi/10000000000)%100,					/*MNC*/
+	         user->msisdn,									/*MSISDN*/
+	         tmp_str,
+	         inet_ntop(AF_INET, &ipv4gw, ip_sgw, INET_ADDRSTRLEN),								/*SPGW endpoint IP Address*/
+	         ntohl(user->ebearer[0].s1u_sgw.teid),			/*UL TEID*/
+	         inet_ntop(AF_INET, &ipv4enb, ip_enb, INET_ADDRSTRLEN),							/*eNB endpoint IP Address*/
+	         ntohl(user->ebearer[0].s1u_eNB.teid),			/*DL TEID*/
+	         user->ebearer[0].qos.qci						/*QCI*/
+	         );
 
 	/* log_msg(LOG_DEBUG, 0, "Uplink   Tunnel Id: %"PRIu32,ntohl(packet.uL_gtp_teid)); */
 	/* log_msg(LOG_DEBUG, 0, "Downlink Tunnel Id: %"PRIu32,ntohl(packet.dL_gtp_teid)); */
@@ -188,7 +187,7 @@ static void TASK_MME_Controller___userDetach(SDNCtrl_t* self, struct user_ctx_t 
 		"\"version\": \"%d\","
 		"\"msg_type\": \"detach\","
 		"\"msg\": {"
-			"\"plmn\": \"%u%.2u\","
+    		"\"plmn\": \"%.3llu%.2llu\","
 			"\"ue_msisdn\": \"%llu\","
 			"%s"
 			/*"\"ue_ipv4addr\": \"10.10.255.254\","*/
@@ -266,7 +265,7 @@ static void TASK_MME_Controller___userHandover(SDNCtrl_t* self, struct user_ctx_
 		"\"version\": \"%d\","
 		"\"msg_type\": \"handover\","
 		"\"msg\": {"
-			"\"plmn\": \"%u%.2u\","
+			"\"plmn\": \"%.3llu%.2llu\","
 			"\"ue_msisdn\": \"%llu\","
 			"%s"
 			/*"\"ue_ipv4addr\": \"10.10.255.254\","*/
