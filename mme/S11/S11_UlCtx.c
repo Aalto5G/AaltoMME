@@ -33,7 +33,7 @@ static void detach(gpointer self){
 static void modBearer(gpointer self){
 	log_msg(LOG_DEBUG, 0, "Sending Modify Bearer Request");
 	sendModifyBearerReq(self);
-	changeState(self, wModBearerRsp);
+	s11changeState(self, wModBearerRsp);
 }
 
 

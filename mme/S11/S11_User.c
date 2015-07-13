@@ -70,7 +70,7 @@ gpointer s11u_newUser(gpointer s11, struct user_ctx_t *user){
     self->rAddrLen = sizeof(struct sockaddr_in);
 
     /*Initial state noCtx*/
-    changeState(self, noCtx);
+    s11changeState(self, noCtx);
     return self;
 }
 

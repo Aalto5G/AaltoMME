@@ -29,13 +29,13 @@ static void attach(gpointer self){
 static void detach(gpointer self){
 	log_msg(LOG_DEBUG, 0, "Deleting Bearer Context");
 	sendDeleteSessionReq(self);
-	changeState(self, wDel);
+	s11changeState(self, wDel);
 }
 
 static void modBearer(gpointer self){
 	log_msg(LOG_DEBUG, 0, "Sending Modify Bearer Request");
 	sendModifyBearerReq(self);
-	changeState(self, wModBearerRsp);
+	s11changeState(self, wModBearerRsp);
 }
 
 

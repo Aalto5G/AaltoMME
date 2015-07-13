@@ -37,7 +37,7 @@ typedef struct EMM_PlainMessage_c{
 /** ESM Plain message */
 typedef struct ESM_PlainMessage_c{
     ie_v_t1_l_t protocolDiscriminator;
-    ie_v_t1_h_t securityHeaderType;
+    ie_v_t1_h_t bearerIdendity;
     uint8_t     procedureTransactionIdentity;
     ie_t_t2_t   messageType;
     union nAS_ie_member ie[30];

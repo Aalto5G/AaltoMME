@@ -43,6 +43,6 @@ void s11DestroyFSM(){
 }
 
 
-void changeState(gpointer session, S11State s){
+void s11changeState(gpointer session, S11State s){
 	s11u_setState(session, &(states[s]));
 }

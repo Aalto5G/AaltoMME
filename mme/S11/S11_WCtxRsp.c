@@ -34,7 +34,7 @@ static void processMsg(gpointer self){
 			g_error_free (err);
 			return;
 		}
-		changeState(self, ulCtx);
+		s11changeState(self, ulCtx);
 		returnControl(self);
         break;
 	default:

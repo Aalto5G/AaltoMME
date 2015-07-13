@@ -25,7 +25,7 @@ static void processMsg(gpointer self){
 static void attach(gpointer self){
 	log_msg(LOG_DEBUG, 0, "Bearer Context doesn't exist, creating a new one.");
 	sendCreateSessionReq(self);
-	changeState(self, wCtxRsp);
+	s11changeState(self, wCtxRsp);
 }
 
 static void detach(gpointer self){

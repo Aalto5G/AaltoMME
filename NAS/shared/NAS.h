@@ -20,6 +20,7 @@
 #include "NASConstants.h"
 
 void dec_NAS(GenericNASMsg_t *msg, uint8_t *buf, uint32_t size);
+void dec_ESM(ESM_Message_t *msg, uint8_t *buf, uint32_t size);
 
 void newNASMsg_EMM(uint8_t **curpos, ProtocolDiscriminator_t protocolDiscriminator, SecurityHeaderType_t securityHeaderType);
 void newNASMsg_ESM(uint8_t **curpos, ProtocolDiscriminator_t protocolDiscriminator, uint8_t ePSBearerId);

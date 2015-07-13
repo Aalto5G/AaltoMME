@@ -34,6 +34,6 @@ void s11ConfigureFSM();
 void s11DestroyFSM();
 
 
-void changeState(gpointer, S11State);
+void s11changeState(gpointer, S11State);
 
 #endif /* S11_FSMCONFIG_HFILE */
