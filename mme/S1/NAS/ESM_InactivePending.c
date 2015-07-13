@@ -25,4 +25,5 @@ static void processMsg(gpointer self){
 
 void linkESMInactivePending(ESM_State* s){
 	s->processMsg = processMsg;
+	s->activateDefault = notImplemented;
 }

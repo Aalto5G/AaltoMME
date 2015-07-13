@@ -20,6 +20,7 @@
 
 #include "MME.h"
 #include "ESM_State.h"
+#include "NAS.h"
 
 #include <stdint.h>
 #include <glib.h>
@@ -39,6 +40,12 @@ gpointer esm_bc_init(gpointer emm, uint8_t ebi);
  */
 void esm_bc_free(gpointer esm_h);
 
+/**
+ * @brief sends the appropiate message to setup the bearer
+ * @param [in]  esm_h ESM stack handler
+ */
+void esm_activateDefault(gpointer esm_h);
+
 /* API to config*/
 
 void esm_bc_setState(gpointer self, ESM_State *s);
@@ -46,6 +53,6 @@ void esm_bc_setState(gpointer self, ESM_State *s);
 void esm_bc_processMsg(gpointer self, const ESM_Message_t * msg);
 
 /* API to ESM*/
-uint8_t *esm_bc_getEBIp(gpointer self);
+uint8_t *esm_bc_getEBIp(gpointer bc_h);
 
 #endif /* ESM_Bearer_Context_H */

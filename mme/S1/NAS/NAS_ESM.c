@@ -20,7 +20,7 @@
 #include "logmgr.h"
 #include "ESM_BearerContext.h"
 
-#include <strint.h>
+//#include <stdint.h>
 
 typedef struct{
 	gpointer    emm;
@@ -50,7 +50,7 @@ void esm_processMsg(gpointer esm_h, gpointer buffer, size_t len){
 	GenericNASMsg_t msg;
 	dec_NAS(&msg, buffer, len);
 	
-	g_assert((ProtocolDiscriminator_t)msg->header.protocolDiscriminator.v == EPSSessionManagementMessages);
+	g_assert((ProtocolDiscriminator_t)msg.header.protocolDiscriminator.v == EPSSessionManagementMessages);
 
 	switch(msg.plain.eSM.messageType){
 	/*Network Initiated*/
@@ -62,18 +62,19 @@ void esm_processMsg(gpointer esm_h, gpointer buffer, size_t len){
 	case ModifyEPSBearerContextReject:
 	case DeactivateEPSBearerContextAccept:
 		if (!g_hash_table_lookup_extended (self->bearers,
-		                                   msg.plain.eSN.bearerIdendity,
+		                                   &(msg.plain.eSM.bearerIdendity),
 		                                   &bearer,
 		                                   NULL)){
 			log_msg(LOG_WARNING, 0, "Received wrong EBI");
 			return;
 		}
-		esm_bc_processMsg(bearer, &(msg.plain.eSN));
+		esm_bc_processMsg(bearer, &(msg.plain.eSM));
 		break;
 	/* UE Requests*/
 	case PDNConnectivityRequest:
 		bearer = esm_bc_init(self->emm, ++(self->next_ebi));
 		g_hash_table_insert(self->bearers, esm_bc_getEBIp(bearer), bearer);
+		esm_activateDefault(bearer);
 	case PDNDisconnectRequest:
 	case BearerResourceAllocationRequest:
 	case BearerResourceModificationRequest:

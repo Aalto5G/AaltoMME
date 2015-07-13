@@ -33,7 +33,7 @@
  */
 gpointer esm_init(gpointer emm);
 
-v/**
+/**
  * @brief Dealocates the ESM stack handler
  * @param [in]  esm_h ESM stack handler to be removed.
  */

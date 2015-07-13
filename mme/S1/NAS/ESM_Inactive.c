@@ -22,7 +22,14 @@ static void processMsg(gpointer self){
 	log_msg(LOG_ERR, 0, "Not Implemented");
 }
 
+static void activateDefault(gpointer self){
+	esm_DefaultEPSBearerContextActivation(self);
+	esmChangeState(self, ActivePending);
+	/*esm_send(self);*/
+}
+
 
 void linkESMInactive(ESM_State* s){
 	s->processMsg = processMsg;
+	s->activateDefault = activateDefault;
 }

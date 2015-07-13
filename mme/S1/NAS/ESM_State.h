@@ -27,6 +27,7 @@ typedef void (*ESM_event)(gpointer);
 
 #define ESMSTATE \
 	ESM_event processMsg;	    /*  */ \
+	ESM_event activateDefault;   /*  */ \
 
 
 typedef struct{

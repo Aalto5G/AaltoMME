@@ -36,6 +36,8 @@ void esmConfigureFSM();
 void esmDestroyFSM();
 
 
-void esmChangeState(gpointer, ESMState);
+void esmChangeState(gpointer self, ESMState);
+
+void notImplemented(gpointer self);
 
 #endif /* ESM_FSMCONFIG_HFILE */

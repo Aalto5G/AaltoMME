@@ -17,6 +17,14 @@ bin_PROGRAMS=mme
 mme_SOURCES = MME_engine.c \
 				S1/MME_S1.c \
 				S1/NAS/NAS_FSM.c \
+			    S1/NAS/NAS_ESM.c \
+			    S1/NAS/ESM_Active.c \
+			    S1/NAS/ESM_ActivePending.c \
+			    S1/NAS/ESM_BearerContext.c \
+			    S1/NAS/ESM_FSMConfig.c \
+			    S1/NAS/ESM_Inactive.c \
+			    S1/NAS/ESM_InactivePending.c \
+			    S1/NAS/ESM_ModifyPending.c \
 				S6a/hmac/sha2.c \
 				S6a/hmac/hmac_sha2.c \
 				S6a/milenage/aes.c \

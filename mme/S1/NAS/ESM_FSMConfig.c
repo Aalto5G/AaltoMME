@@ -23,6 +23,8 @@
 #include "ESM_ModifyPending.h"
 #include "ESM_InactivePending.h"
 
+#include "logmgr.h"
+
 ESM_State *states;
 
 void esmConfigureFSM(){
@@ -42,4 +44,8 @@ void esmDestroyFSM(){
 
 void esmChangeState(gpointer session, ESMState s){
 	esm_bc_setState(session, &(states[s]));
+}
+
+void notImplemented(gpointer self){
+	log_msg(LOG_ERR, 0, "Not Implemented");
 }

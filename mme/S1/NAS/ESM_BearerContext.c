@@ -18,16 +18,21 @@
 #include "ESM_BearerContext.h"
 #include "NAS.h"
 #include "logmgr.h"
+#include "ESM_FSMConfig.h"
 
 typedef struct{
 	gpointer esm;
 	uint8_t ebi;
+	ESM_State *state;
+	uint8_t oMsg[500];
+	size_t  oLen;
 }ESM_BearerContext_t;
 
 gpointer esm_bc_init(gpointer esm, uint8_t ebi){
 	ESM_BearerContext_t *self = g_new0(ESM_BearerContext_t, 1);
 	self->esm = esm;
 	self->ebi = ebi;
+	esmChangeState(self, Inactive);
 	return self;
 }
 
@@ -36,11 +41,80 @@ void esm_bc_free(gpointer bc_h){
 	g_free(self);
 }
 
-uint8_t *esm_bc_getEBIp(gpointer self){
+
+uint8_t *esm_bc_getEBIp(gpointer bc_h){
 	ESM_BearerContext_t *self = (ESM_BearerContext_t*)bc_h;
-	return &(self->ebi)
+	return &(self->ebi);
 }
 
-void esm_bc_setState(gpointer self, ESM_State *s){
+void esm_bc_setState(gpointer bc, ESM_State *s){
+	ESM_BearerContext_t *self = (ESM_BearerContext_t *)bc;
+	self->state = s;
+}
+
+void esm_bc_processMsg(gpointer self, const ESM_Message_t * msg){
 	
+}
+
+void esm_activateDefault(gpointer bc_h){
+	ESM_BearerContext_t *self = (ESM_BearerContext_t*)bc_h;
+
+}
+
+void esm_DefaultEPSBearerContextActivation(gpointer bc_h){
+	ESM_BearerContext_t *self = (ESM_BearerContext_t*)bc_h;
+
+	uint8_t *pointer, aPN[100],pco[14];
+    uint32_t len;
+
+    /* /\* Forge Activate Default Bearer Context Req*\/ */
+    /* pointer = self->oMsg; */
+    /* newNASMsg_ESM(&pointer, EPSSessionManagementMessages, 5); */
+    /* encaps_ESM(&pointer, 1 ,ActivateDefaultEPSBearerContextRequest); */
+
+    /* /\* EPS QoS *\/ */
+    /* nasIe_lv_t4(&pointer, &(PDATA->user_ctx->ebearer->qos.qci), 1); */
+
+    /* /\* Access point name*\/ */
+    /* encodeAPN(aPN, PDATA->user_ctx->aPname); */
+    /* nasIe_lv_t4(&pointer, aPN, strlen(PDATA->user_ctx->aPname)+1); /\* This +1 is the initial label lenght*\/ */
+
+    /* /\* PDN address *\/ */
+    /* switch(PDATA->user_ctx->pAA.type){ */
+    /* case  1: /\* IPv4*\/ */
+    /*     len = 5; */
+    /*     break; */
+    /* case 2: /\* IPv6*\/ */
+    /*     len = 9; */
+    /*     break; */
+    /* case 3: /\*IPv4v6*\/ */
+    /*     len = 13; */
+    /*     break; */
+    /* } */
+    /* nasIe_lv_t4(&pointer, (uint8_t*)&(PDATA->user_ctx->pAA), len); */
+
+    /* /\*Optionals *\/ */
+    /* /\* Protocol Configuration Options*\/ */
+    /* if(PDATA->user_ctx->pco[0]==0x27){ */
+    /*     if(PROC->engine->mme->uE_DNS==0){ */
+    /*         log_msg(LOG_DEBUG, 0, "Writting PCO IE. Lenght: %d, first byte %#x", PDATA->user_ctx->pco[1]+2, *(PDATA->user_ctx->pco+2)); */
+    /*         nasIe_tlv_t4(&pointer, 0x27, PDATA->user_ctx->pco+2, PDATA->user_ctx->pco[1]); */
+    /*     *(pointer-1-PDATA->user_ctx->pco[1]) = PDATA->user_ctx->pco[1]; */
+    /*     }else{ */
+    /*     pco[0]=0x80; */
+    /*     pco[1]=0x80; */
+    /*     pco[2]=0x21; */
+    /*     pco[3]=0x0a; */
+    /*     pco[4]=0x01; */
+    /*     pco[5]=0x00; */
+    /*     pco[6]=0x00; */
+    /*     pco[7]=0x0a; */
+    /*     pco[8]=0x81; */
+    /*     pco[9]=0x06; */
+    /*     memcpy(pco+10, &(PROC->engine->mme->uE_DNS), 4); */
+    /*     nasIe_tlv_t4(&pointer, 0x27, pco, 14); */
+    /*     *(pointer-15) = 14; */
+    /*     } */
+    /* } */
+    self->oLen = pointer-(uint8_t*) self->oMsg;
 }
