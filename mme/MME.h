@@ -29,6 +29,8 @@
 #include <event2/event.h>
 #include <glib.h>
 
+#include "Subscription.h"
+
 #include "uthash.h"
 #include "gtp.h"
 #include "NAS_Definitions.h"
@@ -116,6 +118,7 @@ released after all its associated EPS bearers are deleted.  */
 struct user_ctx_t{
 	uint64_t          imsi;
     uint64_t          msisdn;
+	Subscription      subs;
 	/*MSISDN*/
 	/*MM State*/
 	ESM_State_t       stateNAS_ESM;
@@ -135,18 +138,7 @@ struct user_ctx_t{
 	/*uint32_t          S11SgwTeid;     *//**< SGW IP TEID for S11*/
 	struct in_addr    eNBAddr4;       /**< eNB IP addr*/
 
-	struct PAA_c{
-		uint8_t type:3;
-		uint8_t spare:5;
-		union{
-			uint32_t ipv4;
-			uint8_t  ipv6[16];
-			struct{
-				uint8_t		ipv6[16];
-				uint32_t	ipv4;
-			}both;
-		}addr;
-	}__attribute__((packed)) pAA;
+	struct PAA_t    pAA;
 
 	uint32_t			eNB_UE_S1AP_ID;	/**< eNB UE S1AP ID*/
 	uint32_t			mME_UE_S1AP_ID;	/**< MME UE S1AP ID*/

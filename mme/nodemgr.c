@@ -54,7 +54,7 @@ void free_nodemgr(){
     config_destroy(&cfg);
 }
 
-void getNode(struct nodeinfo_t *node, const enum nodeType type, struct user_ctx_t *user){
+void getNode(struct nodeinfo_t *node, const enum nodeType type, Subscription subs){
     static uint8_t imme = 0, ieNB = 0, iSgw = 0, iPgw = 0, iCtrl = 0; /*Index variables*/
     uint8_t count;
     config_setting_t *nodes, *nodecfg;

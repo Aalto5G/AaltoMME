@@ -21,6 +21,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include "MME.h"
+#include "Subscription.h"
 
 #define MAX_HOST_NAME 30
 /*connection status enum*/
@@ -69,7 +70,7 @@ extern void free_nodemgr();
  * Used to acquire a random node from the stored ones.
  * TODO @ Vicent Use user info
  */
-extern void getNode(struct nodeinfo_t *node, const enum nodeType type, struct user_ctx_t *user);
+extern void getNode(struct nodeinfo_t *node, const enum nodeType type, Subscription subs);
 
 /**@brief Save node information
  * @param [in] node node info to be stored

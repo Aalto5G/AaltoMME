@@ -20,6 +20,7 @@
 #include <glib.h>
 
 #include "MME.h"
+#include "Subscription.h"
 #include "S11_State.h"
 
 gpointer s11u_newUser(gpointer s11, struct user_ctx_t *user);

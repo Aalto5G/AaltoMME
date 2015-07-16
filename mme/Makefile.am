@@ -15,6 +15,7 @@ bin_PROGRAMS=mme
 #AM_CXXFLAGS = $(INTI_CFLAGS)
 #$(GLIB_CFLAGS) $(GOBJECT_CFLAGS)
 mme_SOURCES = MME_engine.c \
+                Subscription.c \
 				S1/MME_S1.c \
 				S1/NAS/NAS_FSM.c \
 			    S1/NAS/NAS_ESM.c \

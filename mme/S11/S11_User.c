@@ -33,6 +33,7 @@ typedef struct{
     struct sockaddr     rAddr;       /**<Peer IP address, IPv4 or IPv6*/
     socklen_t           rAddrLen;    /**<Peer Socket length returned by recvfrom*/
     struct user_ctx_t *user; /**< User information*/
+    Subscription      subs;  /**< Subscription information*/
     union gtp_packet oMsg;
     uint32_t oMsglen;
     union gtp_packet iMsg;
@@ -59,10 +60,11 @@ gpointer s11u_newUser(gpointer s11, struct user_ctx_t *user){
     self->lTEID = newTeid();
     self->rTEID = 0;
     self->user  = user;
+    self->subs  = user->subs;
     self->s11   = s11;
 
     /*Get SGW addr*/
-    getNode(&sgw, SGW, user);
+    getNode(&sgw, SGW, self->subs);
     peer = (struct sockaddr_in *)&(self->rAddr);
     peer->sin_family = AF_INET;
     peer->sin_port = htons(GTP2C_PORT);
@@ -83,12 +85,12 @@ static validateSourceAddr(S11_user_t* self, const char * src){
 
     switch(self->rAddr.sa_family){
     case AF_INET:
-	    inet_ntop(AF_INET, &(((struct sockaddr_in*)&(self->rAddr))->sin_addr),
-	              r, INET_ADDRSTRLEN);
+        inet_ntop(AF_INET, &(((struct sockaddr_in*)&(self->rAddr))->sin_addr),
+                  r, INET_ADDRSTRLEN);
         break;
     case AF_INET6:
-	    inet_ntop(AF_INET6, &(((struct sockaddr_in6*)&(self->rAddr))->sin6_addr),
-	              r, INET6_ADDRSTRLEN);
+        inet_ntop(AF_INET6, &(((struct sockaddr_in6*)&(self->rAddr))->sin6_addr),
+                  r, INET6_ADDRSTRLEN);
         break;
     }
     return strcmp(r, src) == 0;
@@ -147,18 +149,18 @@ void s11u_setState(gpointer u, S11_State *s){
 }
 
 static void s11_send(S11_user_t* self){
-	const int sock = s11_fg(self->s11);
-	/*Packet header modifications*/
+    const int sock = s11_fg(self->s11);
+    /*Packet header modifications*/
     self->oMsg.gtp2l.h.seq = hton24(getNextSeq(self->s11));
     self->oMsg.gtp2l.h.tei = self->rTEID;
 
 
     if (sendto(sock, &(self->oMsg), self->oMsglen, 0,
                    &(self->rAddr), self->rAddrLen) < 0) {
-	    log_errpack(LOG_ERR, errno, (struct sockaddr_in *)&(self->rAddr),
-	                &(self->oMsg), self->oMsglen,
-	                "Sendto(fd=%d, msg=%lx, len=%d) failed",
-	                sock, (unsigned long) &(self->oMsg), self->oMsglen);
+        log_errpack(LOG_ERR, errno, (struct sockaddr_in *)&(self->rAddr),
+                    &(self->oMsg), self->oMsglen,
+                    "Sendto(fd=%d, msg=%lx, len=%d) failed",
+                    sock, (unsigned long) &(self->oMsg), self->oMsglen);
     }
 }
 
@@ -191,7 +193,7 @@ const int getMsgType(const gpointer u){
 void sendCreateSessionReq(gpointer u){
     S11_user_t *self = (S11_user_t*)u;
     struct fteid_t  fteid;
-    struct qos_t    *qos;
+    struct qos_t    qos;
     union gtpie_member ie[14], ie_bearer_ctx[3];
     int hlen, a;
     uint32_t ielen, ienum=0;
@@ -201,34 +203,43 @@ void sendCreateSessionReq(gpointer u){
     log_msg(LOG_DEBUG, 0, "Enter");
     /*  Send Create Context Request to SGW*/
 
-    qos = &(self->user->ebearer->qos);
+    subs_cpyQoS_GTP(self->subs, &qos);
 
     self->oMsglen = get_default_gtp(2, GTP2_CREATE_SESSION_REQ, &(self->oMsg));
 
     /*IMSI*/
     ie[ienum].tliv.i=0;
     ie[ienum].tliv.t=GTPV2C_IE_IMSI;
-    dec2tbcd(ie[ienum].tliv.v, &ielen, self->user->imsi);
+    dec2tbcd(ie[ienum].tliv.v, &ielen, subs_getIMSI(self->subs));
     ie[ienum].tliv.l=hton16(ielen);
     ienum++;
     /*MSISDN*/
     ie[ienum].tliv.i=0;
     ie[ienum].tliv.t=GTPV2C_IE_MSISDN;
-    dec2tbcd(ie[ienum].tliv.v, &ielen, self->user->msisdn);
+    dec2tbcd(ie[ienum].tliv.v, &ielen,  subs_getMSISDN(self->subs));
     ie[ienum].tliv.l=hton16(ielen);
     ienum++;
     /*MEI*/
+    /* ie[ienum].tliv.i=0; */
+    /* ie[ienum].tliv.t=GTPV2C_IE_MEI; */
+    /* dec2tbcd(ie[ienum].tliv.v, &ielen, subs_getIMEISV(self->subs)); */
+    /* ie[ienum].tliv.l=hton16(ielen); */
+    /* ienum++; */
+
+    /*Serving Network*/
     ie[ienum].tliv.i=0;
-    ie[ienum].tliv.t=GTPV2C_IE_MEI;
-    dec2tbcd(ie[ienum].tliv.v, &ielen, self->user->imsi);
-    ie[ienum].tliv.l=hton16(ielen);
+    ie[ienum].tliv.l=hton16(3);
+    ie[ienum].tliv.t=GTPV2C_IE_SERVING_NETWORK;
+    memcpy(ie[ienum].tliv.v, self->user->tAI.sn, 3);
     ienum++;
+
     /*RAT type*/
     ie[ienum].tliv.i=0;
     ie[ienum].tliv.l=hton16(1);
     ie[ienum].tliv.t=GTPV2C_IE_RAT_TYPE;
     ie[ienum].tliv.v[0]=6;                  /*Type 6= EUTRAN*/
     ienum++;
+
     /*F-TEID*/
     ie[ienum].tliv.i=0;
     ie[ienum].tliv.l=hton16(9);
@@ -251,15 +262,33 @@ void sendCreateSessionReq(gpointer u){
     fteid.ipv6=0;
     fteid.iface= hton8(S5S8C_PGW);
     fteid.teid = hton32(0);
-    getNode(&pgwInfo, PGW, self->user);
+    getNode(&pgwInfo, PGW, self->subs);
     fteid.addr.addrv4 = pgwInfo.addrv4.s_addr;
     memcpy(ie[ienum].tliv.v, &fteid, FTEID_IP4_SIZE);
     ienum++;
     /*APN*/
     ie[ienum].tliv.i=0;
-    ie[ienum].tliv.l=hton16(strlen(self->user->aPname));
+    ie[ienum].tliv.l=hton16(subs_getAPNlen(self->subs));
     ie[ienum].tliv.t=GTPV2C_IE_APN;
-    sprintf(ie[ienum].tliv.v, self->user->aPname, strlen(self->user->aPname));
+    sprintf(ie[ienum].tliv.v,
+            subs_getAPN(self->subs),
+            subs_getAPNlen(self->subs));
+    ienum++;
+
+    /*Selection Mode*/
+    ie[ienum].tliv.i=0;
+    ie[ienum].tliv.l=hton16(1);
+    ie[ienum].tliv.t=GTPV2C_IE_SELECTION_MODE;
+    bytefield[0]=0x01; /* Selection Mode*/
+    memcpy(ie[ienum].tliv.v, bytefield, 1);
+    ienum++;
+
+    /*PDN type*/
+    ie[ienum].tliv.i=0;
+    ie[ienum].tliv.l=hton16(1);
+    ie[ienum].tliv.t=GTPV2C_IE_PDN_TYPE;
+    bytefield[0]=subs_getPDNType(self->subs); /* PDN type IPv4*/
+    memcpy(ie[ienum].tliv.v, bytefield, 1);
     ienum++;
 
     /*PAA*/
@@ -270,19 +299,7 @@ void sendCreateSessionReq(gpointer u){
     memset(bytefield+1, 0, 4);   /*IP = 0.0.0.0*/
     memcpy(ie[ienum].tliv.v, bytefield, 5);
     ienum++;
-    /*Serving Network*/
-    ie[ienum].tliv.i=0;
-    ie[ienum].tliv.l=hton16(3);
-    ie[ienum].tliv.t=GTPV2C_IE_SERVING_NETWORK;
-    memcpy(ie[ienum].tliv.v, self->user->tAI.sn, 3);
-    ienum++;
-    /*PDN type*/
-    ie[ienum].tliv.i=0;
-    ie[ienum].tliv.l=hton16(1);
-    ie[ienum].tliv.t=GTPV2C_IE_PDN_TYPE;
-    bytefield[0]=self->user->pdn_type; /* PDN type IPv4*/
-    memcpy(ie[ienum].tliv.v, bytefield, 1);
-    ienum++;
+
     /*APN restriction*/
     ie[ienum].tliv.i=0;
     ie[ienum].tliv.l=hton16(1);
@@ -290,13 +307,8 @@ void sendCreateSessionReq(gpointer u){
     bytefield[0]=0x00; /* APN restriction*/
     memcpy(ie[ienum].tliv.v, bytefield, 1);
     ienum++;
-    /*Selection Mode*/
-    ie[ienum].tliv.i=0;
-    ie[ienum].tliv.l=hton16(1);
-    ie[ienum].tliv.t=GTPV2C_IE_SELECTION_MODE;
-    bytefield[0]=0x01; /* Selection Mode*/
-    memcpy(ie[ienum].tliv.v, bytefield, 1);
-    ienum++;
+
+
 
     /*Protocol Configuration Options*/
     if(self->user->pco[0]==0x27){
@@ -318,7 +330,7 @@ void sendCreateSessionReq(gpointer u){
         ie_bearer_ctx[1].tliv.i=0;
         ie_bearer_ctx[1].tliv.l=hton16(sizeof(struct qos_t));
         ie_bearer_ctx[1].tliv.t=GTPV2C_IE_BEARER_LEVEL_QOS;
-        memcpy(ie_bearer_ctx[1].tliv.v, qos, sizeof(struct qos_t));
+        memcpy(ie_bearer_ctx[1].tliv.v, &qos, sizeof(struct qos_t));
         /*EPS Bearer TFT */
         /*ie_bearer_ctx[2].tliv.i=0;
         ie_bearer_ctx[2].tliv.l=hton16(3);
@@ -355,7 +367,7 @@ void sendModifyBearerReq(gpointer u){
     fteid.ipv4=1;
     fteid.ipv6=0;
     fteid.iface= hton8(S11_MME);
-    fteid.teid = hton32(self->user->S11MMETeid);
+    fteid.teid = hton32(self->lTEID);
     inet_pton(AF_INET,
               s11_getLocalAddress(self->s11),
               &(fteid.addr.addrv4));
@@ -450,8 +462,8 @@ void parseCtxRsp(gpointer u, GError **err){
     /* F-TEID S11 (SGW)*/
     gtp2ie_gettliv(self->ie, GTPV2C_IE_FTEID, 0, value, &vsize);
     if(value!= NULL && vsize>0){
-	    /* memcpy(&(self->user->s11), value, vsize); */
-	    s11u_setS11fteid(self, value);
+        /* memcpy(&(self->user->s11), value, vsize); */
+        s11u_setS11fteid(self, value);
         log_msg(LOG_DEBUG, 0, "S11 Sgw teid = %x into", hton32(self->rTEID));
     }
 
@@ -562,13 +574,13 @@ void parseDelCtxRsp(gpointer u, GError **err){
 
 
 void s11u_setS11fteid(gpointer u, gpointer fteid_h){
-	struct fteid_t* fteid = (struct fteid_t*) fteid_h;
-	S11_user_t *self = (S11_user_t*)u;
+    struct fteid_t* fteid = (struct fteid_t*) fteid_h;
+    S11_user_t *self = (S11_user_t*)u;
 
-	if(fteid->iface != S11S4_SGW)
-		g_error("Unexpected interface type, S11S4_SGW expected");
+    if(fteid->iface != S11S4_SGW)
+        g_error("Unexpected interface type, S11S4_SGW expected");
 
-	/*TODO validate addr*/
+    /*TODO validate addr*/
 
-	self->rTEID = fteid->teid;
+    self->rTEID = fteid->teid;
 }

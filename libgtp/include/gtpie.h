@@ -392,6 +392,25 @@ struct qos_t{
     uint64_t    gbr_ul  :40;/*  Guaranteed bit rate for uplink */
     uint64_t    gbr_dl  :40;/*  Guaranteed bit rate for downlink*/
 }__attribute__((packed));
+
+
+/* PDN Address Allocation See 3GPP TS 29.274, clause 8.14*/
+#define PAA_IP4  (1)
+#define PAA_IP6  (2)
+#define PAA_IP46 (3)
+
+struct PAA_t{
+	uint8_t type:3;
+	uint8_t spare:5;
+	union{
+		uint32_t ipv4;
+		uint8_t  ipv6[16];
+		struct{
+			uint8_t		ipv6[16];
+			uint32_t	ipv4;
+		}both;
+	}addr;
+}__attribute__((packed));
 /*
 cause
 imsi
