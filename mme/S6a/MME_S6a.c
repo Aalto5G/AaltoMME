@@ -83,28 +83,6 @@ static void generate_KeNB(const uint8_t *kasme, const uint32_t ulNASCount, uint8
 
 /* ====================================================================== */
 
-static int STATE_S6a_UpdateLocation(Signal *signal){
-	struct user_ctx_t *user = PDATA->user_ctx;
-	
-	INIT_TIME_MEASUREMENT_ENVIRONMENT
-
-    MME_MEASURE_PROC_TIME
-    log_msg(LOG_DEBUG, 0, "S6a: Update Location -  time = %u us", SELF_ON_SIG->procTime);
-
-    HSS_UpdateLocation(user, SELF_ON_SIG->servedGUMMEIs);
-
-    /*  Recover old process and old signal to continue the flow to original State Machine*/
-    run_parent(signal);
-
-    MME_MEASURE_PROC_TIME
-    log_msg(LOG_DEBUG, 0, "S6a: Location Updated -  time = %u us", SELF_ON_SIG->procTime);
-
-    return 0;
-
-}
-
-/* ====================================================================== */
-
 void s6a_GetAuthVector(gpointer s6a_h, struct user_ctx_t *user,
                        void(*cb)(gpointer), gpointer args){
 

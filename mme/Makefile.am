@@ -19,6 +19,8 @@ mme_SOURCES = MME_engine.c \
 				S1/MME_S1.c \
 				S1/NAS/NAS_FSM.c \
 			    S1/NAS/NAS_ESM.c \
+                S1/NAS/EMMCtx.c \
+                S1/NAS/EPS_Session.c \
 			    S1/NAS/ESM_Active.c \
 			    S1/NAS/ESM_ActivePending.c \
 			    S1/NAS/ESM_BearerContext.c \

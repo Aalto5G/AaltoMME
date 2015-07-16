@@ -33,7 +33,7 @@ typedef void* PDNCtx;
  *
  *  Allocates the Subscription handler
  */
-Subscription subs_init(uint64_t imsi);
+Subscription subs_init();
 
 /**
  * @brief Dealocates the Subscription Handler
@@ -47,8 +47,6 @@ void subs_free(Subscription s);
  */
 void subs_cpyQoS_GTP(Subscription s, struct qos_t *qos);
 
-
-const uint64_t subs_getIMSI(Subscription s);
 
 const uint64_t subs_getMSISDN(Subscription s);
 	

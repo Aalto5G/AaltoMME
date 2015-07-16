@@ -26,22 +26,23 @@
 #include "gtp.h"
 
 typedef struct{
-    gpointer    s11;    /**< s11 stack handler*/
-    S11_State *state;  /**< s11 state for this user*/
-    uint32_t  lTEID;  /**< local control TEID*/
-    uint32_t  rTEID;  /**< remote control TEID*/
-    struct sockaddr     rAddr;       /**<Peer IP address, IPv4 or IPv6*/
-    socklen_t           rAddrLen;    /**<Peer Socket length returned by recvfrom*/
-    struct user_ctx_t *user; /**< User information*/
-    Subscription      subs;  /**< Subscription information*/
-    union gtp_packet oMsg;
-    uint32_t oMsglen;
-    union gtp_packet iMsg;
-    uint32_t iMsglen;
+    gpointer           s11;      /**< s11 stack handler*/
+    S11_State          *state;   /**< s11 state for this user*/
+    uint32_t           lTEID;    /**< local control TEID*/
+    uint32_t           rTEID;    /**< remote control TEID*/
+    struct sockaddr    rAddr;    /**<Peer IP address, IPv4 or IPv6*/
+    socklen_t          rAddrLen; /**<Peer Socket length returned by recvfrom*/
+    struct fteid_t	   s5s8;     /**< F-TEID PGW S5/S8 (Control Plane)*/
+    struct user_ctx_t  *user;    /**< User information*/
+    Subscription       subs;     /**< Subscription information*/
+    union gtp_packet   oMsg;
+    uint32_t           oMsglen;
+    union gtp_packet   iMsg;
+    uint32_t           iMsglen;
     union gtpie_member *ie[GTPIE_SIZE];
-    uint8_t cause;
-    void(*cb)(gpointer);
-    gpointer args;
+    uint8_t            cause;
+    void               (*cb) (gpointer);
+    gpointer           args;
 }S11_user_t;
 
 #define PARSE_ERROR parse_error()
@@ -210,19 +211,19 @@ void sendCreateSessionReq(gpointer u){
     /*IMSI*/
     ie[ienum].tliv.i=0;
     ie[ienum].tliv.t=GTPV2C_IE_IMSI;
-    dec2tbcd(ie[ienum].tliv.v, &ielen, subs_getIMSI(self->subs));
+    dec2tbcd(ie[ienum].tliv.v, &ielen, self->user->imsi);
     ie[ienum].tliv.l=hton16(ielen);
     ienum++;
     /*MSISDN*/
     ie[ienum].tliv.i=0;
     ie[ienum].tliv.t=GTPV2C_IE_MSISDN;
-    dec2tbcd(ie[ienum].tliv.v, &ielen,  subs_getMSISDN(self->subs));
+    dec2tbcd(ie[ienum].tliv.v, &ielen,  self->user->msisdn);
     ie[ienum].tliv.l=hton16(ielen);
     ienum++;
     /*MEI*/
-    /* ie[ienum].tliv.i=0; */
-    /* ie[ienum].tliv.t=GTPV2C_IE_MEI; */
-    /* dec2tbcd(ie[ienum].tliv.v, &ielen, subs_getIMEISV(self->subs)); */
+    /* ie[ienum].tliv.i   =0; */
+    /* ie[ienum].tliv.t=GTPV2C_IE   _MEI; */
+    /* dec2tbcd(ie[ienum].tliv.v, &ielen, subs_getIMEISV(self-   >subs)); */
     /* ie[ienum].tliv.l=hton16(ielen); */
     /* ienum++; */
 
@@ -471,8 +472,8 @@ void parseCtxRsp(gpointer u, GError **err){
     /* F-TEID S5 /S8 (PGW)*/
     gtp2ie_gettliv(self->ie, GTPV2C_IE_FTEID, 1, value, &vsize);
     if(value!= NULL && vsize>0){
-        memcpy(&(self->user->s5s8), value, vsize);
-        log_msg(LOG_DEBUG, 0, "S5/S8 Pgw teid = %x into", hton32(self->user->s5s8.teid));
+        memcpy(&(self->s5s8), value, vsize);
+        log_msg(LOG_DEBUG, 0, "S5/S8 Pgw teid = %x into", hton32(self->s5s8.teid));
     }
 
     /* PDN Address Allocation - PAA*/

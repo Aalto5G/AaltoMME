@@ -37,7 +37,7 @@ typedef struct{
 }QoS;
 
 typedef struct{
-	guint32  id;
+	guint32  ctx_id;
     GString  *apn;
     gboolean pgw_allocation_type;
     gboolean vplmn_dynamic_address_allowed;
@@ -46,18 +46,18 @@ typedef struct{
     guint8   pdn_addr[20];
     guint32  subscribed_apn_ambr_dl;
     guint32  subscribed_apn_ambr_up;
+    guint16  charging_characteristics;
     QoS      qos;
 }PDNCtx_t;
 
 typedef struct{
-    guint64    imsi;
     guint64    msisdn;
     guint64    imeisv;
     guint8     network_access_mode;
+    guint32    access_restriction_data;
     guint32    ambr_ul;
     guint32    ambr_dl;
     GString    *apn_io_replacement;
-    guint16    charging_characteristics;
     //GHashTable *pdnCtx;
     PDNCtx_t   *pdn;
 }Subs_t;
@@ -76,9 +76,8 @@ static void pdnctx_free(PDNCtx_t *pdn){
 }
 
 
-Subscription subs_init(uint64_t imsi){
+Subscription subs_init(){
 	Subs_t *self = g_new0(Subs_t, 1);
-	self->imsi = (guint64)imsi;
 	/* self->pdnCtx = g_hash_table_new_full (g_int_hash, */
 	/*                                       g_int_equal, */
 	/*                                       NULL, */
@@ -121,12 +120,6 @@ void subs_cpyQoS_GTP(Subscription s, struct qos_t *qos){
 	qos->gbr_ul = 0;
 	qos->gbr_dl = 0;
 }
-
-const uint64_t subs_getIMSI(const Subscription s){
-	Subs_t *self = (Subs_t*)s;
-	return self->imsi;
-}
-
 
 const uint64_t subs_getMSISDN(const Subscription s){
 	Subs_t *self = (Subs_t*)s;
