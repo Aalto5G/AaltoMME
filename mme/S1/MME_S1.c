@@ -25,11 +25,11 @@
 //#include "NAS_FSM.h"
 #include "S1AP.h"
 #include "MME_S1.h"
+#include "MME_S1_priv.h"
 #include "NAS_FSM.h"
 #include "logmgr.h"
 #include "hmac_sha2.h"
-
-
+#include "S1Assoc.h"
 
 
 /* ======================================================================
@@ -70,6 +70,67 @@ static uint8_t TASK_MME_S1___Validate_HandoverNotify(Signal *signal);
 /* Forward declarations*/
 
 void S1_newUserSession(struct t_engine_data *engine, struct EndpointStruct_t* ep_S1, S1AP_Message_t *s1msg, uint16_t sid);
+
+
+
+
+
+/** S1 Accept function callback. Used to accept a new S1-MME connection (from eNB)*/
+void s1_accept_new_eNB(evutil_socket_t ss, short event, void *arg){
+
+    struct S1_t *self = (struct S1_t*)arg;
+    S1Assoc assoc;
+    log_msg(LOG_DEBUG, 0, "enter s1_accept_new_eNB()");  
+
+    assoc = s1Assoc_init(self);
+    s1Assoc_accept(assoc, ss);
+}
+
+
+gpointer s1_init(gpointer mme){
+    S1_t *self = g_new0(S1_t, 1);
+
+    self->mme = mme;
+
+    /* s11ConfigureFSM(); */
+
+    /*Init S1 server*/
+    self->fd =init_sctp_srv(mme_getLocalAddress(self->mme), S1AP_PORT);
+    log_msg(LOG_INFO, 0, "Open S1 server on file descriptor %d, port %d",
+            self->fd, S1AP_PORT);
+
+    mme_registerRead(self->mme, self->fd, s1_accept_new_eNB, self);
+
+    self->assocs = g_hash_table_new_full( g_int_hash,
+                                        g_int_equal,
+                                        NULL,
+                                        s1Assoc_free);
+
+    return self;
+}
+
+void s1_free(S1 s1_h){
+    S1_t *self = (S1_t *) s1_h;
+
+    g_hash_table_destroy(self->assocs);
+    mme_deregisterRead(self->mme, self->fd);
+    close(self->fd);
+    /* s11DestroyFSM(); */
+    g_free(self);
+}
+
+void s1_registerAssoc(S1 s1_h, gpointer assoc, int fd, event_callback_fn cb){
+	S1_t *self = (S1_t *) s1_h;
+
+	/*Store the new connection*/
+	g_hash_table_insert(self->assocs, s1Assoc_getfd_p(assoc), assoc);
+	mme_registerRead(self->mme, fd, cb, assoc);
+	log_msg(LOG_INFO, 0, "new eNB added");
+}
+
+
+
+
 
 
 /* ======================================================================
@@ -1253,6 +1314,34 @@ static uint8_t TASK_MME_S1___Forge_PathSwitchAck(Signal *signal){
     return 0;
 }
 
+struct EndpointStruct_t *get_ep_with_GlobalID(S1_t *self, TargeteNB_ID_t *t){
+    GHashTableIter iter;
+    gpointer v;
+    struct EndpointStruct_t* ep;
+    gboolean found = FALSE;
+    Global_ENB_ID_t *id1, *id2;
+
+    id1 = t->global_ENB_ID;
+
+    g_hash_table_iter_init (&iter, self->assocs);
+
+    while (g_hash_table_iter_next (&iter, NULL, &v)){
+        ep = (struct EndpointStruct_t*)v;
+        id2 = ((S1_EndPoint_Info_t*)ep->info)->global_eNB_ID;
+
+        if( memcmp(id1->pLMNidentity->tbc.s, id2->pLMNidentity->tbc.s, 3) ==0 &&
+            memcmp(id1->eNBid, id2->eNBid, sizeof(ENB_ID_t)) == 0 ){
+            found = TRUE;
+            break;
+        }
+    }
+
+    if (found)
+        return ep;
+    else
+        return NULL;
+}
+
 static uint8_t TASK_MME_S1___Validate_HandoverRequired(Signal *signal){
     S1AP_Message_t *s1msg;
     MME_UE_S1AP_ID_t *mme_id;
@@ -1300,6 +1389,7 @@ static uint8_t TASK_MME_S1___Validate_HandoverRequired(Signal *signal){
 
     targeteNB = target->targetID.targeteNB_ID;
 
+    /** @TODO WRONG!!!*/
     PDATA->user_ctx->hoCtx.target_s1 = get_ep_with_GlobalID(SELF_ON_SIG, targeteNB);
 
     if(PDATA->user_ctx->hoCtx.target_s1 == NULL){

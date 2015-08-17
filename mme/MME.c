@@ -162,9 +162,7 @@ int mme_init_ifaces(struct mme_t *self){
     self->s11 = s11_init((gpointer)self);
 
     /*Init S1 server*/
-    self->s1.fd =init_sctp_srv(self->ipv4, S1AP_PORT);
-    self->s1.portState=opened;
-    log_msg(LOG_INFO, 0, "Open S1 server on file descriptor %d, port %d", self->s1.fd, S1AP_PORT);
+    self->s1 = s1_init((gpointer)self);
 
     /*Init Controller server*/
     self->sdnCtrl = sdnCtrl_init((gpointer)self);
@@ -183,14 +181,7 @@ int mme_close_ifaces(struct mme_t *self){
 
     s11_free(self->s11);
 
-    if( self->s1.portState != closed){
-        close(self->s1.fd);
-        self->s1.portState = closed;
-    }
-
-    /*
-      Other S1AP SCTP associations remaining are freed when the GHashTable is destroyed
-     */
+    s1_free(self->s1);
 
     if( self->ctrl.portState != closed){
         close(self->ctrl.fd);
@@ -250,11 +241,6 @@ int mme_run(struct mme_t *self){
     /*Load MME information from config file*/
     loadMMEinfo(self);
 
-    self->s1ap = g_hash_table_new_full( g_int_hash,
-                                        g_int_equal,
-                                        NULL,
-                                        free_ep);
-
     self->ev_readers = g_hash_table_new_full( g_int_hash,
                                               g_int_equal,
                                               NULL,
@@ -271,7 +257,7 @@ int mme_run(struct mme_t *self){
     mme_init_ifaces(self);
 
     //mme_registerRead(self, self->command.fd, cmd_accept, self);
-    mme_registerRead(self, self->s1.fd, s1_accept_new_eNB, self);
+    //mme_registerRead(self, self->s1.fd, s1_accept_new_eNB, self);
 
     /*Create event for processing SIGINT*/
     kill_event = evsignal_new(self->evbase, SIGINT, kill_handler, self);
@@ -288,7 +274,7 @@ int mme_run(struct mme_t *self){
     engine_process_stop(self->ctrl.handler);
 
     mme_deregisterRead(self, self->ctrl.fd);
-    mme_deregisterRead(self, self->s1.fd);
+    /* mme_deregisterRead(self, self->s1.fd); */
     //mme_deregisterRead(self, self->command.fd);
 
     mme_close_ifaces(self);
@@ -296,7 +282,6 @@ int mme_run(struct mme_t *self){
     event_free(kill_event);
     event_base_free(self->evbase);
 
-    g_hash_table_destroy(self->s1ap);
     g_hash_table_destroy(self->ev_readers);
 
     freeMMEinfo(self);
@@ -360,159 +345,6 @@ struct t_message *newMsg(){
 void freeMsg(void *msg){
     free((struct t_message *)msg);
 }
-
-/** S11 Accept function callback*/
-
-
-/** S1 Accept function callback*/
-void s1_accept(evutil_socket_t listener, short event, void *arg){
-
-    uint32_t flags=0, i=0;
-
-    Signal *output;
-
-    struct mme_t *mme = (struct mme_t *)arg;
-    struct t_message *msg;
-    struct SessionStruct_t *usersession = NULL;
-    struct user_ctx_t *user;
-
-    struct EndpointStruct_t* ep_S1 = NULL;
-
-    /*SCTP variables*/
-    struct sctp_sndrcvinfo sndrcvinfo;
-    struct sctp_status status;
-
-    log_msg(LOG_DEBUG, 0, "Received listener=%u as arg", listener);
-
-    memset(&sndrcvinfo, 0, sizeof(struct sctp_sndrcvinfo));
-
-    /*Identify the Endpoint*/
-    ep_S1 = g_hash_table_lookup(mme->s1ap, &listener);
-
-    if(ep_S1 == NULL){
-        log_msg(LOG_DEBUG, 0, "Invalid Endpoint");
-        return;
-    }
-
-    msg = newMsg();
-
-    /* Read and emit the status of the Socket (optional step) */
-    /*in = sizeof(status);
-    getsockopt( listener, SOL_SCTP, SCTP_STATUS, (void *)&status, (socklen_t *)&in );
-
-    printf("assoc id  = %d\n", status.sstat_assoc_id );
-    printf("state     = %d\n", status.sstat_state );
-    printf("instrms   = %d\n", status.sstat_instrms );
-    printf("outstrms  = %d\n", status.sstat_outstrms );*/
-
-    msg->length = sctp_recvmsg( listener, (void *)&(msg->packet), sizeof(msg->packet), (struct sockaddr *)NULL, 0, &sndrcvinfo, &flags );
-
-    if (flags & MSG_NOTIFICATION){
-        log_msg(LOG_INFO, 0, "Received SCTP notification");
-    }
-
-    /*Check errors*/
-    if (msg->length <= 0) {
-        g_hash_table_remove(mme->s1ap, &listener);
-        log_msg(LOG_INFO, 0, "Connection closed");
-        freeMsg(msg);
-        return;
-    }
-
-    /* If the packet is not a s1ap packet, it is silently rejected*/
-    if(sndrcvinfo.sinfo_ppid != SCTP_S1AP_PPID){
-        freeMsg(msg);
-        return;
-    }
-
-    log_msg(LOG_DEBUG, 0, "S1AP: Received %u bytes on stream %x", msg->length, sndrcvinfo.sinfo_stream);
-
-    if(ep_S1->portState!=opened){
-        if(ep_S1->portState == listening){
-            /* Process new connection*/
-            output = new_signal(S1_Setup(mme->engine, NULL, ep_S1));
-            output->name=S1_Setup_Endpoint;
-            output->priority = MAXIMUM_PRIORITY;
-        }else{
-            log_msg(LOG_ERR, 0, "S1AP: Received a message on a closed endpoint", msg->length, sndrcvinfo.sinfo_stream);
-        }
-    }else{
-
-        output = new_signal(ep_S1->handler);
-        output->name=S1_handler_ready;
-
-        ep_S1->handler->data = ep_S1;   /* The data field on the endpoint handler is a reference to the endpoint parent*/
-        memcpy(&((S1_EndPoint_Info_t*)ep_S1->info)->sndrcvinfo, &sndrcvinfo, sizeof(struct sctp_sndrcvinfo));
-    }
-
-    output->data = (void *)msg;
-    output->freedataFunc = freeMsg;
-
-    signal_send(output);
-
-}
-
-/** S1 Accept function callback. Used to accept a new S1-MME connection (from eNB)*/
-void s1_accept_new_eNB(evutil_socket_t listener, short event, void *arg){
-
-    struct EndpointStruct_t *news1ep;
-    struct EndpointStruct_t **tmp;
-    Signal *output;
-    int optval;
-
-    struct mme_t *mme = (struct mme_t*)arg;
-
-    /*Libevent structures*/
-    struct event *listener_S1_Conn;
-
-    /*SCTP structures*/
-    struct sctp_event_subscribe events;
-
-    log_msg(LOG_DEBUG, 0, "enter s1_accept_new_eNB()");
-
-    /* Create new endpoint and add it to the mme structure*/
-    news1ep =  (struct EndpointStruct_t*)malloc(sizeof(struct EndpointStruct_t));
-
-    if(news1ep==NULL){
-        log_msg(LOG_ERR, errno, "Error allocating Endpoint");
-        return;
-    }
-
-    news1ep->socklen = sizeof(struct sockaddr);
-
-    /* Accept new connection*/
-    news1ep->fd = accept( listener, (struct sockaddr *)&(news1ep->peerAddr), (socklen_t *)&(news1ep->socklen) );
-    if(news1ep->fd==-1){
-        log_msg(LOG_ERR, errno, "Error accepting connection, fd = %d, addr %#x, endpoint %#x", listener, &(news1ep->peerAddr), news1ep);
-        return;
-    }
-    log_msg(LOG_DEBUG, 0, "accept %d, server listener %u", news1ep->fd, listener);
-
-    /* Store End point information*/
-    news1ep->portState = listening;
-
-    /* Enable receipt of SCTP Snd/Rcv Data via sctp_recvmsg */
-    memset( (void *)&events, 0, sizeof(events) );
-    events.sctp_data_io_event = 1;
-    setsockopt( news1ep->fd, SOL_SCTP, SCTP_EVENTS, (const void *)&events, sizeof(events) );
-
-    /* Create event for accepting messages from this new eNB*/
-    listener_S1_Conn = event_new(mme->evbase, news1ep->fd, EV_READ|EV_PERSIST, s1_accept, mme);
-    news1ep->ev = listener_S1_Conn;
-
-    /* Make socket non blocking*/
-    /*log_msg(LOG_DEBUG, 0, "news1mme->fd %u", news1ep->fd);*/
-    evutil_make_socket_nonblocking(news1ep->fd);
-
-    /*Store the new connection*/
-    g_hash_table_insert(mme->s1ap, &(news1ep->fd), news1ep);
-
-    /*Add event to the event base (libevent)*/
-    event_add(listener_S1_Conn, NULL);
-
-    log_msg(LOG_INFO, 0, "new eNB added");
-}
-
 
 void kill_handler(evutil_socket_t listener, short event, void *arg){
   struct mme_t *mme = (struct mme_t *)arg;
@@ -639,35 +471,6 @@ uint32_t getNewLocalUEid(struct  SessionStruct_t  * s){
     }
     log_msg(LOG_WARNING, 0, "Maximum number of UE (%u) reached, using stream 0", i);
     return 0;
-}
-
-struct EndpointStruct_t *get_ep_with_GlobalID(struct mme_t *mme, TargeteNB_ID_t *t){
-    GHashTableIter iter;
-    gpointer v;
-    struct EndpointStruct_t* ep;
-    gboolean found = FALSE;
-    Global_ENB_ID_t *id1, *id2;
-
-
-    id1 = t->global_ENB_ID;
-
-    g_hash_table_iter_init (&iter, mme->s1ap);
-
-    while (g_hash_table_iter_next (&iter, NULL, &v)){
-        ep = (struct EndpointStruct_t*)v;
-        id2 = ((S1_EndPoint_Info_t*)ep->info)->global_eNB_ID;
-
-        if( memcmp(id1->pLMNidentity->tbc.s, id2->pLMNidentity->tbc.s, 3) ==0 &&
-            memcmp(id1->eNBid, id2->eNBid, sizeof(ENB_ID_t)) == 0 ){
-            found = TRUE;
-            break;
-        }
-    }
-
-    if (found)
-        return ep;
-    else
-        return NULL;
 }
 
 const ServedGUMMEIs_t *mme_getServedGUMMEIs(const struct mme_t *mme){

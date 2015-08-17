@@ -225,12 +225,11 @@ struct mme_t{
 	char                    ipv6[INET6_ADDRSTRLEN]; /* Not used*/
     ServedGUMMEIs_t         *servedGUMMEIs;
     RelativeMMECapacity_t   *relativeCapacity;
-    struct EndpointStruct_t s1;                             /*< Server endpoint*/
     struct EndpointStruct_t ctrl;                           /*< Server endpoint*/
-	GHashTable *            s1ap;                           /*< SCTP endpoint connections*/
 	GHashTable *            ev_readers;                     /*< Listener events accessed by socket*/
 	gpointer                s6a;
 	gpointer                s11;
+	gpointer                s1;
 	gpointer                cmd;
 	gpointer                sdnCtrl;
     uint32_t                nums1conn;                      /*< Number of S1 Connections*/
@@ -262,9 +261,6 @@ extern int mme_run();
 extern struct t_message *newMsg();
 extern void freeMsg( void *msg);
 
-extern void s1_accept_new_eNB(evutil_socket_t listener, short event, void *arg);
-extern void s1_accept(evutil_socket_t listener, short event, void *arg);
-extern void ctrl_accept(evutil_socket_t listener, short event, void *arg);
 extern void kill_handler(evutil_socket_t listener, short event, void *arg);
 
 /**@brief store pendent response
@@ -283,8 +279,6 @@ extern struct SessionStruct_t *getPendingResponseByUES1APID(struct mme_t *mme, u
 extern unsigned int newTeid();
 
 extern uint32_t getNewLocalUEid(struct  SessionStruct_t  * s);
-
-extern struct EndpointStruct_t *get_ep_with_GlobalID(struct mme_t *mme, TargeteNB_ID_t *t);
 
 
 /**************************************************/
