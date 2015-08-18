@@ -57,32 +57,6 @@ typedef gpointer S1;
 gpointer s1_init(gpointer mme);
 void s1_free(S1 s1_h);
 
-/* ======================================================================
- * S1 API to S1Assoc
- * ====================================================================== */
-
-/**@brief S1 Register eNB
- * @param [in] s1_h    Destination EndPoint information
- * @param [in] assoc   Association to be registered in S1
- * @param [in] fd      File descriptor to read from association
- * @param [in] cb      Read callback
- *
- * This function registers a new S1 association to the S1 interface and
- * the read callback to be used
- * */
-void s1_registerAssoc(S1 s1_h, gpointer assoc, int fd, event_callback_fn cb);
-
-
-
-/**@brief S1 Send message
- * @param [in] ep_S1    Destination EndPoint information
- * @param [in] streamId Strem to send the message
- * @param [in] s1msg    Message to be sent
- *
- * This function send the S1 message using the SCTP protocol
- * */
-//void s1_sendmsg(struct EndpointStruct_t* ep_S1, uint32_t streamId, S1AP_Message_t *s1msg);
-
 
 /* ======================================================================
  * S1 MME State Machine API
@@ -97,20 +71,4 @@ void s1_registerAssoc(S1 s1_h, gpointer assoc, int fd, event_callback_fn cb);
  * This function Allocates a session and a process for the S1 Setup Procedure
  * */
 struct t_process *S1_Setup(struct t_engine_data *self, struct t_process *owner, struct EndpointStruct_t *ep_S1);
-
-/**@brief new user processing
- * @param [in] engine   Engine reference
- * @param [in] ep_S1    Peer Endpoint
- * @param [in] s1msg    S1AP message received
- * @param [in] sid      sctp stream id for the UE associated signaling connection
- *
- * Used to create a session structure on S1 State machine due to new user info message.
- */
-//void S1_newUserSession(struct t_engine_data *engine, struct EndpointStruct_t* ep_S1, S1AP_Message_t *s1msg, uint16_t sid);
-
-/**@brief Trigger UE context Release
- * @param [in] session Session struct of the current user
- */
-//void S1_UEContextRelease(struct SessionStruct_t *session);
-
 #endif /* MME_S1_HFILE */

@@ -20,6 +20,7 @@
 
 #include "S1Assoc.h"
 #include "S1Assoc_priv.h"
+#include "S1Assoc_FSMConfig.h"
 #include "S1AP.h"
 #include "logmgr.h"
 
@@ -27,6 +28,7 @@
 S1Assoc s1Assoc_init(S1 s1){
     S1Assoc_t *self = g_new0(S1Assoc_t, 1);
     self->s1 = s1;
+    s1ChangeState(self, NotConfigured);
     return self;
 }
 
@@ -34,6 +36,31 @@ void s1Assoc_free(gpointer h){
     S1Assoc_t *self = (S1Assoc_t *)h;
     s1_deregisterAssoc(self->s1, h);
     close(self->fd);
+
+    if(self->global_eNB_ID){
+        if(self->global_eNB_ID->freeIE){
+            self->global_eNB_ID->freeIE(self->global_eNB_ID);
+        }
+    }
+
+    if(self->eNBname){
+        if(self->eNBname->freeIE){
+            self->eNBname->freeIE(self->eNBname);
+        }
+    }
+
+    if(self->suportedTAs){
+        if(self->suportedTAs->freeIE){
+            self->suportedTAs->freeIE(self->suportedTAs);
+        }
+    }
+
+    if(self->cGS_IdList){
+        if(self->cGS_IdList->freeIE){
+            self->cGS_IdList->freeIE(self->suportedTAs);
+        }
+    }
+    
     g_free(self);
 }
 
@@ -50,15 +77,18 @@ static void s1_accept(evutil_socket_t fd, short event, void *arg){
 
     /*SCTP variables*/
     struct sctp_sndrcvinfo sndrcvinfo;
-    struct sctp_status status;
+
+    S1AP_Message_t *s1msg;
 
     memset(&sndrcvinfo, 0, sizeof(struct sctp_sndrcvinfo));
 
     msg = newMsg();
 
     /* Read and emit the status of the Socket (optional step) */
-    /*in = sizeof(status);
-    getsockopt( listener, SOL_SCTP, SCTP_STATUS, (void *)&status, (socklen_t *)&in );
+    /*struct sctp_status status;
+    int in;
+    in = sizeof(status);
+    getsockopt( fd, SOL_SCTP, SCTP_STATUS, (void *)&status, (socklen_t *)&in );
 
     printf("assoc id  = %d\n", status.sstat_assoc_id );
     printf("state     = %d\n", status.sstat_state );
@@ -91,31 +121,17 @@ static void s1_accept(evutil_socket_t fd, short event, void *arg){
         return;
     }
 
-    log_msg(LOG_DEBUG, 0, "S1AP: Received %u bytes on stream %x", msg->length, sndrcvinfo.sinfo_stream);
+    log_msg(LOG_DEBUG, 0, "S1AP: Received %u bytes on stream %x",
+            msg->length,
+            sndrcvinfo.sinfo_stream);
 
-    /* if(ep_S1->portState!=opened){ */
-    /*     if(ep_S1->portState == listening){ */
-    /*         /\* Process new connection*\/ */
-    /*         output = new_signal(S1_Setup(mme->engine, NULL, ep_S1)); */
-    /*         output->name=S1_Setup_Endpoint; */
-    /*         output->priority = MAXIMUM_PRIORITY; */
-    /*     }else{ */
-    /*         log_msg(LOG_ERR, 0, "S1AP: Received a message on a closed endpoint", msg->length, sndrcvinfo.sinfo_stream); */
-    /*     } */
-    /* }else{ */
+    s1msg = s1ap_decode((void *)msg->packet.raw, msg->length);
 
-    /*     output = new_signal(ep_S1->handler); */
-    /*     output->name=S1_handler_ready; */
+    /* Process message*/
+    self->state->processMsg(self, s1msg, sndrcvinfo.sinfo_stream);
 
-    /*     ep_S1->handler->data = ep_S1;   /\* The data field on the endpoint handler is a reference to the endpoint parent*\/ */
-    /*     memcpy(&((S1_EndPoint_Info_t*)ep_S1->info)->sndrcvinfo, &sndrcvinfo, sizeof(struct sctp_sndrcvinfo)); */
-    /* } */
-
-    /* output->data = (void *)msg; */
-    /* output->freedataFunc = freeMsg; */
-
-    /* signal_send(output); */
-
+    s1msg->freemsg(s1msg);
+    freeMsg(msg);
 }
 
 void s1Assoc_accept(S1Assoc h, int ss){
@@ -158,6 +174,51 @@ void s1Assoc_accept(S1Assoc h, int ss){
 
     s1_registerAssoc(self->s1, self, self->fd, s1_accept);
 }
+
+
+void s1Assoc_setState(gpointer s1, S1Assoc_State *s){
+	S1Assoc_t *self = (S1Assoc_t *)s1;
+	self->state = s;
+}
+
+/**@brief S1 Send message
+ * @param [in] ep_S1    Destination EndPoint information
+ * @param [in] streamId Strem to send the message
+ * @param [in] s1msg    Message to be sent
+ *
+ * This function send the S1 message using the SCTP protocol
+ * */
+void s1Assoc_send(gpointer s1,uint32_t streamId, S1AP_Message_t *s1msg){
+    uint8_t buf[10000];
+    uint32_t bsize, ret;
+    S1Assoc_t *self = (S1Assoc_t *)s1;
+
+    memset(buf, 0, 10000);
+    log_msg(LOG_DEBUG, 0, "S1AP: Send %s", elementaryProcedureName[s1msg->pdu->procedureCode]);
+    s1ap_encode(buf, &bsize, s1msg);
+
+    /*printfbuffer(buf, bsize);*/
+
+    /* sctp_sendmsg*/
+    ret = sctp_sendmsg( self->fd, (void *)buf, (size_t)bsize, NULL, 0, SCTP_S1AP_PPID, 0, streamId, 0, 0 );
+
+    if(ret==-1){
+        log_msg(LOG_ERR, errno, "S1AP : Error sending SCTP message to eNB %s", self->eNBname->name);
+    }
+}
+
+/**@brief S1 Send message to non UE signaling
+ * @param [in] ep_S1    Destination EndPoint information
+ * @param [in] s1msg    Message to be sent
+ *
+ * This function send the S1 message to non UE associated signaling.
+ * It uses the stream id used during the S1 Setup procedure
+ * */
+void s1Assoc_sendNonUE(gpointer s1, S1AP_Message_t *s1msg){
+	S1Assoc_t *self = (S1Assoc_t *)s1;
+	s1Assoc_send(s1, self->nonue_rsid, s1msg);
+}
+
 
 int *s1Assoc_getfd_p(const S1Assoc h){
     S1Assoc_t *self = (S1Assoc_t *)h;

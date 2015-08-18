@@ -30,6 +30,7 @@
 #include "logmgr.h"
 #include "hmac_sha2.h"
 #include "S1Assoc.h"
+#include "S1Assoc_FSMConfig.h"
 
 
 /* ======================================================================
@@ -92,7 +93,7 @@ gpointer s1_init(gpointer mme){
 
     self->mme = mme;
 
-    /* s11ConfigureFSM(); */
+    s1ConfigureFSM();
 
     /*Init S1 server*/
     self->fd =init_sctp_srv(mme_getLocalAddress(self->mme), S1AP_PORT);
@@ -115,7 +116,7 @@ void s1_free(S1 s1_h){
     g_hash_table_destroy(self->assocs);
     mme_deregisterRead(self->mme, self->fd);
     close(self->fd);
-    /* s11DestroyFSM(); */
+    s1DestroyFSM();
     g_free(self);
 }
 
@@ -134,7 +135,9 @@ void s1_deregisterAssoc(S1 s1_h, gpointer assoc){
 }
 
 
-
+struct mme_t *s1_getMME(S1_t *self){
+	return self->mme;
+}
 
 
 /* ======================================================================
