@@ -10,9 +10,9 @@
  * @file   S1Assoc.c
  * @Author Vicent Ferrer
  * @date   August, 2015
- * @brief  
+ * @brief
  *
- * 
+ *
  */
 
 #include <glib.h>
@@ -25,14 +25,16 @@
 
 /* API to MME_S1 */
 S1Assoc s1Assoc_init(S1 s1){
-	S1Assoc_t *self = g_new0(S1Assoc_t, 1);
-	self->s1 = s1;
-	return self;
+    S1Assoc_t *self = g_new0(S1Assoc_t, 1);
+    self->s1 = s1;
+    return self;
 }
 
 void s1Assoc_free(gpointer h){
-	S1Assoc_t *self = (S1Assoc_t *)h;
-	g_free(self);
+    S1Assoc_t *self = (S1Assoc_t *)h;
+    s1_deregisterAssoc(self->s1, h);
+    close(self->fd);
+    g_free(self);
 }
 
 /** S1 Accept function callback*/
@@ -49,8 +51,6 @@ static void s1_accept(evutil_socket_t fd, short event, void *arg){
     /*SCTP variables*/
     struct sctp_sndrcvinfo sndrcvinfo;
     struct sctp_status status;
-
-    log_msg(LOG_DEBUG, 0, "Received listener=%u as arg", fd);
 
     memset(&sndrcvinfo, 0, sizeof(struct sctp_sndrcvinfo));
 
@@ -79,8 +79,8 @@ static void s1_accept(evutil_socket_t fd, short event, void *arg){
 
     /*Check errors*/
     if (msg->length <= 0) {
-	    /* g_hash_table_remove(mme->s1ap, &listener); */
-        log_msg(LOG_INFO, 0, "Connection closed");
+	    s1_deregisterAssoc(self->s1, self);
+        log_msg(LOG_DEBUG, 0, "Connection closed");
         freeMsg(msg);
         return;
     }
@@ -119,18 +119,21 @@ static void s1_accept(evutil_socket_t fd, short event, void *arg){
 }
 
 void s1Assoc_accept(S1Assoc h, int ss){
+    S1Assoc_t *self = (S1Assoc_t *)h;
 
-	/*SCTP structures*/
+    struct sockaddr_in *addr_in;
+    char ipStr[INET6_ADDRSTRLEN];
+
+    /*SCTP structures*/
     struct sctp_event_subscribe events;
     int optval;
-    
-	S1Assoc_t *self = (S1Assoc_t *)h;
-	self->socklen = sizeof(struct sockaddr);
 
-	/* Accept new connection*/
-    self->fd = accept( ss,
-                       (struct sockaddr *)&(self->peerAddr),
-                       (socklen_t *)&(self->socklen) );
+    self->socklen = sizeof(struct sockaddr);
+
+    /* Accept new connection*/
+    self->fd = accept(ss,
+                      &(self->peerAddr),
+                      &(self->socklen) );
     if(self->fd==-1){
         log_msg(LOG_ERR, errno,
                 "Error accepting connection, fd = %d, addr %#x, endpoint %#x",
@@ -139,18 +142,29 @@ void s1Assoc_accept(S1Assoc h, int ss){
                 self);
         return;
     }
-
-    log_msg(LOG_DEBUG, 0, "accept %d, server listener %u", self->fd, ss);
+    addr_in = (struct sockaddr_in *)&(self->peerAddr);
+    inet_ntop(AF_INET,
+              &(addr_in->sin_addr),
+              ipStr,
+              INET_ADDRSTRLEN);
+    log_msg(LOG_DEBUG, 0, "Accepted SCTP association from %s:%u",
+            ipStr, ntoh16(addr_in->sin_port));
 
     /* Enable receipt of SCTP Snd/Rcv Data via sctp_recvmsg */
-    memset( (void *)&events, 0, sizeof(events) );
+    memset((void *)&events, 0, sizeof(events) );
     events.sctp_data_io_event = 1;
-    setsockopt( self->fd, SOL_SCTP, SCTP_EVENTS, (const void *)&events, sizeof(events) );
+    setsockopt(self->fd, SOL_SCTP, SCTP_EVENTS,
+               (const void *)&events, sizeof(events) );
 
     s1_registerAssoc(self->s1, self, self->fd, s1_accept);
 }
 
-int *s1Assoc_getfd_p(S1Assoc h){
-	S1Assoc_t *self = (S1Assoc_t *)h;
-	return &(self->fd);
+int *s1Assoc_getfd_p(const S1Assoc h){
+    S1Assoc_t *self = (S1Assoc_t *)h;
+    return &(self->fd);
+}
+
+const int s1Assoc_getfd(const S1Assoc h){
+    S1Assoc_t *self = (S1Assoc_t *)h;
+    return self->fd;
 }

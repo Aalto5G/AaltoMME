@@ -125,9 +125,13 @@ void s1_registerAssoc(S1 s1_h, gpointer assoc, int fd, event_callback_fn cb){
 	/*Store the new connection*/
 	g_hash_table_insert(self->assocs, s1Assoc_getfd_p(assoc), assoc);
 	mme_registerRead(self->mme, fd, cb, assoc);
-	log_msg(LOG_INFO, 0, "new eNB added");
 }
 
+void s1_deregisterAssoc(S1 s1_h, gpointer assoc){
+	S1_t *self = (S1_t *) s1_h;
+	mme_deregisterRead(self->mme, s1Assoc_getfd(assoc));
+	g_hash_table_remove(self->assocs, s1Assoc_getfd_p(assoc));
+}
 
 
 

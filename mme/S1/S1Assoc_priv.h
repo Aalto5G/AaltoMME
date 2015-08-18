@@ -24,12 +24,13 @@
 #include <netinet/in.h>
 
 #include "S1Assoc.h"
+#include "MME_S1.h"
 
 typedef struct{
 	S1                  s1;
 	int                 fd;             /**<File Descriptor*/
     struct sockaddr     peerAddr;       /**<Peer IP address, IPv4 or IPv6*/
-    socklen_t           socklen;        /**<Peer Socket length returned by recvfrom*/
+    socklen_t           socklen;        /**<Peer Socket addr length returned by recvfrom*/
     struct event        *ev;
 }S1Assoc_t;
 
