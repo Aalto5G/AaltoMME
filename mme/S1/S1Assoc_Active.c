@@ -57,7 +57,7 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid){
 		/* ************************************************** */
 		/*               UE associated signaling              */
 		/* ************************************************** */
-
+		log_msg(LOG_WARNING, 0, "Received UE associated signaling message");
 	}
 }
 

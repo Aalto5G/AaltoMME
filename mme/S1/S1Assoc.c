@@ -28,24 +28,21 @@
 S1Assoc s1Assoc_init(S1 s1){
     S1Assoc_t *self = g_new0(S1Assoc_t, 1);
     self->s1 = s1;
+    self->eNBname = g_string_new("");
     s1ChangeState(self, NotConfigured);
     return self;
 }
 
 void s1Assoc_free(gpointer h){
     S1Assoc_t *self = (S1Assoc_t *)h;
-    s1_deregisterAssoc(self->s1, h);
+    log_msg(LOG_DEBUG, 0, "Enter");
     close(self->fd);
 
+    g_string_free(self->eNBname, TRUE);
+    
     if(self->global_eNB_ID){
         if(self->global_eNB_ID->freeIE){
             self->global_eNB_ID->freeIE(self->global_eNB_ID);
-        }
-    }
-
-    if(self->eNBname){
-        if(self->eNBname->freeIE){
-            self->eNBname->freeIE(self->eNBname);
         }
     }
 
@@ -203,7 +200,7 @@ void s1Assoc_send(gpointer s1,uint32_t streamId, S1AP_Message_t *s1msg){
     ret = sctp_sendmsg( self->fd, (void *)buf, (size_t)bsize, NULL, 0, SCTP_S1AP_PPID, 0, streamId, 0, 0 );
 
     if(ret==-1){
-        log_msg(LOG_ERR, errno, "S1AP : Error sending SCTP message to eNB %s", self->eNBname->name);
+        log_msg(LOG_ERR, errno, "S1AP : Error sending SCTP message to eNB %s", self->eNBname->str);
     }
 }
 

@@ -54,7 +54,19 @@ typedef struct S1_EndPoint_Info_c{
 
 typedef gpointer S1;
 
+/**@brief S1 Interface constructor
+ * @param [in] mme pointer to MME structure
+ * @returns interface handler
+ * 
+ * This function creates the interface S1, use s1_free to deallocate it.
+ * */
 gpointer s1_init(gpointer mme);
+
+/**@brief S1 Interface destructor
+ * @param [in] s1_h S1 interface handler
+ * 
+ * This function deallocates the interface S1 created using s1_init.
+ * */
 void s1_free(S1 s1_h);
 
 

@@ -36,11 +36,10 @@ typedef struct{
 	int                 fd;             /**< File Descriptor*/
     struct sockaddr     peerAddr;       /**< Peer IP address, IPv4 or IPv6*/
     socklen_t           socklen;        /**< Peer Socket addr length returned by recvfrom*/
-    //struct event        *ev;
     guint16             nonue_rsid;     /**< non-UE associated signaling remote stream id*/
     guint16             nonue_lsid;     /**< non-UE associated signaling remote stream id*/
     S1Assoc_State       *state;
-    ENBname_t           *eNBname;
+    GString             *eNBname;
     Global_ENB_ID_t     *global_eNB_ID;
     SupportedTAs_t      *suportedTAs;
     CSG_IdList_t        *cGS_IdList;

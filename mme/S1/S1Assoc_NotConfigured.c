@@ -14,6 +14,7 @@
  *
  */
 
+#include <glib.h>
 #include "S1Assoc_NotConfigured.h"
 #include "logmgr.h"
 #include "S1Assoc_priv.h"
@@ -25,6 +26,7 @@ static void sendS1SetupResponse(S1Assoc_t *assoc);
 
 static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid){
 	S1Assoc_t *assoc = (S1Assoc_t *)_assoc;
+	ENBname_t *eNBname;
 
 	/* Check Procedure*/
     if(s1msg->pdu->procedureCode != id_S1Setup &&
@@ -34,8 +36,12 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid){
         return;
     }
 
+    eNBname = s1ap_findIe(s1msg, id_eNBname);              /*OPTIONAL*/
+    if(eNBname){
+	    g_string_assign(assoc->eNBname, eNBname->name);
+    }
+
     assoc->global_eNB_ID   = s1ap_getIe(s1msg, id_Global_ENB_ID);
-    assoc->eNBname         = s1ap_getIe(s1msg, id_eNBname);              /*OPTIONAL*/
     assoc->suportedTAs     = s1ap_getIe(s1msg, id_SupportedTAs);
     assoc->cGS_IdList      = s1ap_getIe(s1msg, id_CSG_IdList);
 
@@ -45,7 +51,7 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid){
     assoc->nonue_rsid = r_sid;
     assoc->nonue_lsid = 0;
 
-    log_msg(LOG_INFO, 0, "S1-Setup : new eNB \"%s\", connection added", assoc->eNBname->name);
+    log_msg(LOG_INFO, 0, "S1-Setup : new eNB \"%s\", connection added", assoc->eNBname->str);
     sendS1SetupResponse(assoc);
     s1ChangeState(assoc, Active);
 }

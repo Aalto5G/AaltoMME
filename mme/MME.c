@@ -194,14 +194,18 @@ int mme_close_ifaces(struct mme_t *self){
 
 void mme_registerRead(struct mme_t *self, int fd, event_callback_fn cb, void * args){
     struct event *ev;
+    int *_fd = g_new(gint, 1);
+    *_fd = fd;
     ev = event_new(self->evbase, fd, EV_READ|EV_PERSIST, (event_callback_fn)cb, args);
     evutil_make_socket_nonblocking(fd);
     event_add(ev, NULL);
-    g_hash_table_insert(self->ev_readers, &fd, ev);
+    g_hash_table_insert(self->ev_readers, _fd, ev);
 }
 
 void mme_deregisterRead(struct mme_t *self, int fd){
-    g_hash_table_remove(self->ev_readers, &fd);
+	if(g_hash_table_remove(self->ev_readers, &fd) != TRUE){
+		log_msg(LOG_ERR, 0, "Unable to find read event");
+	}
 }
 
 struct event_base *mme_getEventBase(struct mme_t *self){
