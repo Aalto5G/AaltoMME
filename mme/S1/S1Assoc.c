@@ -23,6 +23,7 @@
 #include "S1Assoc_FSMConfig.h"
 #include "S1AP.h"
 #include "logmgr.h"
+#include "MMEutils.h"
 
 /* API to MME_S1 */
 S1Assoc s1Assoc_init(S1 s1){
@@ -36,15 +37,10 @@ S1Assoc s1Assoc_init(S1 s1){
 void s1Assoc_free(gpointer h){
     S1Assoc_t *self = (S1Assoc_t *)h;
     log_msg(LOG_DEBUG, 0, "Enter");
+    self->state->disconnect(self);
     close(self->fd);
 
     g_string_free(self->eNBname, TRUE);
-    
-    if(self->global_eNB_ID){
-        if(self->global_eNB_ID->freeIE){
-            self->global_eNB_ID->freeIE(self->global_eNB_ID);
-        }
-    }
 
     if(self->suportedTAs){
         if(self->suportedTAs->freeIE){
@@ -57,7 +53,7 @@ void s1Assoc_free(gpointer h){
             self->cGS_IdList->freeIE(self->suportedTAs);
         }
     }
-    
+
     g_free(self);
 }
 
@@ -106,7 +102,7 @@ static void s1_accept(evutil_socket_t fd, short event, void *arg){
 
     /*Check errors*/
     if (msg->length <= 0) {
-	    s1_deregisterAssoc(self->s1, self);
+        s1_deregisterAssoc(self->s1, self);
         log_msg(LOG_DEBUG, 0, "Connection closed");
         freeMsg(msg);
         return;
@@ -173,9 +169,9 @@ void s1Assoc_accept(S1Assoc h, int ss){
 }
 
 
-void s1Assoc_setState(gpointer s1, S1Assoc_State *s){
-	S1Assoc_t *self = (S1Assoc_t *)s1;
-	self->state = s;
+void s1Assoc_setState(S1Assoc s1, S1Assoc_State *s){
+    S1Assoc_t *self = (S1Assoc_t *)s1;
+    self->state = s;
 }
 
 /**@brief S1 Send message
@@ -212,8 +208,8 @@ void s1Assoc_send(gpointer s1,uint32_t streamId, S1AP_Message_t *s1msg){
  * It uses the stream id used during the S1 Setup procedure
  * */
 void s1Assoc_sendNonUE(gpointer s1, S1AP_Message_t *s1msg){
-	S1Assoc_t *self = (S1Assoc_t *)s1;
-	s1Assoc_send(s1, self->nonue_rsid, s1msg);
+    S1Assoc_t *self = (S1Assoc_t *)s1;
+    s1Assoc_send(s1, self->nonue_rsid, s1msg);
 }
 
 
@@ -225,4 +221,25 @@ int *s1Assoc_getfd_p(const S1Assoc h){
 const int s1Assoc_getfd(const S1Assoc h){
     S1Assoc_t *self = (S1Assoc_t *)h;
     return self->fd;
+}
+
+void s1Assoc_setGlobalID(gpointer h, const Global_ENB_ID_t *gid){
+    S1Assoc_t *self = (S1Assoc_t *)h;
+    globaleNBID_Fill(&(self->global_eNB_ID), gid);
+}
+
+mme_GlobaleNBid *s1Assoc_getID_p(const S1Assoc h){
+    S1Assoc_t *self = (S1Assoc_t *)h;
+    return &(self->global_eNB_ID);
+}
+
+
+mme_GlobaleNBid *s1Assoc_getID(const S1Assoc h, mme_GlobaleNBid *out){
+    S1Assoc_t *self = (S1Assoc_t *)h;
+    return globaleNBID_copy(&(self->global_eNB_ID), out);
+}
+
+const char *s1Assoc_getName(const S1Assoc h){
+    S1Assoc_t *self = (S1Assoc_t *)h;
+    return self->eNBname->str;
 }

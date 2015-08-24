@@ -12,7 +12,7 @@
  * @date   August, 2015
  * @brief  Interface to S1 Association State
  *
- * This module defines the generic state used in S1 Association State 
+ * This module defines the generic state used in S1 Association State
  * machine and other common structures.
  */
 
@@ -28,11 +28,12 @@ typedef void (*S1_event1)(gpointer);
 typedef void (*S1_processMsgEvent)(gpointer, S1AP_Message_t *, int);
 
 #define S1STATE \
-	S1_processMsgEvent processMsg;	    /*  */ \
+    S1_processMsgEvent processMsg;      /*  */ \
+    S1_event1          disconnect;
 
 
 typedef struct{
-	S1STATE;
+    S1STATE;
 }S1Assoc_State;
 
 /* void notExpected(gpointer); */

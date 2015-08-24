@@ -25,10 +25,12 @@
 static void sendS1SetupResponse(S1Assoc_t *assoc);
 
 static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid){
-	S1Assoc_t *assoc = (S1Assoc_t *)_assoc;
-	ENBname_t *eNBname;
+    S1Assoc_t *assoc = (S1Assoc_t *)_assoc;
+    ENBname_t       *eNBname;
+    Global_ENB_ID_t *global_eNB_ID;
+    struct mme_t * mme = s1_getMME(assoc->s1);
 
-	/* Check Procedure*/
+    /* Check Procedure*/
     if(s1msg->pdu->procedureCode != id_S1Setup &&
        s1msg->choice != initiating_message){
         log_msg(LOG_WARNING, 0, "Not a S1-Setup Request but %s, ignoring",
@@ -38,14 +40,16 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid){
 
     eNBname = s1ap_findIe(s1msg, id_eNBname);              /*OPTIONAL*/
     if(eNBname){
-	    g_string_assign(assoc->eNBname, eNBname->name);
+        g_string_assign(assoc->eNBname, eNBname->name);
     }
 
-    assoc->global_eNB_ID   = s1ap_getIe(s1msg, id_Global_ENB_ID);
-    assoc->suportedTAs     = s1ap_getIe(s1msg, id_SupportedTAs);
-    assoc->cGS_IdList      = s1ap_getIe(s1msg, id_CSG_IdList);
+    global_eNB_ID = s1ap_getIe(s1msg, id_Global_ENB_ID);
+    s1Assoc_setGlobalID(assoc, global_eNB_ID);
 
-    CHECKIEPRESENCE(assoc->global_eNB_ID);
+    assoc->suportedTAs     = s1ap_getIe(s1msg, id_SupportedTAs);
+    //assoc->cGS_IdList      = s1ap_getIe(s1msg, id_CSG_IdList);
+
+    CHECKIEPRESENCE(global_eNB_ID);
     CHECKIEPRESENCE(assoc->suportedTAs);
 
     assoc->nonue_rsid = r_sid;
@@ -53,20 +57,27 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid){
 
     log_msg(LOG_INFO, 0, "S1-Setup : new eNB \"%s\", connection added", assoc->eNBname->str);
     sendS1SetupResponse(assoc);
+    mme_registerS1Assoc(mme, assoc);
     s1ChangeState(assoc, Active);
+}
+
+static void disconnect(gpointer _assoc){
+    /*Do nothing*/
+    return;
 }
 
 
 void linkS1AssocNotConfigured(S1Assoc_State* s){
-	s->processMsg = processMsg;
+    s->processMsg = processMsg;
+    s->disconnect = disconnect;
 }
 
 static void sendS1SetupResponse(S1Assoc_t *assoc){
-	S1AP_Message_t *s1msg;
-	S1AP_PROTOCOL_IES_t* ie;
+    S1AP_Message_t *s1msg;
+    S1AP_PROTOCOL_IES_t* ie;
 
-	struct mme_t * mme = s1_getMME(assoc->s1);
-	/* Forge response*/
+    struct mme_t * mme = s1_getMME(assoc->s1);
+    /* Forge response*/
     s1msg = S1AP_newMsg();
     s1msg->choice = successful_outcome;
     s1msg->pdu->procedureCode = id_S1Setup;

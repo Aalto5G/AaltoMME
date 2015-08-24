@@ -35,6 +35,8 @@
 #include "MME_S6a.h"
 #include "MME_Controller.h"
 #include "HSS.h"
+#include "MMEutils.h"
+#include "S1Assoc.h"
 
 int mme_run_flag=0;
 
@@ -73,7 +75,7 @@ int init_udp_srv(const char *src, int port){
     addr.sin_family = AF_INET;
     addr.sin_addr.s_addr = INADDR_ANY;
     inet_pton(AF_INET, src, &(addr.sin_addr));
-    
+
     addr.sin_port = htons(port);
     #if defined(__FreeBSD__) || defined(__APPLE__)
     addr.sin_len = sizeof(addr);
@@ -196,20 +198,28 @@ void mme_registerRead(struct mme_t *self, int fd, event_callback_fn cb, void * a
     struct event *ev;
     int *_fd = g_new(gint, 1);
     *_fd = fd;
+    log_msg(LOG_DEBUG, 0, "ENTER, fd %u", fd);
     ev = event_new(self->evbase, fd, EV_READ|EV_PERSIST, (event_callback_fn)cb, args);
     evutil_make_socket_nonblocking(fd);
     event_add(ev, NULL);
     g_hash_table_insert(self->ev_readers, _fd, ev);
 }
 
+void test_lprint(gpointer data, gpointer user){
+    log_msg(LOG_DEBUG, 0, "Key: fd %u", *(int*)data);
+}
+
 void mme_deregisterRead(struct mme_t *self, int fd){
-	if(g_hash_table_remove(self->ev_readers, &fd) != TRUE){
-		log_msg(LOG_ERR, 0, "Unable to find read event");
-	}
+    if(g_hash_table_remove(self->ev_readers, &fd) != TRUE){
+        log_msg(LOG_ERR, 0, "Unable to find read event, fd %u", fd);
+        GList * l = g_hash_table_get_keys(self->ev_readers);
+        g_list_foreach(l, test_lprint, NULL);
+        g_list_free(l);
+    }
 }
 
 struct event_base *mme_getEventBase(struct mme_t *self){
-	return self->evbase;
+    return self->evbase;
 }
 
 
@@ -246,15 +256,21 @@ int mme_run(struct mme_t *self){
     loadMMEinfo(self);
 
     self->ev_readers = g_hash_table_new_full( g_int_hash,
-                                              g_int_equal,
+                                                g_int_equal,
+                                                NULL,
+                                                (GDestroyNotify) event_free);
+
+    self->s1_by_GeNBid = g_hash_table_new_full( (GHashFunc)  globaleNBID_Hash,
+                                              (GEqualFunc) globaleNBID_Equal,
                                               NULL,
-                                              (GDestroyNotify) event_free);
+                                              NULL);
+
     /*Create event base structure*/
     self->evbase = event_base_new();
     if (!self->evbase){
         log_msg(LOG_ERR, 0, "Failed to create libevent event-base");
         if(allocated==1)
-	        free(self);
+            free(self);
         return 1;
     }
 
@@ -285,6 +301,8 @@ int mme_run(struct mme_t *self){
 
     event_free(kill_event);
     event_base_free(self->evbase);
+
+    g_hash_table_destroy(self->s1_by_GeNBid);
 
     g_hash_table_destroy(self->ev_readers);
 
@@ -482,5 +500,20 @@ const ServedGUMMEIs_t *mme_getServedGUMMEIs(const struct mme_t *mme){
  }
 
 const char *mme_getLocalAddress(const struct mme_t *mme){
-	return mme->ipv4;
+    return mme->ipv4;
+}
+
+void mme_registerS1Assoc(struct mme_t *self, gpointer assoc){
+    g_hash_table_insert(self->s1_by_GeNBid, s1Assoc_getID_p(assoc), assoc);
+}
+
+void mme_deregisterS1Assoc(struct mme_t *self, gpointer assoc){
+    if(g_hash_table_remove(self->s1_by_GeNBid, s1Assoc_getID_p(assoc)) != TRUE){
+        log_msg(LOG_ERR, 0, "Unable to find S1 Assoction");
+    }
+}
+
+
+GList *mme_getS1Assocs(struct mme_t *self){
+    return g_hash_table_get_values(self->s1_by_GeNBid);
 }

@@ -28,7 +28,7 @@
 #include <stdarg.h>
 
 #include "MME.h"
-#include "MME_engine.h"
+#include "S1Assoc.h"
 #include "commands.h"
 #include "logmgr.h"
 
@@ -39,6 +39,8 @@ typedef struct{
 }CommandSrv_t;
 
 typedef struct{
+    gpointer           mme;
+    CommandSrv_t       *srv;
     struct evbuffer    *output;
     struct evbuffer    *input;
     struct bufferevent *bev;
@@ -56,6 +58,7 @@ const char *menu_msg(){
         "\tl level \tsend log level\n"
         "\th option \tshow option possible arguments\n"
         "\tm \t\tshow this menu\n"
+        "\ts \t\tprint stats\n"
         "\tq \t\tquit console\n";
 }
 
@@ -99,9 +102,28 @@ void help_log_menu(CommandConn_t *self){
     /*  LOG_WARNING, LOG_NOTICE, LOG_INFO, LOG_DEBUG); */
 }
 
+static printAssoc(gpointer assoc, CommandConn_t *self){
+    mme_GlobaleNBid gid;
+    s1Assoc_getID(assoc, &gid);
+    conn_print(self, "eNB: \t%u\t%u\t%#x\t%s\n",
+               globaleNB_getMCC(&gid),
+               globaleNB_getMNC(&gid),
+               globaleNB_getCI(&gid),
+               s1Assoc_getName(assoc));
+}
+
+static void conn_printStats(CommandConn_t *self){
+    GList *assocs = mme_getS1Assocs(self->mme);
+    conn_print(self, "\t\t== Statistics==\n\n"
+               "\tMCC\tMNC\teNB ID\teNB name\n");
+    g_list_foreach(assocs, (GFunc)printAssoc, self);
+    g_list_free(assocs);
+}
+
 static void process_line(CommandConn_t* self, char * line, size_t len){
     uint32_t args;
     char help_arg, option;
+    /* gchar ** tockens = g_strsplit(line, " ", 3); */
     switch(line[0]){
     case 'l':
         sscanf(line, "%c %d\n", &option, &args);
@@ -121,6 +143,9 @@ static void process_line(CommandConn_t* self, char * line, size_t len){
             conn_print(self, "Option not available\n");
             break;
         }
+        break;
+    case 's':
+        conn_printStats(self);
         break;
     case 'q':
         conn_stop(self);
@@ -158,7 +183,10 @@ static void accept_conn_cb(struct evconnlistener *listener,
                            struct sockaddr *address,
                            int socklen,
                            void *ctx){
+    CommandSrv_t* srv = (CommandSrv_t*)ctx;
     CommandConn_t* self = g_new0(CommandConn_t, 1);
+    self->srv = srv;
+    self->mme = srv->mme;
     /* We got a new connection! Set up a bufferevent for it. */
     struct event_base *base = evconnlistener_get_base(listener);
 
@@ -189,7 +217,7 @@ gpointer servcommand_init(gpointer mme, const int servPort){
     sin.sin_addr.s_addr = INADDR_ANY;
     sin.sin_port = htons(servPort);
 
-    self->listener = evconnlistener_new_bind(base, accept_conn_cb, NULL,
+    self->listener = evconnlistener_new_bind(base, accept_conn_cb, self,
                                              LEV_OPT_CLOSE_ON_FREE|LEV_OPT_REUSEABLE,
                                              -1,
                                              (struct sockaddr*)&sin,
@@ -213,4 +241,3 @@ extern gpointer servcommand_stop(gpointer serv_h){
 void cmd_accept(evutil_socket_t listener, short event, void *arg){
     struct mme_t *mme = (struct mme_t *)arg;
 }
-

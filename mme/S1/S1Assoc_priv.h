@@ -27,25 +27,27 @@
 #include "S1Assoc_State.h"
 #include "MME_S1.h"
 #include "S1AP.h"
+#include "MMEutils.h"
 
 /** Macro to check mandatory IE presence */
 #define CHECKIEPRESENCE(p) if(p==NULL){ log_msg(LOG_ERR, 0, "IE not found on message"); return; }
 
+
 typedef struct{
-	S1                  s1;
-	int                 fd;             /**< File Descriptor*/
+    S1                  s1;
+    int                 fd;             /**< File Descriptor*/
     struct sockaddr     peerAddr;       /**< Peer IP address, IPv4 or IPv6*/
     socklen_t           socklen;        /**< Peer Socket addr length returned by recvfrom*/
     guint16             nonue_rsid;     /**< non-UE associated signaling remote stream id*/
     guint16             nonue_lsid;     /**< non-UE associated signaling remote stream id*/
     S1Assoc_State       *state;
     GString             *eNBname;
-    Global_ENB_ID_t     *global_eNB_ID;
+    mme_GlobaleNBid     global_eNB_ID;
+    //Global_ENB_ID_t     *global_eNB_ID;
     SupportedTAs_t      *suportedTAs;
     CSG_IdList_t        *cGS_IdList;
 }S1Assoc_t;
 
-void s1Assoc_setState(gpointer s1, S1Assoc_State *s);
 
 /**@brief S1 Send message to non UE signaling
  * @param [in] ep_S1    Destination EndPoint information
@@ -64,5 +66,14 @@ void s1Assoc_sendNonUE(gpointer s1, S1AP_Message_t *s1msg);
  * This function send the S1 message using the SCTP protocol
  * */
 void s1Assoc_send(gpointer s1, guint32 streamId, S1AP_Message_t *s1msg);
+
+/* ************************************************** */
+/*                      Accessors                     */
+/* ************************************************** */
+
+void s1Assoc_setState(gpointer s1, S1Assoc_State *s);
+
+void s1Assoc_setGlobalID(gpointer h, const Global_ENB_ID_t *gid);
+
 
 #endif /* S1ASSOC_PRIV_HFILE */

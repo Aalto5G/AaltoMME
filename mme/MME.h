@@ -37,7 +37,6 @@
 #include "S1AP.h"
 #include "S6a.h"
 
-
 #define MAX_UE 500000 /*< Max number of active users on this MME*/
 #define FIRST_UE_SCTP_STREAM 1 /*< The minimum UE SCTP stream value*/
 
@@ -91,7 +90,7 @@ struct t_message{
     }packet;                 ;  /*  data received as part of the message*/
     size_t                  length;         /*  Packet lenght*/
     struct EndpointStruct_t peer;           /*  Peer endpoint struct*/
-	char                    srcAddr[INET6_ADDRSTRLEN];
+    char                    srcAddr[INET6_ADDRSTRLEN];
 };
 
 /* Procedure transaction states in the network : 3FPP 24.301 clause 6.1.3.3*/
@@ -101,11 +100,11 @@ enum procedure_state{
 };
 
 typedef struct Bearer_Ctx_c{
-	uint8_t id;
-	struct fteid_t	s1u_sgw;
+    uint8_t id;
+    struct fteid_t	s1u_sgw;
     struct fteid_t  s1u_eNB;
-	struct fteid_t	s5s8u;
-	struct qos_t	qos;
+    struct fteid_t	s5s8u;
+    struct qos_t	qos;
 }Bearer_Ctx_t;
 
 /* Structure to store MME MM and EPS bearer Contexts
@@ -116,102 +115,102 @@ shared for the control messages related to the same UE operation. A TEID-C on th
 released after all its associated EPS bearers are deleted.  */
 /* @TODO: finish the struct definition*/
 struct user_ctx_t{
-	uint64_t          imsi;
+    uint64_t          imsi;
     uint64_t          msisdn;
-	Subscription      subs;
-	/*MSISDN*/
-	/*MM State*/
-	ESM_State_t       stateNAS_ESM;
-	EMM_State_t       stateNAS_EMM;
-	/*GUTI Global Unique Temporary Identity*/
+    Subscription      subs;
+    /*MSISDN*/
+    /*MM State*/
+    ESM_State_t       stateNAS_ESM;
+    EMM_State_t       stateNAS_EMM;
+    /*GUTI Global Unique Temporary Identity*/
     guti_t              guti;
-	/*MEI Mobile Equipment Identity*/
+    /*MEI Mobile Equipment Identity*/
 
-	/*MME IP addr for S11*/
-	gpointer	s11; //TEMPORAL LOCATION
+    /*MME IP addr for S11*/
+    gpointer	s11; //TEMPORAL LOCATION
 
-	/*F-TEID PGW S5/S8 Address for Control Plane or PMIP */
-	struct fteid_t	s5s8;
+    /*F-TEID PGW S5/S8 Address for Control Plane or PMIP */
+    struct fteid_t	s5s8;
 
-	uint32_t          S11MMETeid;     /**< MME TEID for S11*/
-	/*struct in_addr    S11SgwAddr4;    *//**< SGW IP addr for S11*/
-	/*uint32_t          S11SgwTeid;     *//**< SGW IP TEID for S11*/
-	struct in_addr    eNBAddr4;       /**< eNB IP addr*/
+    uint32_t          S11MMETeid;     /**< MME TEID for S11*/
+    /*struct in_addr    S11SgwAddr4;    *//**< SGW IP addr for S11*/
+    /*uint32_t          S11SgwTeid;     *//**< SGW IP TEID for S11*/
+    struct in_addr    eNBAddr4;       /**< eNB IP addr*/
 
-	struct PAA_t    pAA;
+    struct PAA_t    pAA;
 
-	uint32_t			eNB_UE_S1AP_ID;	/**< eNB UE S1AP ID*/
-	uint32_t			mME_UE_S1AP_ID;	/**< MME UE S1AP ID*/
+    uint32_t			eNB_UE_S1AP_ID;	/**< eNB UE S1AP ID*/
+    uint32_t			mME_UE_S1AP_ID;	/**< MME UE S1AP ID*/
 
-	/** TAI Tracking Area ID*/
-	struct User_TAI_c{
-	  uint16_t		MCC;			/**< Mobile Country Code*/
-	  uint16_t		MNC;			/**< Mobile Network Code*/
-	  uint8_t       sn[3];          /**< TA TBCD encoded*/
-	  uint16_t		tAC;			/**< Tracking Area Code*/
-	}tAI;
+    /** TAI Tracking Area ID*/
+    struct User_TAI_c{
+      uint16_t		MCC;			/**< Mobile Country Code*/
+      uint16_t		MNC;			/**< Mobile Network Code*/
+      uint8_t       sn[3];          /**< TA TBCD encoded*/
+      uint16_t		tAC;			/**< Tracking Area Code*/
+    }tAI;
 
-	/** E-UTRAN CGI (Cell Global ID)*/
-	struct User_ECGI_c{
-	  uint16_t		MCC;
-	  uint16_t		MNC;
-	  uint32_t		cellID:28;
-	}ECGI;
+    /** E-UTRAN CGI (Cell Global ID)*/
+    struct User_ECGI_c{
+      uint16_t		MCC;
+      uint16_t		MNC;
+      uint32_t		cellID:28;
+    }ECGI;
 
-	struct ksi_c{
-	    uint8_t id:3;   /*< K_si*/
-	    uint8_t tsc:1;    /*< Type of security context flag (TSC) */
-	}ksi;
+    struct ksi_c{
+        uint8_t id:3;   /*< K_si*/
+        uint8_t tsc:1;    /*< Type of security context flag (TSC) */
+    }ksi;
 
-	SecurityCtx_t sec_ctx;
+    SecurityCtx_t sec_ctx;
 
-	struct ho_ctx_c{
-	    uint32_t                        target_eNB_id;
+    struct ho_ctx_c{
+        uint32_t                        target_eNB_id;
         uint32_t                        source_eNB_id;
-	    E_RAB_ID_t                      eRAB_ID;
-	    struct EndpointStruct_t         *target_s1;
+        E_RAB_ID_t                      eRAB_ID;
+        struct EndpointStruct_t         *target_s1;
         struct EndpointStruct_t         source_s1;
-        Bearer_Ctx_t	                old_ebearers[1];
+        Bearer_Ctx_t                    old_ebearers[1];
         GTP_TEID_t                      GTP_TEID;
         TransportLayerAddress_t         transportLayerAddress;
-	    GTP_TEID_t                      dL_Forward_GTP_TEID;
-	    TransportLayerAddress_t         dL_Forward_transportLayerAddress;
-	    GTP_TEID_t                      uL_Forward_GTP_TEID;
-	    TransportLayerAddress_t         uL_Forward_transportLayerAddress;
-	    Unconstrained_Octed_String_t    target2sourceTransparentContainer;
-	    struct fteid_t                  dataforwarding_sgw;
-	}hoCtx;
+        GTP_TEID_t                      dL_Forward_GTP_TEID;
+        TransportLayerAddress_t         dL_Forward_transportLayerAddress;
+        GTP_TEID_t                      uL_Forward_GTP_TEID;
+        TransportLayerAddress_t         uL_Forward_transportLayerAddress;
+        Unconstrained_Octed_String_t    target2sourceTransparentContainer;
+        struct fteid_t                  dataforwarding_sgw;
+    }hoCtx;
 
 
-	/*For each active PDN connection*/
-	/*APN in Use*/
-	/*IP addresses*/
-	/*PDN GW Address in Use*/
+    /*For each active PDN connection*/
+    /*APN in Use*/
+    /*IP addresses*/
+    /*PDN GW Address in Use*/
 
-	/*For each EPS Bearer within the PDN connection:*/
-	Bearer_Ctx_t	ebearer[1];
-	/*EPS Bearer ID */
-	/*IP address for S1-u */
-	/*TEID for S1u        */
+    /*For each EPS Bearer within the PDN connection:*/
+    Bearer_Ctx_t	ebearer[1];
+    /*EPS Bearer ID */
+    /*IP address for S1-u */
+    /*TEID for S1u        */
 
-	/*Others (needed IE)*/
-	/*RAT type*/
-	/*APN*/
+    /*Others (needed IE)*/
+    /*RAT type*/
+    /*APN*/
     uint8_t aPname[256];
-	/*PAA*/
-	/*Serving Network*/
-	/*PDN type*/
+    /*PAA*/
+    /*Serving Network*/
+    /*PDN type*/
     uint8_t pdn_type;
-	/*APN restriction*/
-	/*Selection Mode*/
-	/*Bearer contex*/
-	  /*EPS Bearer ID */
-	  /*EPS Bearer TFT */
-	  /* Bearer QoS */
+    /*APN restriction*/
+    /*Selection Mode*/
+    /*Bearer contex*/
+      /*EPS Bearer ID */
+      /*EPS Bearer TFT */
+      /* Bearer QoS */
     struct qos_t qos;
-	uint64_t ue_ambr_dl;
-	uint64_t ue_ambr_ul;
-	uint8_t pco[0xff+2];   /* TLV Protocol Configuration Options*/
+    uint64_t ue_ambr_dl;
+    uint64_t ue_ambr_ul;
+    uint8_t pco[0xff+2];   /* TLV Protocol Configuration Options*/
 };
 
 
@@ -221,24 +220,25 @@ struct mme_t{
     struct t_engine_data    *engine;                /*Multiple engines on the future?*/
     struct event_base       *evbase;
     MMEname_t               *name;
-	char                    ipv4[INET_ADDRSTRLEN];
-	char                    ipv6[INET6_ADDRSTRLEN]; /* Not used*/
+    char                    ipv4[INET_ADDRSTRLEN];
+    char                    ipv6[INET6_ADDRSTRLEN]; /* Not used*/
     ServedGUMMEIs_t         *servedGUMMEIs;
     RelativeMMECapacity_t   *relativeCapacity;
     struct EndpointStruct_t ctrl;                           /*< Server endpoint*/
-	GHashTable *            ev_readers;                     /*< Listener events accessed by socket*/
-	gpointer                s6a;
-	gpointer                s11;
-	gpointer                s1;
-	gpointer                cmd;
-	gpointer                sdnCtrl;
-    uint32_t                nums1conn;                      /*< Number of S1 Connections*/
+    GHashTable              *ev_readers;                     /*< Listener events accessed by socket*/
+    gpointer                s6a;
+    gpointer                s11;
+    gpointer                s1;
+    gpointer                cmd;
+    gpointer                sdnCtrl;
+    GHashTable              *s1_by_GeNBid;                   /*< S1 Associations By GlobaleNBid*/
+    /* uint32_t                nums1conn;                      /\*< Number of S1 Connections*\/ */
     struct SessionStruct_t  *s1apUsersbyLocalID[MAX_UE];    /*< UE MME ID to session relation vector*/
     struct SessionStruct_t  *sessionht_byTEID;    /*Session Hash table to store the processes waiting for a response, */
     struct SessionStruct_t  *sessionht_byS1APID;  /*Session Hash table to store the processes waiting for a response, */
     struct timeval          start;   /* Test Variable*/
     uint32_t                procTime;
-	uint32_t                uE_DNS;  /*IP address to be used on the PDN by the UEs*/
+    uint32_t                uE_DNS;  /*IP address to be used on the PDN by the UEs*/
 };
 
 #define INIT_TIME_MEASUREMENT_ENVIRONMENT \
@@ -314,5 +314,11 @@ void mme_registerRead(struct mme_t *self, int fd,
 void mme_deregisterRead(struct mme_t *self, int fd);
 
 struct event_base *mme_getEventBase(struct mme_t *self);
+
+void mme_registerS1Assoc(struct mme_t *self, gpointer assoc);
+
+void mme_deregisterS1Assoc(struct mme_t *self, gpointer assoc);
+
+GList *mme_getS1Assocs(struct mme_t *self);
 
 #endif /* MME_HFILE */

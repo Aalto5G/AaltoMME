@@ -7,7 +7,7 @@
  */
 
 /**
- * @file   ECMSession.h
+ * @file   S1Assoc.h
  * @Author Vicent Ferrer
  * @date   August, 2015
  * @brief  ECM logic
@@ -24,6 +24,7 @@
 #include "MME.h"
 #include "MME_S1.h"
 #include "S1AP.h"
+#include "MMEutils.h"
 
 typedef gpointer S1Assoc;
 
@@ -49,7 +50,7 @@ void s1Assoc_accept(S1Assoc h, int ss);
 /**@brief Get pointer to file descriptor
  * @param [in] h  S1 association handler
  * @return file descriptor pointer
- * 
+ *
  * Function used to get the internal address of the fd, used as a key
  */
 int *s1Assoc_getfd_p(const S1Assoc h);
@@ -58,9 +59,13 @@ int *s1Assoc_getfd_p(const S1Assoc h);
 /**@brief Get file descriptor
  * @param [in] h  S1 association handler
  * @return file descriptor
- * 
+ *
  * Function used to get the internal file descriptor
  */
 const int s1Assoc_getfd(const S1Assoc h);
+
+mme_GlobaleNBid *s1Assoc_getID_p(const S1Assoc h);
+
+const char *s1Assoc_getName(const S1Assoc h);
 
 #endif /* S1ASSOC_HFILE */
