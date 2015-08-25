@@ -25,24 +25,24 @@
 #include "S11_Ctx.h"
 #include "S11_WDel.h"
 
-S11_State *states;
+S11_State *s11_states;
 
 void s11ConfigureFSM(){
-	states = g_new(S11_State, 6);
-	
-	linkNoCtx(&states[0]);
-	linkWCtxRsp(&states[1]);
-	linkUlCtx(&states[2]);
-	linkWModBearerRsp(&states[3]);
-	linkCtx(&states[4]);
-	linkWDel(&states[5]);
+    s11_states = g_new(S11_State, 6);
+
+    linkNoCtx(&s11_states[0]);
+    linkWCtxRsp(&s11_states[1]);
+    linkUlCtx(&s11_states[2]);
+    linkWModBearerRsp(&s11_states[3]);
+    linkCtx(&s11_states[4]);
+    linkWDel(&s11_states[5]);
 }
 
 void s11DestroyFSM(){
-	g_free(states);
+    g_free(s11_states);
 }
 
 
 void s11changeState(gpointer session, S11State s){
-	s11u_setState(session, &(states[s]));
+    s11u_setState(session, &(s11_states[s]));
 }

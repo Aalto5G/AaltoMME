@@ -224,14 +224,17 @@ struct mme_t{
     char                    ipv6[INET6_ADDRSTRLEN]; /* Not used*/
     ServedGUMMEIs_t         *servedGUMMEIs;
     RelativeMMECapacity_t   *relativeCapacity;
-    struct EndpointStruct_t ctrl;                           /*< Server endpoint*/
+    struct EndpointStruct_t ctrl;                            /*< Server endpoint*/
     GHashTable              *ev_readers;                     /*< Listener events accessed by socket*/
     gpointer                s6a;
     gpointer                s11;
     gpointer                s1;
     gpointer                cmd;
     gpointer                sdnCtrl;
-    GHashTable              *s1_by_GeNBid;                   /*< S1 Associations By GlobaleNBid*/
+    GHashTable              *s1_by_GeNBid;                   /**< S1 Associations By GlobaleNBid */
+	GHashTable              *s1_localIDs;                    /**< Used MME UE S1AP IDs */
+	GHashTable              *ecm_sessions;                   /**< Store all ECM session of the MME */
+
     /* uint32_t                nums1conn;                      /\*< Number of S1 Connections*\/ */
     struct SessionStruct_t  *s1apUsersbyLocalID[MAX_UE];    /*< UE MME ID to session relation vector*/
     struct SessionStruct_t  *sessionht_byTEID;    /*Session Hash table to store the processes waiting for a response, */
@@ -278,7 +281,9 @@ extern struct SessionStruct_t *getPendingResponseByUES1APID(struct mme_t *mme, u
 
 extern unsigned int newTeid();
 
-extern uint32_t getNewLocalUEid(struct  SessionStruct_t  * s);
+extern uint32_t mme_newLocalUEid(struct mme_t *self);
+
+extern void mme_freeLocalUEid(struct mme_t *self, uint32_t id);
 
 
 /**************************************************/

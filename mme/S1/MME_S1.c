@@ -863,7 +863,7 @@ static uint8_t TASK_MME_S1___initUEMsg(Signal *signal)
 
     /* Process NAS PDU*/
     if(PDATA->user_ctx->mME_UE_S1AP_ID==0){
-        PDATA->user_ctx->mME_UE_S1AP_ID = getNewLocalUEid(PDATA);
+        /* PDATA->user_ctx->mME_UE_S1AP_ID = getNewLocalUEid(PDATA); */
     }
 
     NAS_process(nasResult, &bsize, nASPDU->str, nASPDU->len, signal);

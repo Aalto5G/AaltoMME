@@ -16,30 +16,34 @@
 
 #include "S1Assoc.h"
 #include "S1Assoc_FSMConfig.h"
+#include "ECMSession_FSMConfig.h"
+
 /* Include States*/
 #include "S1Assoc_NotConfigured.h"
 #include "S1Assoc_Active.h"
 
 #include "logmgr.h"
 
-S1Assoc_State *states;
+S1Assoc_State *s1_states;
 
 void s1ConfigureFSM(){
-	states = g_new(S1Assoc_State, 2);
-	
-	linkS1AssocNotConfigured(&states[0]);
-	linkS1AssocActive(&states[1]);
+    s1_states = g_new(S1Assoc_State, 2);
+    ecm_ConfigureFSM();
+
+    linkS1AssocNotConfigured(&s1_states[0]);
+    linkS1AssocActive(&s1_states[1]);
 }
 
 void s1DestroyFSM(){
-	g_free(states);
+    ecm_DestroyFSM();
+    g_free(s1_states);
 }
 
 
 void s1ChangeState(gpointer s1, S1AssocState s){
-	s1Assoc_setState(s1, &(states[s]));
+    s1Assoc_setState(s1, &(s1_states[s]));
 }
 
 void s1notImplemented(gpointer self){
-	log_msg(LOG_ERR, 0, "Not Implemented");
+    log_msg(LOG_ERR, 0, "Not Implemented");
 }

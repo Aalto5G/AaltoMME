@@ -20,25 +20,34 @@
 #define ECMSESSION_PRIV_HFILE
 
 #include <glib.h>
+#include "ECMSession.h"
+#include "ECMSession_State.h"
 
 typedef struct{
-	guint32  l_sid;   /**< SCTP local  Stream ID*/
-	guint32  r_sid;   /**< SCTP remote Stream ID*/
-	guint32  mmeUEId; /**< S1AP MME UE ID*/
-	guint32  eNBUEId; /**< S1AP eNB UE ID*/
+    S1Assoc          assoc;
+    ECMSession_State *state;
+    guint32          l_sid;   /**< SCTP local  Stream ID*/
+    guint32          r_sid;   /**< SCTP remote Stream ID*/
+    guint32          mmeUEId; /**< S1AP MME UE ID*/
+    guint32          eNBUEId; /**< S1AP eNB UE ID*/
 
-	struct{
-	  guint16		MCC;			/**< Mobile Country Code*/
-	  guint16		MNC;			/**< Mobile Network Code*/
-	  guint8        sn[3];          /**< TA TBCD encoded*/
-	  guint16		tAC;			/**< Tracking Area Code*/
-	}tAI; /**< TAI Tracking Area ID*/
-	
-	struct{
-	  guint16		MCC;
-	  guint16		MNC;
-	  guint32		cellID:28;
-	}eCGI; /**< E-UTRAN CGI (Cell Global ID)*/
+    struct{
+      guint16    MCC;			/**< Mobile Country Code*/
+      guint16    MNC;			/**< Mobile Network Code*/
+      guint8     sn[3];          /**< TA TBCD encoded*/
+      guint16    tAC;			/**< Tracking Area Code*/
+    }                tAI;     /**< TAI Tracking Area ID*/
+
+    struct{
+      guint16    MCC;
+      guint16    MNC;
+      guint32    cellID:28;
+    }                eCGI;    /**< E-UTRAN CGI (Cell Global ID)*/
 }ECMSession_t;
+
+
+/* API to NAS */
+void ecm_send(ECMSession h, gpointer msg, size_t len);
+
 
 #endif /* ECMSESSION_PRIV_HFILE */

@@ -40,7 +40,7 @@ struct log_entity{
 static struct log_entity logger;
 
 /** Log Level dictionary to convert the priority to a string*/
-static char* logLevelStr[] = {"EMERG", "ALERT", "CRIT ", "ERROR", "WARN ", "NOTICE", "INFO ", "DEBUG"};
+static char* logLevelStr[] = {"EMERG", "ALERT", "CRIT ", "ERROR", "WARN ", "NOTICE", "INFO", "DEBUG"};
 
 /** @brief Function used to initialize the log_entity
  *  @param [in] app Application name to be shown on logs
@@ -99,7 +99,11 @@ void log_msg_(int pri, char *fn, const char *func, int ln, int en, char *fmt, ..
   gettimeofday( &tv, NULL );
   pTm = localtime ( (const time_t*)&tv.tv_sec );
   strftime ((char*) timeStr, 128, "%d/%m/%Y %T", pTm );
-  sprintf((char*)(timeStr + strlen((char*)timeStr)), ".%06u", (unsigned int)tv.tv_usec);
+  if(logger.priority >= LOG_DEBUG){
+      sprintf((char*)(timeStr + strlen((char*)timeStr)),
+              ".%06u",
+              (unsigned int)tv.tv_usec);
+  }
 
   va_start(args, fmt);
   vsnprintf(buf, SYSERR_MSGSIZE, fmt, args);
@@ -107,9 +111,13 @@ void log_msg_(int pri, char *fn, const char *func, int ln, int en, char *fmt, ..
   buf[SYSERR_MSGSIZE-1] = 0; /* Make sure it is null terminated */
 
   if (en)
-    syslog(pri, "[%s] %s - %d (%s) %s <%s, %s(), %d>", timeStr, logLevelStr[pri], en, strerror(en), buf, fn, func, ln);
+      syslog(pri, "[%s] %s - %d (%s) %s <%s, %s(), %d>",
+             timeStr, logLevelStr[pri], en, strerror(en), buf,
+             fn, func, ln);
   else
-    syslog(pri, "[%s] %s - %s <%s, %s(), %d>", timeStr, logLevelStr[pri], buf, fn, func, ln);
+      syslog(pri, "[%s] %s - %s <%s, %s(), %d>",
+             timeStr, logLevelStr[pri], buf,
+             fn, func, ln);
 }
 
 /*/@brief send log message
@@ -122,23 +130,23 @@ void log_msg_(int pri, char *fn, const char *func, int ln, int en, char *fmt, ..
  * @param [in] len packet length
  * @param [in] fmt format, printf equivalent*/
 void log_errpack_(int pri, char *fn, const char *func, int ln, int en, struct sockaddr_in *peer,
-		 void *pack, unsigned len, char *fmt, ...) {
-  
+         void *pack, unsigned len, char *fmt, ...) {
+
   va_list args;
   char buf[SYSERR_MSGSIZE];
   char buf2[SYSERR_MSGSIZE];
   unsigned int n;
   int pos;
-  
+
   va_start(args, fmt);
   vsnprintf(buf, SYSERR_MSGSIZE, fmt, args);
   va_end(args);
   buf[SYSERR_MSGSIZE-1] = 0;
 
   snprintf(buf2, SYSERR_MSGSIZE, "Packet from/to %s:%u, length: %d, content:",
-	   inet_ntoa(peer->sin_addr),
-	   ntohs(peer->sin_port),
-	   len);
+       inet_ntoa(peer->sin_addr),
+       ntohs(peer->sin_port),
+       len);
   buf2[SYSERR_MSGSIZE-1] = 0;
   pos = strlen(buf2);
   for(n=0; n<len; n++) {
@@ -148,7 +156,7 @@ void log_errpack_(int pri, char *fn, const char *func, int ln, int en, struct so
     }
   }
   buf2[pos] = 0;
-  
+
   if (en)
     syslog(pri, "%s - %d (%s) %s. %s <%s, %s(),%d> ", logLevelStr[pri], en, strerror(en), buf, buf2, fn, func, ln);
   else

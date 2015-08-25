@@ -37,6 +37,7 @@
 #include "HSS.h"
 #include "MMEutils.h"
 #include "S1Assoc.h"
+#include "ECMSession.h"
 
 int mme_run_flag=0;
 
@@ -256,14 +257,22 @@ int mme_run(struct mme_t *self){
     loadMMEinfo(self);
 
     self->ev_readers = g_hash_table_new_full( g_int_hash,
-                                                g_int_equal,
-                                                NULL,
-                                                (GDestroyNotify) event_free);
+                                              g_int_equal,
+                                              NULL,
+                                              (GDestroyNotify) event_free);
 
     self->s1_by_GeNBid = g_hash_table_new_full( (GHashFunc)  globaleNBID_Hash,
-                                              (GEqualFunc) globaleNBID_Equal,
-                                              NULL,
+                                                (GEqualFunc) globaleNBID_Equal,
+                                                NULL,
+                                                NULL);
+    self->s1_localIDs = g_hash_table_new_full(g_int_hash,
+                                              g_int_equal,
+                                              g_free,
                                               NULL);
+    self->ecm_sessions = g_hash_table_new_full(g_int_hash,
+                                               g_int_equal,
+                                               NULL,
+                                               (GDestroyNotify) ecmSession_free);
 
     /*Create event base structure*/
     self->evbase = event_base_new();
@@ -301,6 +310,8 @@ int mme_run(struct mme_t *self){
 
     event_free(kill_event);
     event_base_free(self->evbase);
+
+    g_hash_table_destroy(self->s1_localIDs);
 
     g_hash_table_destroy(self->s1_by_GeNBid);
 
@@ -481,18 +492,23 @@ unsigned int newTeid(){
     return i++;
 }
 
-uint32_t getNewLocalUEid(struct  SessionStruct_t  * s){
-    struct mme_t *mme = s->sessionHandler->engine->mme;
-
-    uint32_t i;
-    for (i=FIRST_UE_SCTP_STREAM; i<MAX_UE;i++){
-        if(mme->s1apUsersbyLocalID[i]==NULL){
-            mme->s1apUsersbyLocalID[i]= s;
-            return i;
+uint32_t mme_newLocalUEid(struct mme_t *self){
+    guint32 *i = g_new0(guint32, 1);
+    for (*i=1; *i<=MAX_UE;*i++){
+	    if(!g_hash_table_contains(self->s1_localIDs, i)){
+		    g_hash_table_add (self->s1_localIDs, i);
+            return *i;
         }
     }
-    log_msg(LOG_WARNING, 0, "Maximum number of UE (%u) reached, using stream 0", i);
+    g_free(i);
+    log_msg(LOG_WARNING, 0, "Maximum number of UE (%u) reached", i);
     return 0;
+}
+
+void mme_freeLocalUEid(struct mme_t *self, uint32_t id){
+	if(!g_hash_table_remove(self->s1_localIDs, &id)){
+		log_msg(LOG_ERR, 0, "MME UE S1AP ID (%u) to be free not found", id);
+	}
 }
 
 const ServedGUMMEIs_t *mme_getServedGUMMEIs(const struct mme_t *mme){
@@ -513,6 +529,17 @@ void mme_deregisterS1Assoc(struct mme_t *self, gpointer assoc){
     }
 }
 
+void mme_registerECMSession(struct mme_t *self, gpointer ecm){
+	g_hash_table_insert(self->ecm_sessions,
+	                    ecmSession_getMMEUEID_p(ecm),
+	                    ecm);
+}
+
+void mme_deregisterECMSession(struct mme_t *self, gpointer ecm){
+	if(g_hash_table_remove(self->ecm_sessions, ecmSession_getMMEUEID_p(ecm)) != TRUE){
+		log_msg(LOG_ERR, 0, "Unable to find ECM session");
+	}
+}
 
 GList *mme_getS1Assocs(struct mme_t *self){
     return g_hash_table_get_values(self->s1_by_GeNBid);

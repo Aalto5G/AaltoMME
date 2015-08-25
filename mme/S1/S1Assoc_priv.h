@@ -46,11 +46,12 @@ typedef struct{
     //Global_ENB_ID_t     *global_eNB_ID;
     SupportedTAs_t      *suportedTAs;
     CSG_IdList_t        *cGS_IdList;
+    GHashTable          *ecm_sessions;  /**< ECM sessions allocated in this association*/
 }S1Assoc_t;
 
 
 /**@brief S1 Send message to non UE signaling
- * @param [in] ep_S1    Destination EndPoint information
+ * @param [in] s1       S1 Association used to send the message
  * @param [in] s1msg    Message to be sent
  *
  * This function send the S1 message to non UE associated signaling.
@@ -59,13 +60,21 @@ typedef struct{
 void s1Assoc_sendNonUE(gpointer s1, S1AP_Message_t *s1msg);
 
 /**@brief S1 Send message
- * @param [in] ep_S1    Destination EndPoint information
+ * @param [in] s1       S1 Association used to send the message
  * @param [in] streamId Strem to send the message
  * @param [in] s1msg    Message to be sent
  *
  * This function send the S1 message using the SCTP protocol
  * */
 void s1Assoc_send(gpointer s1, guint32 streamId, S1AP_Message_t *s1msg);
+
+/**@brief S1 get ECM session
+ * @param [in] h  S1 Association handler
+ * @param [in] id MME UE S1AP ID of the ECM session
+ *
+ * This function returns the ECM session by MME UE S1AP ID
+ * */
+gpointer *s1Assoc_getECMSession(const S1Assoc h, guint32 id);
 
 /* ************************************************** */
 /*                      Accessors                     */

@@ -28,11 +28,15 @@
 typedef gpointer ECMSession;
 
 /* API to S1AP */
-ECMSession  ecmSession_init(S1Assoc s1, guint16 r_sid);
+ECMSession ecmSession_init(S1Assoc s1, guint32 l_id);
 
 void ecmSession_free(ECMSession h);
 
-/* API to NAS */
-void ecm_send(ECMSession h, gpointer msg, size_t len);
+void ecmSession_processMsg(ECMSession h, S1AP_Message_t *s1msg, int r_sid);
+
+const guint32 ecmSession_getMMEUEID(const ECMSession h);
+
+guint32 *ecmSession_getMMEUEID_p(const ECMSession h);
+
 
 #endif /* ECMSession_HFILE */

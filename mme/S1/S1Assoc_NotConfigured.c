@@ -43,7 +43,7 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid){
         g_string_assign(assoc->eNBname, eNBname->name);
     }
 
-    global_eNB_ID = s1ap_getIe(s1msg, id_Global_ENB_ID);
+    global_eNB_ID = s1ap_findIe(s1msg, id_Global_ENB_ID);
     s1Assoc_setGlobalID(assoc, global_eNB_ID);
 
     assoc->suportedTAs     = s1ap_getIe(s1msg, id_SupportedTAs);

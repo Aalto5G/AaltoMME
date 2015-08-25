@@ -16,6 +16,11 @@
  */
 
 #include <glib.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <netinet/sctp.h>
+#include <arpa/inet.h>
 /* #include <netinet/sctp.h> */
 
 #include "S1Assoc.h"
@@ -24,12 +29,19 @@
 #include "S1AP.h"
 #include "logmgr.h"
 #include "MMEutils.h"
+#include "ECMSession.h"
+#include "MME.h"
+#include "MME_S1_priv.h"
 
 /* API to MME_S1 */
 S1Assoc s1Assoc_init(S1 s1){
     S1Assoc_t *self = g_new0(S1Assoc_t, 1);
     self->s1 = s1;
     self->eNBname = g_string_new("");
+    self->ecm_sessions = g_hash_table_new_full(g_int_hash,
+                                               g_int_equal,
+                                               NULL,
+                                               NULL);
     s1ChangeState(self, NotConfigured);
     return self;
 }
@@ -38,6 +50,8 @@ void s1Assoc_free(gpointer h){
     S1Assoc_t *self = (S1Assoc_t *)h;
     log_msg(LOG_DEBUG, 0, "Enter");
     self->state->disconnect(self);
+
+    g_hash_table_destroy(self->ecm_sessions);
     close(self->fd);
 
     g_string_free(self->eNBname, TRUE);
@@ -135,7 +149,7 @@ void s1Assoc_accept(S1Assoc h, int ss){
 
     /*SCTP structures*/
     struct sctp_event_subscribe events;
-    int optval;
+    int optval, on;
 
     self->socklen = sizeof(struct sockaddr);
 
@@ -164,10 +178,33 @@ void s1Assoc_accept(S1Assoc h, int ss){
     events.sctp_data_io_event = 1;
     setsockopt(self->fd, SOL_SCTP, SCTP_EVENTS,
                (const void *)&events, sizeof(events) );
+    /* on = 1; */
+    /* setsockopt(self->fd, IPPROTO_SCTP, SCTP_RECVRCVINFO, */
+    /*                &on, sizeof(on)); */
 
     s1_registerAssoc(self->s1, self, self->fd, s1_accept);
 }
 
+
+void s1Assoc_registerECMSession(S1Assoc h, gpointer  ecm){
+    S1Assoc_t *self = (S1Assoc_t *)h;
+    struct mme_t * mme = s1_getMME(self->s1);
+
+    g_hash_table_insert(self->ecm_sessions, ecmSession_getMMEUEID_p(ecm), ecm);
+    mme_registerECMSession(mme, ecm);
+}
+
+void s1Assoc_deregisterECMSession(S1Assoc h, gpointer ecm){
+    S1Assoc_t *self = (S1Assoc_t *)h;
+    if(!g_hash_table_remove(self->ecm_sessions, ecm)){
+        log_msg(LOG_ERR,  0, "ECM session not found in S1 Association");
+    }
+}
+
+gpointer *s1Assoc_getECMSession(const S1Assoc h, guint32 id){
+    S1Assoc_t *self = (S1Assoc_t *)h;
+    return g_hash_table_lookup(self->ecm_sessions, &id);
+}
 
 void s1Assoc_setState(S1Assoc s1, S1Assoc_State *s){
     S1Assoc_t *self = (S1Assoc_t *)s1;
@@ -181,7 +218,7 @@ void s1Assoc_setState(S1Assoc s1, S1Assoc_State *s){
  *
  * This function send the S1 message using the SCTP protocol
  * */
-void s1Assoc_send(gpointer s1,uint32_t streamId, S1AP_Message_t *s1msg){
+void s1Assoc_send(gpointer s1, uint32_t streamId, S1AP_Message_t *s1msg){
     uint8_t buf[10000];
     uint32_t bsize, ret;
     S1Assoc_t *self = (S1Assoc_t *)s1;
