@@ -81,7 +81,7 @@ void s1_accept_new_eNB(evutil_socket_t ss, short event, void *arg){
 
     struct S1_t *self = (struct S1_t*)arg;
     S1Assoc assoc;
-    log_msg(LOG_DEBUG, 0, "enter s1_accept_new_eNB()");  
+    log_msg(LOG_DEBUG, 0, "enter s1_accept_new_eNB()");
 
     assoc = s1Assoc_init(self);
     s1Assoc_accept(assoc, ss);
@@ -121,22 +121,22 @@ void s1_free(S1 s1_h){
 }
 
 void s1_registerAssoc(S1 s1_h, gpointer assoc, int fd, event_callback_fn cb){
-	S1_t *self = (S1_t *) s1_h;
+    S1_t *self = (S1_t *) s1_h;
 
-	/*Store the new connection*/
-	g_hash_table_insert(self->assocs, s1Assoc_getfd_p(assoc), assoc);
-	mme_registerRead(self->mme, fd, cb, assoc);
+    /*Store the new connection*/
+    g_hash_table_insert(self->assocs, s1Assoc_getfd_p(assoc), assoc);
+    mme_registerRead(self->mme, fd, cb, assoc);
 }
 
 void s1_deregisterAssoc(S1 s1_h, gpointer assoc){
-	S1_t *self = (S1_t *) s1_h;
-	mme_deregisterRead(self->mme, s1Assoc_getfd(assoc));
-	g_hash_table_remove(self->assocs, s1Assoc_getfd_p(assoc));
+    S1_t *self = (S1_t *) s1_h;
+    mme_deregisterRead(self->mme, s1Assoc_getfd(assoc));
+    g_hash_table_remove(self->assocs, s1Assoc_getfd_p(assoc));
 }
 
 
 struct mme_t *s1_getMME(S1_t *self){
-	return self->mme;
+    return self->mme;
 }
 
 
@@ -439,7 +439,7 @@ static int STATE_S1_Active(Signal *signal){
     log_msg(LOG_DEBUG, 0, "Enter");
 
     if(signal->name == NAS_data_available){
-        if(PDATA->user_ctx->stateNAS_EMM == EMM_Specific_Procedure_Initiated) flag=1;
+        if(PDATA->user_ctx->stateNAS_EMM == EMM_SpecificProcedureInitiated) flag=1;
         TASK_MME_S1___TransparentNAS(signal);
         if(PDATA->user_ctx->stateNAS_EMM == EMM_Registered && flag){
             S11_Attach_ModifyBearerReq(PDATA->user_ctx->s11,
@@ -449,10 +449,10 @@ static int STATE_S1_Active(Signal *signal){
 
     }else if(signal->name == S1_PathSwitchRequest){
         if(TASK_MME_S1___Validate_PathSwitchRequest(signal)==0){
-	        S11_Attach_ModifyBearerReq(PDATA->user_ctx->s11,
-	                                   (void(*)(gpointer)) sendFirstStoredSignal,
-	                                   (gpointer)PDATA->sessionHandler);
-	        Controller_newHandover(SELF_ON_SIG->sdnCtrl, PDATA->user_ctx);
+            S11_Attach_ModifyBearerReq(PDATA->user_ctx->s11,
+                                       (void(*)(gpointer)) sendFirstStoredSignal,
+                                       (gpointer)PDATA->sessionHandler);
+            Controller_newHandover(SELF_ON_SIG->sdnCtrl, PDATA->user_ctx);
             signal->name = S1_PathSwitchACK;
             save = 1;
         }else{
@@ -503,15 +503,15 @@ static int STATE_S1_Active(Signal *signal){
             TASK_MME_S1___Replay_StatusTransfer(signal);
         }else if(s1msg->pdu->procedureCode == id_UEContextReleaseRequest){
           //if (TASK_MME_S1___Validate_UEContextReleaseRequest(signal)==0){
-	        output = new_signal(PDATA->sessionHandler);
-	        output->name = S1_UE_Context_Release;
-	        output->priority = MAXIMUM_PRIORITY/2;
-	        set_timeout(output, 0, 500000);
-	        S11_ReleaseAccessBearers(PDATA->user_ctx->s11,
-	                                 (void(*)(gpointer)) sendFirstStoredSignal,
-	                                 (gpointer)PDATA->sessionHandler);
-	        //}
-	        
+            output = new_signal(PDATA->sessionHandler);
+            output->name = S1_UE_Context_Release;
+            output->priority = MAXIMUM_PRIORITY/2;
+            set_timeout(output, 0, 500000);
+            S11_ReleaseAccessBearers(PDATA->user_ctx->s11,
+                                     (void(*)(gpointer)) sendFirstStoredSignal,
+                                     (gpointer)PDATA->sessionHandler);
+            //}
+
         }else if(s1msg->pdu->procedureCode == id_HandoverNotification){
             if(TASK_MME_S1___Validate_HandoverNotify(signal)==0){
                 output = new_signal(PDATA->sessionHandler);
@@ -545,7 +545,7 @@ static int STATE_S1_SetupOfUEContext(Signal *signal){
 
     }else if(signal->name >= NAS_data_available){
 
-        if(PDATA->user_ctx->stateNAS_EMM == EMM_Specific_Procedure_Initiated) flag=1;
+        if(PDATA->user_ctx->stateNAS_EMM == EMM_SpecificProcedureInitiated) flag=1;
         TASK_MME_S1___TransparentNAS(signal);
         if(PDATA->user_ctx->stateNAS_EMM == EMM_Registered && flag){
             /*Received Attach Complete but not the Initial Context Setup Response,
@@ -576,9 +576,9 @@ static int STATE_S1_SetupOfUEContext(Signal *signal){
             /* Attach message not received yet, add session to pending response*/
             addToPendingResponse(PDATA);
         }else{
-	        S11_Attach_ModifyBearerReq(PDATA->user_ctx->s11,
-	                                   (void(*)(gpointer)) sendFirstStoredSignal,
-	                                   (gpointer)PDATA->sessionHandler);
+            S11_Attach_ModifyBearerReq(PDATA->user_ctx->s11,
+                                       (void(*)(gpointer)) sendFirstStoredSignal,
+                                       (gpointer)PDATA->sessionHandler);
         }
         signal->processTo->next_state = STATE_S1_Active;
     }else if(s1msg->choice == unsuccessfull_outcome){

@@ -22,9 +22,10 @@
 #include "Subscription.h"
 #include "glib.h"
 #include "NAS_Definitions.h"
+#include "EMM_State.h"
 
 typedef struct{
-	guint8       rAND[16];
+    guint8       rAND[16];
     guint8       xRES[8];
     guint8       ck[16];
     guint8       ik[16];
@@ -32,44 +33,48 @@ typedef struct{
 }AuthQuintuplet;
 
 typedef struct{
-	guint8       rAND[16];
+    guint8       rAND[16];
     guint8       xRES[8];
     guint8       aUTN[16];
     guint8       kASME[32];
 }AuthQuadruplet;
 
 typedef struct{
-	guint64      imsi;
-	guint64      msisdn;
-	guint64      imeisv;
-	guti_t       guti;
-	
-	Subscription subs;
+    gpointer     ecm;           /**< Lower layer */
+    gpointer     esm;           /**< Higher layer */
+    EMM_State    *state;
 
-	gpointer	 s11;
+    guint64      imsi;
+    guint64      msisdn;
+    guint64      imeisv;
+    guti_t       guti;
 
-	/* **** Start of MM context **** */
-	guint8       type;          /**< MM type */
-	guint8       securityMode;
-	gboolean     nhi;           /**< Next Hop Indicator */
-	gboolean     drxi;          /**< DRX Indicator */
-	gboolean     uambri;        /**< Used AMBR Indicator */
-	gboolean     sambri;        /**< Subscribed AMBR Indicator */
-	gboolean     osci;          /**< Old Security Context indicator */
-	guint8       ksi;
-	guint8       nasIntAlg;
-	guint8       nasCipAlg;
-	guint32      nasUlCount;
-	guint32      nasDlCount;
-	guint8       kasme[32];
-	GPtrArray    *authQuadrs;
-	GPtrArray    *authQuints;
+    Subscription subs;
 
-	guint8       drx[2];
-	guint8       nh[32];
-	guint8       ncc;           /**< Next Hop Chaining Count*/
+    gpointer     s11;
 
-	guint32      subs_ambr_ul;
+    /* **** Start of MM context **** */
+    guint8       type;          /**< MM type */
+    guint8       securityMode;
+    gboolean     nhi;           /**< Next Hop Indicator */
+    gboolean     drxi;          /**< DRX Indicator */
+    gboolean     uambri;        /**< Used AMBR Indicator */
+    gboolean     sambri;        /**< Subscribed AMBR Indicator */
+    gboolean     osci;          /**< Old Security Context indicator */
+    guint8       ksi;
+    guint8       nasIntAlg;
+    guint8       nasCipAlg;
+    guint32      nasUlCount;
+    guint32      nasDlCount;
+    guint8       kasme[32];
+    GPtrArray    *authQuadrs;
+    GPtrArray    *authQuints;
+
+    guint8       drx[2];
+    guint8       nh[32];
+    guint8       ncc;           /**< Next Hop Chaining Count*/
+
+    guint32      subs_ambr_ul;
     guint32      subs_ambr_dl;
     guint32      used_ambr_ul;
     guint32      used_ambr_dl;
@@ -81,16 +86,22 @@ typedef struct{
     gboolean     hnna;          /**< HO-To-Non-3GPPAccess Not Allowed */
     gboolean     ena;           /**< E-UTRAN Not Allowed */
     gboolean     ina;           /**< I-HSPA-Evolution Not Allowed */
-	gboolean     gana;          /**< GAN Not Allowed */
-	gboolean     gena;          /**< GERAN Not Allowed */
-	gboolean     una;           /**< UTRAN Not Allowed */
+    gboolean     gana;          /**< GAN Not Allowed */
+    gboolean     gena;          /**< GERAN Not Allowed */
+    gboolean     una;           /**< UTRAN Not Allowed */
 
     guint8       old_ksi;
-	guint8       old_ncc;       /**< Next Hop Chaining Count*/
-	guint8       old_kasme[32];
-	guint8       old_nh[32];
+    guint8       old_ncc;       /**< Next Hop Chaining Count*/
+    guint8       old_kasme[32];
+    guint8       old_nh[32];
 
-	/*Voice Domain Preference and UE's Usage Setting*/
+    /*Voice Domain Preference and UE's Usage Setting*/
 }EMMCtx_t;
+
+EMMCtx emmCtx_init();
+
+void emmCtx_free(EMMCtx s);
+
+void emm_setState(gpointer emm_h, EMM_State *s);
 
 #endif /* EMM_CTX_H*/

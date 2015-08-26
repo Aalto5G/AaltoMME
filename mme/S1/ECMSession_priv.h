@@ -24,8 +24,9 @@
 #include "ECMSession_State.h"
 
 typedef struct{
-    S1Assoc          assoc;
-    ECMSession_State *state;
+    S1Assoc          assoc;   /**< Lower layer*/
+    gpointer         emm;     /**< Higher layer*/
+    ECMSession_State *state;  /**< FSM */
     guint32          l_sid;   /**< SCTP local  Stream ID*/
     guint32          r_sid;   /**< SCTP remote Stream ID*/
     guint32          mmeUEId; /**< S1AP MME UE ID*/
@@ -47,6 +48,15 @@ typedef struct{
 
 
 /* API to NAS */
+
+/**@brief S1 Send message
+ * @param [in] h        ECM Session handler
+ * @param [in] msg      Message buffer pointer
+ * @param [in] len      Lenght of the message buffer
+ *
+ * This function sends the downlinkNASTransport S1AP message
+ * to forward a NAS message
+ * */
 void ecm_send(ECMSession h, gpointer msg, size_t len);
 
 

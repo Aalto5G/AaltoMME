@@ -19,22 +19,27 @@
 #include "EMMCtx.h"
 #include "logmgr.h"
 
-EMMCtx emm_init(){
-	EMMCtx_t *self = g_new0(EMMCtx_t, 1);
+EMMCtx emmCtx_init(){
+    EMMCtx_t *self = g_new0(EMMCtx_t, 1);
 
-	self->subs = subs_init();
+    self->subs = subs_init();
 
-	self->authQuadrs = g_ptr_array_new_full (5, g_free);
-	self->authQuints = g_ptr_array_new_full (5, g_free);
+    self->authQuadrs = g_ptr_array_new_full (5, g_free);
+    self->authQuints = g_ptr_array_new_full (5, g_free);
 
-	return self;
+    return self;
 }
 
-void emm_free(EMMCtx s){
-	EMMCtx_t *self = (EMMCtx_t*)s;
-	g_ptr_array_free (self->authQuadrs, TRUE);
-	g_ptr_array_free (self->authQuints, TRUE);
+void emmCtx_free(EMMCtx s){
+    EMMCtx_t *self = (EMMCtx_t*)s;
+    g_ptr_array_free (self->authQuadrs, TRUE);
+    g_ptr_array_free (self->authQuints, TRUE);
 
-	subs_free(self->subs);
-	g_free(self);
+    subs_free(self->subs);
+    g_free(self);
+}
+
+void emm_setState(EMMCtx emm_h, EMM_State *s){
+    EMMCtx_t *self = (EMMCtx_t*)emm_h;
+    self->state = s;
 }

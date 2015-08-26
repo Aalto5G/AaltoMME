@@ -7,7 +7,7 @@
  */
 
 /**
- * @file   S11_State.h
+ * @file   ESM_State.h
  * @Author Vicent Ferrer
  * @date   July, 2015
  * @brief  Interface to ESM State
@@ -26,12 +26,12 @@
 typedef void (*ESM_event)(gpointer);
 
 #define ESMSTATE \
-	ESM_event processMsg;	    /*  */ \
-	ESM_event activateDefault;   /*  */ \
+    ESM_event processMsg;       /*  */ \
+    ESM_event activateDefault;   /*  */ \
 
 
 typedef struct{
-	ESMSTATE;
+    ESMSTATE;
 }ESM_State;
 
 /* void notExpected(gpointer); */

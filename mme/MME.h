@@ -36,6 +36,7 @@
 #include "NAS_Definitions.h"
 #include "S1AP.h"
 #include "S6a.h"
+#include "EMM_FSMConfig.h"
 
 #define MAX_UE 500000 /*< Max number of active users on this MME*/
 #define FIRST_UE_SCTP_STREAM 1 /*< The minimum UE SCTP stream value*/
@@ -121,7 +122,8 @@ struct user_ctx_t{
     /*MSISDN*/
     /*MM State*/
     ESM_State_t       stateNAS_ESM;
-    EMM_State_t       stateNAS_EMM;
+    /* EMM_State_t       stateNAS_EMM; */
+    EMMState          stateNAS_EMM;
     /*GUTI Global Unique Temporary Identity*/
     guti_t              guti;
     /*MEI Mobile Equipment Identity*/
@@ -232,8 +234,8 @@ struct mme_t{
     gpointer                cmd;
     gpointer                sdnCtrl;
     GHashTable              *s1_by_GeNBid;                   /**< S1 Associations By GlobaleNBid */
-	GHashTable              *s1_localIDs;                    /**< Used MME UE S1AP IDs */
-	GHashTable              *ecm_sessions;                   /**< Store all ECM session of the MME */
+    GHashTable              *s1_localIDs;                    /**< Used MME UE S1AP IDs */
+    GHashTable              *ecm_sessions;                   /**< Store all ECM session of the MME */
 
     /* uint32_t                nums1conn;                      /\*< Number of S1 Connections*\/ */
     struct SessionStruct_t  *s1apUsersbyLocalID[MAX_UE];    /*< UE MME ID to session relation vector*/

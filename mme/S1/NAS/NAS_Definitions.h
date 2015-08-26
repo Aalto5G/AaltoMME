@@ -36,13 +36,13 @@ typedef enum ESM_State_c{
 /* MM State  Mobility management state ECM-IDLE, ECM-CONNECTED, EMM-DEREGISTERED*/
 /* ECM EPS Connection Manager
  * 3FPP 23.401 - clause 5.7.2*/
-typedef enum EMM_State_c{
-    EMM_Deregistered = 0,
-    EMM_Registered,
-    EMM_Specific_Procedure_Initiated,
-    EMM_Common_Procedure_Initiated,
-    EMM_Deregistered_Initiated,
-}EMM_State_t;
+/* typedef enum EMM_State_c{ */
+/*     EMM_Deregistered = 0, */
+/*     EMM_Registered, */
+/*     EMM_Specific_Procedure_Initiated, */
+/*     EMM_Common_Procedure_Initiated, */
+/*     EMM_Deregistered_Initiated, */
+/* }EMM_State_t; */
 
 /* ======================================================================
  * Other Type definitions
