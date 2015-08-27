@@ -67,7 +67,9 @@ typedef struct{
     guint32      nasUlCount;
     guint32      nasDlCount;
     guint8       kasme[32];
+    gsize        authQuadrsLen;
     GPtrArray    *authQuadrs;
+    gsize        authQuintsLen;
     GPtrArray    *authQuints;
 
     guint8       drx[2];

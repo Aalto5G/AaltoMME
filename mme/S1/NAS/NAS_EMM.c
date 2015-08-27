@@ -50,3 +50,36 @@ void emm_processMsg(gpointer emm_h, gpointer buffer, size_t len){
 
     self->state->processMsg(self, &msg);
 }
+
+
+void emm_sendAuthRequest(EMMCtx emm_h){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    guint8 *pointer;
+    guint8 buffer[150];
+    AuthQuadruplet *sec;
+
+    log_msg(LOG_DEBUG, 0, "Initiating UE authentication");
+
+    /* Build Auth Request*/
+    sec = (AuthQuadruplet *)g_ptr_array_index(emm->authQuadrs,0);
+
+    pointer = buffer;
+    newNASMsg_EMM(&pointer, EPSMobilityManagementMessages, PlainNAS);
+
+    encaps_EMM(&pointer, AuthenticationRequest);
+
+    /* NAS Key Set ID */
+    nasIe_v_t1_l(&pointer, emm->ksi&0x0F);
+    pointer++; /*Spare half octet*/
+
+    /*printfbuffer(user->sec_ctx.rAND, 16);*/
+    /*printfbuffer(user->sec_ctx.aUTN, 16);*/
+
+    /* RAND */
+    nasIe_v_t3(&pointer, sec->rAND, 16); /* 256 bits */
+
+    /* AUTN */
+    nasIe_lv_t4(&pointer, sec->aUTN, 16); /* 256 bits */
+
+    ecm_send(emm->ecm, pointer, pointer-buffer);
+}

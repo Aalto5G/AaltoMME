@@ -56,4 +56,15 @@ typedef struct guti_c{
     uint32_t    mtmsi;              /*< M-TMSI */
 }__attribute__((packed)) guti_t;
 
+/* ======================================================================
+ * NAS Type definitions
+ * ====================================================================== */
+
+
+typedef struct PSMobileId_header_c{
+    uint8_t type:3;
+    uint8_t parity:1;
+}ePSMobileId_header_t;
+
+
 #endif /* NAS_DEF_H */

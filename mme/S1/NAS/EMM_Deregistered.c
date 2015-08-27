@@ -19,6 +19,10 @@
 #include "logmgr.h"
 #include "EMM_FSMConfig.h"
 #include "NAS.h"
+#include "NAS_EMM_priv.h"
+
+void processAttach(gpointer emm_h,  GenericNASMsg_t* msg);
+void sendIdentityReq(gpointer emm_h);
 
 static void emmProcessMsg(gpointer emm_h,  GenericNASMsg_t* msg){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
@@ -31,45 +35,8 @@ static void emmProcessMsg(gpointer emm_h,  GenericNASMsg_t* msg){
     switch(msg->plain.eMM.messageType){
 
     case AttachRequest:
-        log_msg(LOG_WARNING, 0, "Recvd Attach Request");
-        if(!0){ /* !isIMSIavailable(emm) */
-            if(0){
-                /* Get EMM context from the correct MME (use GUTI)*/
-                return;
-            }else{
-                /* Send Identity Request*/
-                return;
-            }
-        }
-        /* Check Auth*/
-        if(!0){ /* No New security context available*/
-            /* Get Auth info from S6a*/
-            return;
-        }
-        if(!0){ /* ksi in message != 7*/
-            /* Send Auth request */
-            /* Set T3460 */
-            return;
-        }
-        if(!0){ /* ksi in msg != ksi ctx*/
-            /* Remove Sec. Ctx*/
-            if(0){ /* New context available in EMM ctx*/
-                /* Send Auth request */
-                /* Set T3460 */
-                return;
-            }else{
-                /* Get Auth info from S6a*/
-                return;
-            }
-        }
-        /* -> Auth Valid */
-
-        /* Check Security */
-        if(!0){
-
-        }
+        processAttach(emm, msg);
         break;
-
     default:
         log_msg(LOG_WARNING, 0,
                 "NAS Message type (%u) not recognized in this context",
@@ -80,4 +47,86 @@ static void emmProcessMsg(gpointer emm_h,  GenericNASMsg_t* msg){
 
 void linkEMMDeregistered(EMM_State* s){
     s->processMsg = emmProcessMsg;
+}
+
+void processAttach(gpointer emm_h,  GenericNASMsg_t* msg){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    AttachRequest_t *attachMsg;
+    guint ksi_msg, i;
+    uint64_t mobid=0ULL;
+
+    attachMsg = (AttachRequest_t*)&(msg->plain.eMM);
+    ksi_msg = attachMsg->nASKeySetId.v & 0x07;
+
+    if(((ePSMobileId_header_t*)attachMsg->ePSMobileId.v)->type == 1 ){  /* IMSI*/
+        for(i=0; i<attachMsg->ePSMobileId.l-1; i++){
+            mobid = mobid*10 + ((attachMsg->ePSMobileId.v[i])>>4);
+            mobid = mobid*10 + ((attachMsg->ePSMobileId.v[i+1])&0x0F);
+        }
+        if(((ePSMobileId_header_t*)attachMsg->ePSMobileId.v)->parity == 1){
+            mobid = mobid*10 + ((attachMsg->ePSMobileId.v[i])>>4);
+        }
+        log_msg(LOG_DEBUG, 0,"Attach Received from imsi : %llu", mobid);
+    }
+
+    if(mobid == 0ULL){ /* !isIMSIavailable(emm) */
+        if(0){
+            /* Get EMM context from the correct MME (use GUTI)*/
+            return;
+        }else{
+            sendIdentityReq(emm);
+            emmChangeState(emm, EMM_CommonProcedureInitiated);
+            return;
+        }
+    }
+    /* Check Auth, Proof down*/
+    if( emm->ksi == 7 && !emm->authQuadrsLen>0){
+        log_msg(LOG_DEBUG, 0,"Getting info from HSS");
+        /* Get Auth info from S6a*/
+        return;
+    }else if(emm->ksi == 7 && emm->authQuadrsLen>0
+             || emm->ksi != ksi_msg){
+        /* Remove Sec. Ctx*/
+        /* New context available in EMM ctx*/
+        /* Send Auth request */
+        /* Set T3460 */
+        emm_sendAuthRequest(emm);
+        return;
+    }
+    /* User Authenticated,
+     * Proof:
+     *
+     * A = Sec ctx available
+     * B = New Sec ctx available
+     * C = UE Sec Ctx available
+     * D = UE Sec equal to MME Sec Ctx
+     * Eqs:
+     * 1) not (not A and not B) and not (not A and B or not D)
+     *    = A and D
+     * 2) A and D -> C
+     * */
+
+    /* Check Security */
+    if(!0){
+
+    }
+}
+
+void sendIdentityReq(gpointer emm_h){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    guint8 *pointer;
+    guint8 buffer[150];
+
+    log_msg(LOG_DEBUG, 0, "Building Identity Request");
+
+    pointer = buffer;
+    newNASMsg_EMM(&pointer, EPSMobilityManagementMessages, PlainNAS);
+
+    encaps_EMM(&pointer, IdentityRequest);
+
+    /* Selected NAS security algorithms */
+    nasIe_v_t1_l(&pointer, 1); /*Get Imsi*/
+    pointer++; /*Spare half octet*/
+
+    ecm_send(emm->ecm, pointer, pointer-buffer);
 }

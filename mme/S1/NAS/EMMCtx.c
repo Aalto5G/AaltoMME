@@ -25,7 +25,10 @@ EMMCtx emmCtx_init(){
     self->subs = subs_init();
 
     self->authQuadrs = g_ptr_array_new_full (5, g_free);
+
     self->authQuints = g_ptr_array_new_full (5, g_free);
+
+    self->ksi = 7;
 
     return self;
 }
