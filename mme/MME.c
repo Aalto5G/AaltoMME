@@ -495,8 +495,8 @@ unsigned int newTeid(){
 uint32_t mme_newLocalUEid(struct mme_t *self){
     guint32 *i = g_new0(guint32, 1);
     for (*i=1; *i<=MAX_UE;*i++){
-	    if(!g_hash_table_contains(self->s1_localIDs, i)){
-		    g_hash_table_add (self->s1_localIDs, i);
+        if(!g_hash_table_contains(self->s1_localIDs, i)){
+            g_hash_table_add (self->s1_localIDs, i);
             return *i;
         }
     }
@@ -506,9 +506,9 @@ uint32_t mme_newLocalUEid(struct mme_t *self){
 }
 
 void mme_freeLocalUEid(struct mme_t *self, uint32_t id){
-	if(!g_hash_table_remove(self->s1_localIDs, &id)){
-		log_msg(LOG_ERR, 0, "MME UE S1AP ID (%u) to be free not found", id);
-	}
+    if(!g_hash_table_remove(self->s1_localIDs, &id)){
+        log_msg(LOG_ERR, 0, "MME UE S1AP ID (%u) to be free not found", id);
+    }
 }
 
 const ServedGUMMEIs_t *mme_getServedGUMMEIs(const struct mme_t *mme){
@@ -530,17 +530,21 @@ void mme_deregisterS1Assoc(struct mme_t *self, gpointer assoc){
 }
 
 void mme_registerECMSession(struct mme_t *self, gpointer ecm){
-	g_hash_table_insert(self->ecm_sessions,
-	                    ecmSession_getMMEUEID_p(ecm),
-	                    ecm);
+    g_hash_table_insert(self->ecm_sessions,
+                        ecmSession_getMMEUEID_p(ecm),
+                        ecm);
 }
 
 void mme_deregisterECMSession(struct mme_t *self, gpointer ecm){
-	if(g_hash_table_remove(self->ecm_sessions, ecmSession_getMMEUEID_p(ecm)) != TRUE){
-		log_msg(LOG_ERR, 0, "Unable to find ECM session");
-	}
+    if(g_hash_table_remove(self->ecm_sessions, ecmSession_getMMEUEID_p(ecm)) != TRUE){
+        log_msg(LOG_ERR, 0, "Unable to find ECM session");
+    }
 }
 
 GList *mme_getS1Assocs(struct mme_t *self){
     return g_hash_table_get_values(self->s1_by_GeNBid);
+}
+
+gpointer mme_getS6a(struct mme_t *self){
+    return self->s6a;
 }

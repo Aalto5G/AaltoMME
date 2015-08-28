@@ -342,9 +342,9 @@ void stateEMM_Deregistered(uint8_t *returnbuffer, uint32_t *bsize, GenericNASMsg
             save_signal(continueAttach);    /* Signal to continue with the Attach procedure to S11*/
             signal->name = S1_ContinueAttach;
 
-            s6a_GetAuthVector(SELF_ON_SIG->s6a, user,
-                              (void(*)(gpointer)) sendFirstStoredSignal,
-                              (gpointer)PDATA->sessionHandler);
+            /* s6a_GetAuthInformation(SELF_ON_SIG->s6a, user, */
+            /*                   (void(*)(gpointer)) sendFirstStoredSignal, */
+            /*                   (gpointer)PDATA->sessionHandler); */
             return;
         }
     }else{

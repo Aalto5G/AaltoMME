@@ -18,6 +18,7 @@
 #include <string.h>
 #include "EMMCtx.h"
 #include "logmgr.h"
+#include "ECMSession_priv.h"
 
 EMMCtx emmCtx_init(){
     EMMCtx_t *self = g_new0(EMMCtx_t, 1);
@@ -45,4 +46,33 @@ void emmCtx_free(EMMCtx s){
 void emm_setState(EMMCtx emm_h, EMM_State *s){
     EMMCtx_t *self = (EMMCtx_t*)emm_h;
     self->state = s;
+}
+
+const guint64 emmCtx_getIMSI(const EMMCtx emm){
+    EMMCtx_t *self = (EMMCtx_t*)emm;
+    return self->imsi;
+}
+
+void emmCtx_setNewAuthQuadruplet(EMMCtx emm, AuthQuadruplet *a){
+    EMMCtx_t *self = (EMMCtx_t*)emm;
+    g_ptr_array_add(self->authQuadrs, a);
+    self->authQuadrsLen++;
+}
+
+void emmCtx_freeAuthQuadruplet(EMMCtx emm){
+    EMMCtx_t *self = (EMMCtx_t*)emm;
+    g_ptr_array_remove_range (self->authQuadrs,
+                          0,
+                          self->authQuadrsLen);
+    self->authQuadrsLen=0;
+}
+
+const AuthQuadruplet *emmCtx_getFirstAuthQuadruplet(EMMCtx emm){
+    EMMCtx_t *self = (EMMCtx_t*)emm;
+    return g_ptr_array_index(self->authQuadrs, 0);
+}
+
+const guint8 *emmCtx_getServingNetwork_TBCD(const EMMCtx emm){
+    EMMCtx_t *self = (EMMCtx_t*)emm;
+    return ecmSession_getServingNetwork_TBCD(self->ecm);
 }

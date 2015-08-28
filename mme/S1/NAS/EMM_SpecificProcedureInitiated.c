@@ -27,4 +27,5 @@ static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
 
 void linkEMMSpecificProcedureInitiated(EMM_State* s){
     s->processMsg = emmProcessMsg;
+    /* s->authInfoAvailable = emmAuthInfoAvailable; */
 }

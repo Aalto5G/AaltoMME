@@ -42,6 +42,7 @@ typedef struct{
 typedef struct{
     gpointer     ecm;           /**< Lower layer */
     gpointer     esm;           /**< Higher layer */
+    gpointer     s6a;
     EMM_State    *state;
 
     guint64      imsi;
@@ -105,5 +106,15 @@ EMMCtx emmCtx_init();
 void emmCtx_free(EMMCtx s);
 
 void emm_setState(gpointer emm_h, EMM_State *s);
+
+const guint64 emmCtx_getIMSI(const EMMCtx emm);
+
+void emmCtx_setNewAuthQuadruplet(EMMCtx emm, AuthQuadruplet *a);
+
+const AuthQuadruplet *emmCtx_getFirstAuthQuadruplet(EMMCtx emm);
+
+void emmCtx_freeAuthQuadruplet(EMMCtx emm);
+
+const guint8 *emmCtx_getServingNetwork_TBCD(const EMMCtx emm);
 
 #endif /* EMM_CTX_H*/

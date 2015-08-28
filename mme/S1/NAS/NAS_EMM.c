@@ -20,18 +20,14 @@
 #include "NAS.h"
 #include "logmgr.h"
 #include "EMMCtx.h"
-
-
-typedef struct{
-    gpointer    emm;
-
-}EMM_t;
+#include "ECMSession_priv.h"
 
 gpointer emm_init(gpointer ecm){
     EMMCtx_t *self = emmCtx_init();
     emmConfigureFSM();
     emmChangeState(self, EMM_Deregistered);
     self->ecm = ecm;
+    self->s6a = ecmSession_getS6a(ecm);
     return self;
 }
 
@@ -50,7 +46,6 @@ void emm_processMsg(gpointer emm_h, gpointer buffer, size_t len){
 
     self->state->processMsg(self, &msg);
 }
-
 
 void emm_sendAuthRequest(EMMCtx emm_h){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
@@ -72,14 +67,12 @@ void emm_sendAuthRequest(EMMCtx emm_h){
     nasIe_v_t1_l(&pointer, emm->ksi&0x0F);
     pointer++; /*Spare half octet*/
 
-    /*printfbuffer(user->sec_ctx.rAND, 16);*/
-    /*printfbuffer(user->sec_ctx.aUTN, 16);*/
-
     /* RAND */
     nasIe_v_t3(&pointer, sec->rAND, 16); /* 256 bits */
 
     /* AUTN */
     nasIe_lv_t4(&pointer, sec->aUTN, 16); /* 256 bits */
 
-    ecm_send(emm->ecm, pointer, pointer-buffer);
+    ecm_send(emm->ecm, buffer, pointer-buffer);
+    emmChangeState(emm, EMM_CommonProcedureInitiated);
 }

@@ -40,7 +40,7 @@ struct log_entity{
 static struct log_entity logger;
 
 /** Log Level dictionary to convert the priority to a string*/
-static char* logLevelStr[] = {"EMERG", "ALERT", "CRIT ", "ERROR", "WARN ", "NOTICE", "INFO", "DEBUG"};
+static char* logLevelStr[] = {"EMERG", "ALERT", "CRIT", "ERROR", "WARN", "NOTICE", "INFO", "DEBUG"};
 
 /** @brief Function used to initialize the log_entity
  *  @param [in] app Application name to be shown on logs

@@ -29,7 +29,7 @@ typedef void (*EMM_eventMsg)(gpointer, GenericNASMsg_t*);
 
 #define EMMSTATE \
     EMM_eventMsg processMsg;        /*  */ \
-    EMM_event    activateDefault;   /*  */ \
+    EMM_event    authInfoAvailable;   /*  */ \
 
 
 typedef struct{

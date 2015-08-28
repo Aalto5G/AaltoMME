@@ -33,8 +33,8 @@
 typedef void (*s6a_STATE)(Signal *signal);
 
 struct s6a_t{
-	gpointer mme;
-	s6a_STATE state;
+    gpointer mme;
+    s6a_STATE state;
 };
 
 
@@ -43,19 +43,19 @@ struct s6a_t{
  * @param [in]  mme   pointer to mme structure to access the API
  */
 gpointer s6a_init(gpointer mme){
-	struct s6a_t *s6a = g_new(struct s6a_t, 1);
-	s6a->mme = mme;
+    struct s6a_t *s6a = g_new(struct s6a_t, 1);
+    s6a->mme = mme;
 
     if (init_hss() != 0){
-	    return  NULL;
+        return  NULL;
     }
     //return (gpointer) s6a;
     return s6a;
 }
 
 void s6a_free(gpointer s6a){
-	disconnect_hss();
-	g_free(s6a);
+    disconnect_hss();
+    g_free(s6a);
 }
 
 /**
@@ -83,33 +83,33 @@ static void generate_KeNB(const uint8_t *kasme, const uint32_t ulNASCount, uint8
 
 /* ====================================================================== */
 
-void s6a_GetAuthVector(gpointer s6a_h, struct user_ctx_t *user,
+void s6a_GetAuthInformation(gpointer s6a_h, EMMCtx emm,
                        void(*cb)(gpointer), gpointer args){
 
-	log_msg(LOG_DEBUG, 0, "Enter S6a State Machine");
+    log_msg(LOG_DEBUG, 0, "Enter S6a State Machine");
 
-	HSS_getAuthVec(user);
-	generate_KeNB(user->sec_ctx.kASME, user->sec_ctx.ulNAScnt, user->sec_ctx.keNB);
-	cb(args);
+    HSS_getAuthVec(emm);
+    /*generate_KeNB(user->sec_ctx.kASME, user->sec_ctx.ulNAScnt, user->sec_ctx.keNB);*/
+    cb(args);
 }
 
 void s6a_SynchAuthVector(gpointer s6a_h, struct user_ctx_t *user, uint8_t *auts,
                          void(*cb)(gpointer), gpointer args){
 
-	struct s6a_t *s6a = (struct s6a_t*) s6a_h;
+    struct s6a_t *s6a = (struct s6a_t*) s6a_h;
 
-	HSS_syncAuthVec(user, auts);
-	generate_KeNB(user->sec_ctx.kASME, user->sec_ctx.ulNAScnt, user->sec_ctx.keNB);
-	cb(args);
+    HSS_syncAuthVec(user, auts);
+    generate_KeNB(user->sec_ctx.kASME, user->sec_ctx.ulNAScnt, user->sec_ctx.keNB);
+    cb(args);
 }
 
 
 void s6a_UpdateLocation(gpointer s6a_h, struct user_ctx_t *user,
                         void(*cb)(gpointer), gpointer args){
 
-	struct s6a_t *s6a = (struct s6a_t*) s6a_h;
-	HSS_UpdateLocation(user, mme_getServedGUMMEIs(s6a->mme));
-	cb(args);
+    struct s6a_t *s6a = (struct s6a_t*) s6a_h;
+    HSS_UpdateLocation(user, mme_getServedGUMMEIs(s6a->mme));
+    cb(args);
 }
 
 /* ====================================================================== */

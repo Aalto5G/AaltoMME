@@ -33,10 +33,10 @@ DROP TABLE IF EXISTS `auth_vec`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `auth_vec` (
+  `id` INT NOT NULL AUTO_INCREMENT,
   `mcc` smallint(3) unsigned NOT NULL,
   `mnc` smallint(3) unsigned NOT NULL,
   `msin` binary(5) NOT NULL,
-  `ksi` bit(3) NOT NULL,
   `ik` binary(16) DEFAULT NULL,
   `ck` binary(16) DEFAULT NULL,
   `rand` binary(16) DEFAULT NULL,
@@ -45,7 +45,7 @@ CREATE TABLE `auth_vec` (
   `sqn` binary(6) DEFAULT NULL,
   `kasme` binary(16) DEFAULT NULL,
   `ak` binary(6) DEFAULT NULL,
-  PRIMARY KEY (`mcc`,`mnc`,`msin`,`ksi`)
+  PRIMARY KEY (`id`,`mcc`,`mnc`,`msin`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
 /*!40101 SET character_set_client = @saved_cs_client */;
 

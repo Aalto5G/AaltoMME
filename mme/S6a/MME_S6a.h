@@ -23,6 +23,7 @@
 
 #include "MME.h"
 #include "S6a.h"
+#include "EMMCtx_iface.h"
 
 /**************************************************/
 /* Interface to MME.c                             */
@@ -37,7 +38,7 @@ void s6a_free(gpointer s6a);
 /* Interface to NAS_FSM.c                         */
 /**************************************************/
 
-void s6a_GetAuthVector(gpointer s6a_h, struct user_ctx_t *user,
+void s6a_GetAuthInformation(gpointer s6a_h, EMMCtx emm,
                        void(*cb)(gpointer), gpointer args);
 
 void s6a_SynchAuthVector(gpointer s6a_h, struct user_ctx_t *user, uint8_t *auts,

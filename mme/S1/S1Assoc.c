@@ -280,3 +280,8 @@ const char *s1Assoc_getName(const S1Assoc h){
     S1Assoc_t *self = (S1Assoc_t *)h;
     return self->eNBname->str;
 }
+
+S1 s1Assoc_getS1(gpointer h){
+    S1Assoc_t *self = (S1Assoc_t *)h;
+    return self->s1;
+}

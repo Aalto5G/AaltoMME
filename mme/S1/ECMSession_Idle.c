@@ -41,11 +41,15 @@ static void ecm_processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
         nASPDU = (Unconstrained_Octed_String_t*)s1ap_findIe(s1msg, id_NAS_PDU);
 
         tAI = (TAI_t*)s1ap_findIe(s1msg, id_TAI);
+        memcpy(ecm->tAI.sn, tAI->pLMNidentity->tbc.s, 3);
+        memcpy(&(ecm->tAI.tAC), tAI->tAC->s, 2);
         eCGI = (EUTRAN_CGI_t*)s1ap_findIe(s1msg, id_EUTRAN_CGI);
         cause = (RRC_Establishment_Cause_t*)s1ap_findIe(s1msg,
                                                         id_RRC_Establishment_Cause);
 
+        ecm->l_sid = 1;
         emm_processMsg(ecm->emm, nASPDU->str, nASPDU->len);
+        ecm_ChangeState(ecm, ECM_Connected);
     }
 }
 

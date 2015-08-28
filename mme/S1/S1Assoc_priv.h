@@ -30,7 +30,8 @@
 #include "MMEutils.h"
 
 /** Macro to check mandatory IE presence */
-#define CHECKIEPRESENCE(p) if(p==NULL){ log_msg(LOG_ERR, 0, "IE not found on message"); return; }
+#define CHECKIEPRESENCE(p) if(p==NULL){ \
+    log_msg(LOG_ERR, 0, "IE not found on message"); return; }
 
 
 typedef struct{
@@ -50,7 +51,8 @@ typedef struct{
 }S1Assoc_t;
 
 
-/**@brief S1 Send message to non UE signaling
+/**
+ * @brief S1 Send message to non UE signaling
  * @param [in] s1       S1 Association used to send the message
  * @param [in] s1msg    Message to be sent
  *
@@ -68,7 +70,8 @@ void s1Assoc_sendNonUE(gpointer s1, S1AP_Message_t *s1msg);
  * */
 void s1Assoc_send(gpointer s1, guint32 streamId, S1AP_Message_t *s1msg);
 
-/**@brief S1 get ECM session
+/**
+ * @brief S1 get ECM session
  * @param [in] h  S1 Association handler
  * @param [in] id MME UE S1AP ID of the ECM session
  *
@@ -83,6 +86,8 @@ gpointer *s1Assoc_getECMSession(const S1Assoc h, guint32 id);
 void s1Assoc_setState(gpointer s1, S1Assoc_State *s);
 
 void s1Assoc_setGlobalID(gpointer h, const Global_ENB_ID_t *gid);
+
+S1 s1Assoc_getS1(gpointer h);
 
 
 #endif /* S1ASSOC_PRIV_HFILE */

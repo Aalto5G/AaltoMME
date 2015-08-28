@@ -24,13 +24,19 @@
 
 static void processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
     ECMSession_t *ecm = (ECMSession_t *)_ecm;
+    MME_UE_S1AP_ID_t *mme_id;
+    ENB_UE_S1AP_ID_t *eNB_ID;
+    Unconstrained_Octed_String_t *nASPDU;
 
-    if(r_sid != ecm->r_sid){
+    if(r_sid != ecm->r_sid && ecm->r_sid_valid){
         log_msg(LOG_ERR, 0,
                 "Received S1AP msg from wrong stream id, expected %u != %u",
                 ecm->r_sid,
                 r_sid);
         return;
+    }else if(!ecm->r_sid_valid){
+        ecm->r_sid = r_sid;
+        ecm->r_sid_valid = TRUE;
     }
 
     /*Class 1 Procedures*/
@@ -47,7 +53,14 @@ static void processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
     /* Class 2 Procedures*/
     }else if(s1msg->pdu->procedureCode == id_uplinkNASTransport &&
        s1msg->choice == initiating_message){
-        log_msg(LOG_WARNING, 0, "Received id_uplinkNASTransport");
+        mme_id = (MME_UE_S1AP_ID_t*)s1ap_findIe(s1msg, id_MME_UE_S1AP_ID);
+        eNB_ID = (ENB_UE_S1AP_ID_t*)s1ap_findIe(s1msg, id_eNB_UE_S1AP_ID);
+        if (eNB_ID->eNB_id != ecm->eNBUEId || mme_id->mme_id != ecm->mmeUEId){
+            log_msg(LOG_WARNING, 0, "Received id_uplinkNASTransport with incorrect IDs");
+            return;
+        }
+        nASPDU = (Unconstrained_Octed_String_t*)s1ap_findIe(s1msg, id_NAS_PDU);
+        emm_processMsg(ecm->emm, nASPDU->str, nASPDU->len);
     }else if(s1msg->pdu->procedureCode == id_HandoverNotification &&
        s1msg->choice == initiating_message){
         log_msg(LOG_WARNING, 0, "Received id_HandoverNotification");

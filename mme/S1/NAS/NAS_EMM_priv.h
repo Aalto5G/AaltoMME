@@ -22,8 +22,8 @@
 
 /* API to NAS */
 
-/**@brief
- * @param [in] h        ECM Session handler
+/**@brief Send the Authentication Request message
+ * @param [in] em_h     EMM handler
  * @param [in] msg      Message buffer pointer
  * @param [in] len      Lenght of the message buffer
  *

@@ -19,10 +19,13 @@
 #include "logmgr.h"
 #include "EMM_FSMConfig.h"
 #include "NAS.h"
+#include "ECMSession_priv.h"
 #include "NAS_EMM_priv.h"
+#include "MME_S6a.h"
 
 void processAttach(gpointer emm_h,  GenericNASMsg_t* msg);
 void sendIdentityReq(gpointer emm_h);
+void emm_AuthInfoAvailable(gpointer emm_h);
 
 static void emmProcessMsg(gpointer emm_h,  GenericNASMsg_t* msg){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
@@ -67,6 +70,7 @@ void processAttach(gpointer emm_h,  GenericNASMsg_t* msg){
             mobid = mobid*10 + ((attachMsg->ePSMobileId.v[i])>>4);
         }
         log_msg(LOG_DEBUG, 0,"Attach Received from imsi : %llu", mobid);
+        emm->imsi = mobid;
     }
 
     if(mobid == 0ULL){ /* !isIMSIavailable(emm) */
@@ -82,7 +86,7 @@ void processAttach(gpointer emm_h,  GenericNASMsg_t* msg){
     /* Check Auth, Proof down*/
     if( emm->ksi == 7 && !emm->authQuadrsLen>0){
         log_msg(LOG_DEBUG, 0,"Getting info from HSS");
-        /* Get Auth info from S6a*/
+        s6a_GetAuthInformation(emm->s6a, emm, emm_AuthInfoAvailable, emm);
         return;
     }else if(emm->ksi == 7 && emm->authQuadrsLen>0
              || emm->ksi != ksi_msg){
@@ -91,6 +95,7 @@ void processAttach(gpointer emm_h,  GenericNASMsg_t* msg){
         /* Send Auth request */
         /* Set T3460 */
         emm_sendAuthRequest(emm);
+        emmChangeState(emm, EMM_CommonProcedureInitiated);
         return;
     }
     /* User Authenticated,
@@ -110,6 +115,11 @@ void processAttach(gpointer emm_h,  GenericNASMsg_t* msg){
     if(!0){
 
     }
+}
+
+void emm_AuthInfoAvailable(gpointer emm_h){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    emm_sendAuthRequest(emm);
 }
 
 void sendIdentityReq(gpointer emm_h){

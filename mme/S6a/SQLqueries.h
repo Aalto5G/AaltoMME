@@ -26,7 +26,7 @@ const char authparams[] = "SELECT  subscriber_profile.k, subscriber_profile.opc,
         "AND subscriber_profile.mnc = operators.mnc and subscriber_profile.mnc = %u "
         "AND subscriber_profile.msin = x'%.10llu'";
 
-const char insertAuthVector[] = "REPLACE INTO auth_vec values (%u, %u, x'%.10llu', %u, "
+const char insertAuthVector[] = "REPLACE INTO auth_vec values (%u, %u, %u, x'%.10llu',"
   "x'%s', x'%s', x'%s', x'%s', x'%s', x'%s', x'%s', x'%s'); "
   "UPDATE subscriber_profile SET sqn=x'%s', opc=x'%s' WHERE (mcc, mnc, msin) = (%u, %u, x'%.10llu')";
 
