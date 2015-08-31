@@ -24,6 +24,6 @@ void disconnect_hss();
 
 void HSS_getAuthVec(EMMCtx emm);
 
-void HSS_UpdateLocation(struct user_ctx_t *user, const ServedGUMMEIs_t * sGUMMEIs);
+void HSS_UpdateLocation(EMMCtx emm, const ServedGUMMEIs_t * sGUMMEIs);
 
 void HSS_syncAuthVec(EMMCtx emm, uint8_t * auts);

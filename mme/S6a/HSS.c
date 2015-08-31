@@ -447,7 +447,7 @@ void HSS_syncAuthVec(EMMCtx emm, uint8_t * auts){
     }
 }
 
-void HSS_UpdateLocation(struct user_ctx_t *user, const ServedGUMMEIs_t * sGUMMEIs){
+void HSS_UpdateLocation(EMMCtx emm, const ServedGUMMEIs_t * sGUMMEIs){
 
     MYSQL_RES *result;
     MYSQL_ROW row;
@@ -456,15 +456,19 @@ void HSS_UpdateLocation(struct user_ctx_t *user, const ServedGUMMEIs_t * sGUMMEI
     char query[1000];
     uint16_t mcc;
     uint8_t mnc;
+    const guint64 imsi = emmCtx_getIMSI(emm);
+    Subscription subs;
+    PDNCtx subs_pdn;
+    struct qos_t qos;
 
-    mcc = user->imsi/1000000000000;
-    mnc = (user->imsi/10000000000)%100;
+    mcc = imsi/1000000000000;
+    mnc = (imsi/10000000000)%100;
     /*Update Location*/
     sprintf(query, update_location,
             sGUMMEIs->item[0]->servedMMECs->item[0]->s[0],
             bin_to_strhex(sGUMMEIs->item[0]->servedGroupIDs->item[0]->s,2,mmegi),
             0,
-            mcc, mnc, user->imsi%10000000000ULL);
+            mcc, mnc, imsi%10000000000ULL);
 
     if (mysql_query(HSSConnection, query)){
         log_msg(LOG_ERR, mysql_errno(HSSConnection), "%s", mysql_error(HSSConnection));
@@ -473,7 +477,7 @@ void HSS_UpdateLocation(struct user_ctx_t *user, const ServedGUMMEIs_t * sGUMMEI
 
     /*Get Subscriber info*/
     sprintf(query, get_subscriber_profile,
-            mcc, mnc, user->imsi%10000000000ULL, 0);
+            mcc, mnc, imsi%10000000000ULL, 0);
 
     if (mysql_query(HSSConnection, query)){
         log_msg(LOG_ERR, mysql_errno(HSSConnection), "%s", mysql_error(HSSConnection));
@@ -483,23 +487,26 @@ void HSS_UpdateLocation(struct user_ctx_t *user, const ServedGUMMEIs_t * sGUMMEI
     result = mysql_store_result(HSSConnection);
     row = mysql_fetch_row(result);
 
+    subs = emmCtx_getSubscription(emm);
+    subs_pdn = subs_newPDNCtx(subs);
+    
+    emmCtx_setMSISDN(emm, strtoull(row[0], NULL, 0));
+    subs_setUEAMBR(subs, strtoull(row[1], NULL, 0), strtoull(row[2], NULL, 0) );
 
-    user->msisdn = strtoull(row[0], NULL, 0);
-    user->ue_ambr_ul = strtoull(row[1], NULL, 0);
-    user->ue_ambr_dl = strtoull(row[2], NULL, 0);
-    user->ebearer[0].qos.qci = atoi(row[13]);
-    user->ebearer[0].qos.pl  = atoi(row[14]);
-    user->ebearer[0].qos.pci = *row[15];
-    user->ebearer[0].qos.pvi = *row[16];
-    user->ebearer[0].qos.mbr_ul = 0;
-    user->ebearer[0].qos.mbr_dl = 0;
-    user->ebearer[0].qos.gbr_ul = 0;
-    user->ebearer[0].qos.gbr_dl = 0;
+    qos.qci = atoi(row[13]);
+    qos.pl  = atoi(row[14]);
+    qos.pci = *row[15];
+    qos.pvi = *row[16];
+    qos.mbr_ul = 0;
+    qos.mbr_dl = 0;
+    qos.gbr_ul = 0;
+    qos.gbr_dl = 0;
 
+    pdnCtx_setDefaultBearerQoS(subs_pdn, &qos);
 
-    user->pdn_type = atoi(row[9]);
-    sprintf(user->aPname, "%s.mnc%.3u.mcc%.3u.gprs", row[5], mnc, mcc);
-
+    pdnCtx_setPDNtype(subs_pdn, atoi(row[9]));
+    sprintf(apn, "%s.mnc%.3u.mcc%.3u.gprs", row[5], mnc, mcc);
+    pdnCtx_setAPN(subs_pdn, apn);
     mysql_free_result(result);
 
 }

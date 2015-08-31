@@ -54,6 +54,9 @@ typedef struct{
 
     gpointer     s11;
 
+    gboolean     attachStarted;
+    GPtrArray    *pendingESMmsg;
+
     /* **** Start of MM context **** */
     guint8       type;          /**< MM type */
     guint8       securityMode;
@@ -116,5 +119,7 @@ const AuthQuadruplet *emmCtx_getFirstAuthQuadruplet(EMMCtx emm);
 void emmCtx_freeAuthQuadruplet(EMMCtx emm);
 
 const guint8 *emmCtx_getServingNetwork_TBCD(const EMMCtx emm);
+
+Subscription emmCtx_getSubscription(const EMMCtx emm);
 
 #endif /* EMM_CTX_H*/

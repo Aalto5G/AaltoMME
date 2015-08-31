@@ -104,11 +104,11 @@ void s6a_SynchAuthVector(gpointer s6a_h, struct user_ctx_t *user, uint8_t *auts,
 }
 
 
-void s6a_UpdateLocation(gpointer s6a_h, struct user_ctx_t *user,
+void s6a_UpdateLocation(gpointer s6a_h, EMMCtx emm,
                         void(*cb)(gpointer), gpointer args){
 
     struct s6a_t *s6a = (struct s6a_t*) s6a_h;
-    HSS_UpdateLocation(user, mme_getServedGUMMEIs(s6a->mme));
+    HSS_UpdateLocation(emm, mme_getServedGUMMEIs(s6a->mme));
     cb(args);
 }
 

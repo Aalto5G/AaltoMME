@@ -76,3 +76,24 @@ void emm_sendAuthRequest(EMMCtx emm_h){
     ecm_send(emm->ecm, buffer, pointer-buffer);
     emmChangeState(emm, EMM_CommonProcedureInitiated);
 }
+
+void emm_setSecurityQuadruplet(EMMCtx emm_h){
+	EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+
+	AuthQuadruplet *sec;
+	sec = (AuthQuadruplet *)g_ptr_array_index(emm->authQuadrs,0);
+
+	if(emm->ksi < 6){
+		emm->old_ksi = emm->ksi;
+		emm->old_ncc = emm->ncc;
+		memcpy(emm->old_kasme, emm->kasme, 32);
+		memcpy(emm->old_nh, emm->nh, 32);
+		emm->ksi++;
+	}else{
+		emm->ksi = 0;
+	}
+
+	memcpy(emm->kasme, sec->kASME, 32);
+
+	g_ptr_array_remove_index(emm->authQuadrs, 0);
+}

@@ -57,9 +57,18 @@ void processAttach(gpointer emm_h,  GenericNASMsg_t* msg){
     AttachRequest_t *attachMsg;
     guint ksi_msg, i;
     uint64_t mobid=0ULL;
+    GByteArray *esmRaw;
 
     attachMsg = (AttachRequest_t*)&(msg->plain.eMM);
+    emm->attachStarted = TRUE;
     ksi_msg = attachMsg->nASKeySetId.v & 0x07;
+
+    esmRaw = g_byte_array_new ();
+    g_byte_array_append(esmRaw,
+                        attachMsg->eSM_MessageContainer.v,
+                        attachMsg->eSM_MessageContainer.l),
+    g_ptr_array_add(emm->pendingESMmsg, esmRaw);
+    
 
     if(((ePSMobileId_header_t*)attachMsg->ePSMobileId.v)->type == 1 ){  /* IMSI*/
         for(i=0; i<attachMsg->ePSMobileId.l-1; i++){

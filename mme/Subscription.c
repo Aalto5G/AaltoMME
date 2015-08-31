@@ -55,8 +55,8 @@ typedef struct{
     guint64    imeisv;
     guint8     network_access_mode;
     guint32    access_restriction_data;
-    guint32    ambr_ul;
-    guint32    ambr_dl;
+    guint64    ambr_ul;
+    guint64    ambr_dl;
     GString    *apn_io_replacement;
     //GHashTable *pdnCtx;
     PDNCtx_t   *pdn;
@@ -64,14 +64,13 @@ typedef struct{
 
 PDNCtx_t *pdnctx_init(){
     PDNCtx_t *self = g_new0(PDNCtx_t, 1);
+    self->apn = g_string_new (NULL);
     return self;
 }
 
 static void pdnctx_free(PDNCtx_t *pdn){
     PDNCtx_t *self = (PDNCtx_t*)pdn;
-    if(self->apn){
-        g_string_free(self->apn, TRUE);
-    }
+    g_string_free(self->apn, TRUE);
     g_free(self);
 }
 
@@ -194,4 +193,37 @@ void subs_setPDNaddr(Subscription s, const struct PAA_t *paa){
         memcpy(pdn->pdn_addr + 16, &(paa->addr.both.ipv4), 4);
         break;
     }
+}
+
+PDNCtx subs_newPDNCtx(Subscription s){
+	Subs_t *self = (Subs_t*)s;
+	return self->pdn;
+}
+
+void subs_setUEAMBR(Subscription s, guint64 ue_ambr_ul, guint64 ue_ambr_dl){
+	Subs_t *self = (Subs_t*)s;
+	self->ambr_ul = ue_ambr_ul;
+    self->ambr_dl = ue_ambr_dl;
+}
+
+void pdnCtx_setDefaultBearerQoS(PDNCtx _pdn, struct qos_t *qos){
+	PDNCtx_t *pdn = (PDNCtx_t *)pdn;
+	pdn->qos.qci = qos->qci;
+	pdn->qos.arp.level = qos->pl;
+	pdn->qos.arp.preemption_capability = qos->pci;
+	pdn->qos.arp.preemption_vulnerability = qos->pvi;
+	pdn->subscribed_apn_ambr_dl = qos->mbr_ul;
+	pdn->subscribed_apn_ambr_up = qos->mbr_dl;
+}
+
+void pdnCtx_setPDNtype(PDNCtx _pdn, guint8 t){
+	PDNCtx_t *pdn = (PDNCtx_t *)pdn;
+	pdn->pdn_addr_type = t;
+}
+
+void pdnCtx_setAPN(PDNCtx _pdn, const char* apn){
+	PDNCtx_t *pdn = (PDNCtx_t *)pdn;
+	log_msg(LOG_ERR, 0, "APN %s", apn);
+	log_msg(LOG_ERR, 0, "APN %p", &(pdn->apn));
+	g_string_assign(pdn->apn, apn);
 }
