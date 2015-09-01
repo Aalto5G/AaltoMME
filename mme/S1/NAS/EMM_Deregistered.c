@@ -58,17 +58,18 @@ void processAttach(gpointer emm_h,  GenericNASMsg_t* msg){
     guint ksi_msg, i;
     uint64_t mobid=0ULL;
     GByteArray *esmRaw;
+    guint16 cap;
 
     attachMsg = (AttachRequest_t*)&(msg->plain.eMM);
     emm->attachStarted = TRUE;
     ksi_msg = attachMsg->nASKeySetId.v & 0x07;
 
-    esmRaw = g_byte_array_new ();
+    esmRaw = g_byte_array_new();
     g_byte_array_append(esmRaw,
-                        attachMsg->eSM_MessageContainer.v,
-                        attachMsg->eSM_MessageContainer.l),
+                        (guint8*)attachMsg->eSM_MessageContainer.v,
+                        attachMsg->eSM_MessageContainer.l);
+
     g_ptr_array_add(emm->pendingESMmsg, esmRaw);
-    
 
     if(((ePSMobileId_header_t*)attachMsg->ePSMobileId.v)->type == 1 ){  /* IMSI*/
         for(i=0; i<attachMsg->ePSMobileId.l-1; i++){
@@ -81,6 +82,13 @@ void processAttach(gpointer emm_h,  GenericNASMsg_t* msg){
         log_msg(LOG_DEBUG, 0,"Attach Received from imsi : %llu", mobid);
         emm->imsi = mobid;
     }
+
+    if(attachMsg->uENetworkCapability.l != 2){
+	    log_msg(LOG_ERR, 0,"NAS: UE Network Capability IE wrong");
+	    return;
+    }
+    memcpy(&cap, attachMsg->uENetworkCapability.v, 2);
+    emm->ueCapabilities = ntoh16(cap);
 
     if(mobid == 0ULL){ /* !isIMSIavailable(emm) */
         if(0){

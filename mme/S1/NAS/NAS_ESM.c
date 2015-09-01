@@ -72,7 +72,9 @@ void esm_processMsg(gpointer esm_h, gpointer buffer, size_t len){
 		break;
 	/* UE Requests*/
 	case PDNConnectivityRequest:
-		bearer = esm_bc_init(self->emm, ++(self->next_ebi));
+		log_msg(LOG_WARNING, 0, "ESM PDNConnectivityRequest Received !!");
+		bearer = esm_bc_init(self->emm, self->next_ebi);
+		self->next_ebi++;
 		g_hash_table_insert(self->bearers, esm_bc_getEBIp(bearer), bearer);
 		esm_activateDefault(bearer);
 	case PDNDisconnectRequest:

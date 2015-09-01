@@ -21,6 +21,7 @@
 #include "logmgr.h"
 #include "EMMCtx.h"
 #include "ECMSession_priv.h"
+#include "NAS_ESM.h"
 
 gpointer emm_init(gpointer ecm){
     EMMCtx_t *self = emmCtx_init();
@@ -28,11 +29,13 @@ gpointer emm_init(gpointer ecm){
     emmChangeState(self, EMM_Deregistered);
     self->ecm = ecm;
     self->s6a = ecmSession_getS6a(ecm);
+    self->esm = esm_init(self);
     return self;
 }
 
 void emm_free(gpointer emm_h){
     EMMCtx_t *self = (EMMCtx_t*)emm_h;
+    esm_free(self->esm);
     emmDestroyFSM();
     emmCtx_free(self);
 }
@@ -41,8 +44,6 @@ void emm_processMsg(gpointer emm_h, gpointer buffer, size_t len){
     EMMCtx_t *self = (EMMCtx_t*)emm_h;
     GenericNASMsg_t msg;
     dec_NAS(&msg, buffer, len);
-
-    log_msg(LOG_WARNING, 0, "Enter");
 
     self->state->processMsg(self, &msg);
 }
@@ -78,22 +79,80 @@ void emm_sendAuthRequest(EMMCtx emm_h){
 }
 
 void emm_setSecurityQuadruplet(EMMCtx emm_h){
-	EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
 
-	AuthQuadruplet *sec;
-	sec = (AuthQuadruplet *)g_ptr_array_index(emm->authQuadrs,0);
+    AuthQuadruplet *sec;
+    sec = (AuthQuadruplet *)g_ptr_array_index(emm->authQuadrs,0);
 
-	if(emm->ksi < 6){
-		emm->old_ksi = emm->ksi;
-		emm->old_ncc = emm->ncc;
-		memcpy(emm->old_kasme, emm->kasme, 32);
-		memcpy(emm->old_nh, emm->nh, 32);
-		emm->ksi++;
-	}else{
-		emm->ksi = 0;
-	}
+    if(emm->ksi < 6){
+        emm->old_ksi = emm->ksi;
+        emm->old_ncc = emm->ncc;
+        memcpy(emm->old_kasme, emm->kasme, 32);
+        memcpy(emm->old_nh, emm->nh, 32);
+        emm->ksi++;
+    }else{
+        emm->ksi = 1;
+    }
 
-	memcpy(emm->kasme, sec->kASME, 32);
+    memcpy(emm->kasme, sec->kASME, 32);
 
-	g_ptr_array_remove_index(emm->authQuadrs, 0);
+    g_ptr_array_remove_index(emm->authQuadrs, 0);
+}
+
+void emm_sendSecurityModeCommand(EMMCtx emm_h){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    guint8 *pointer, algorithms;
+    guint16 capabilities;
+    guint32 mac;
+    guint8 count, buffer[150], req;
+    memset(buffer, 0, 150);
+
+     /* Build Security Mode Command*/
+    pointer = buffer;
+    newNASMsg_EMM(&pointer, EPSMobilityManagementMessages,
+                  IntegrityProtectedWithNewEPSSecurityContext);
+
+    mac = 0;
+    nasIe_v_t3(&pointer, (uint8_t *)&mac, 4);
+
+    count = emm->nasDlCount % 0xff;
+    nasIe_v_t3(&pointer, (uint8_t*)&count, 1);
+
+
+    newNASMsg_EMM(&pointer, EPSMobilityManagementMessages, PlainNAS);
+
+    encaps_EMM(&pointer, SecurityModeCommand);
+
+    /* Selected NAS security algorithms */
+    algorithms=0;
+    nasIe_v_t3(&pointer, &algorithms, 1);
+
+    /*NAS key set identifier*/
+    nasIe_v_t1_l(&pointer, (emm->ksi)&0x0F);
+    pointer++; /*Spare half octet*/
+
+    /* Replayed UE security capabilities */
+    capabilities = hton16(emm->ueCapabilities);
+    nasIe_lv_t4(&pointer, (uint8_t*)&capabilities, 2); /* 256 bits */
+
+    /* IMEISV request */
+    req = 0xc0&0xf0  /* Type*/
+        | 0          /* Spare */
+        | 0x01&0x07; /* Request*/
+    nasIe_v_t3(&pointer, &req, 1);
+
+    ecm_send(emm->ecm, buffer, pointer-buffer);
+    emmChangeState(emm, EMM_CommonProcedureInitiated);
+
+    /* Set timer T3460*/
+}
+
+void emm_processFirstESMmsg(EMMCtx emm_h){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    GByteArray *esmRaw;
+    esmRaw = g_ptr_array_index(emm->pendingESMmsg, 0);
+
+    esm_processMsg(emm->esm, esmRaw->data, esmRaw->len);
+
+    g_ptr_array_remove_index(emm->pendingESMmsg, 0);
 }

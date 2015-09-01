@@ -18,15 +18,22 @@
 #include "logmgr.h"
 #include "EMM_FSMConfig.h"
 #include "NAS.h"
+#include "NAS_EMM_priv.h"
 
 void processAuthResp(EMMCtx_t * emm,  GenericNASMsg_t* msg);
 
 static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    GenericNASMsg_t *ciph;
+    NASPlainMsg_t *plain;
+    GenericNASMsg_t msg2;
+
 	if(msg->header.securityHeaderType.v != PlainNAS){
-        log_msg(LOG_ERR, 0, "NAS Integrity or security not implemented");
-        return;
-    }
+		log_msg(LOG_INFO, 0, "Received Cyphered and Integrity protected message");
+		ciph = msg;
+		msg = &msg2;
+		dec_NAS(msg, ciph->ciphered.msg, ciph->ciphered.len);
+	}
 
 	switch(msg->plain.eMM.messageType){
 
@@ -41,6 +48,10 @@ static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
 		break;
 	case SecurityModeComplete:
 		log_msg(LOG_ERR, 0, "Received SecurityModeComplete, not implemented");
+		s6a_UpdateLocation(emm->s6a, emm,
+		                   (void(*)(gpointer)) emm_processFirstESMmsg,
+		                   (gpointer)emm);
+		emmChangeState(emm, EMM_SpecificProcedureInitiated);
 		break;
 	case SecurityModeReject:
 		log_msg(LOG_ERR, 0, "Received SecurityModeReject, not implemented");
@@ -98,12 +109,14 @@ void processAuthResp(EMMCtx_t * emm,  GenericNASMsg_t* msg){
 	/* } */
 
 	emm_setSecurityQuadruplet(emm);
-
+	emm->nasDlCount = 0;
+	emm->nasUlCount = 0;
+	emm_sendSecurityModeCommand(emm);
 	/*Temporary*/
 	/* @TODO Comment the following line and uncomment the next ones
 	 *  to activate the Security Mode Procedure
 	 */
-	s6a_UpdateLocation(emm->s6a, emm,
-	                   (void(*)(gpointer)) test,
-	                   (gpointer)emm);
+	/* s6a_UpdateLocation(emm->s6a, emm, */
+	/*                    (void(*)(gpointer)) test, */
+	/*                    (gpointer)emm); */
 }

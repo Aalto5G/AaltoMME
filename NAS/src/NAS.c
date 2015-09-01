@@ -223,7 +223,13 @@ void dec_NAS(GenericNASMsg_t *msg, uint8_t *buf, uint32_t size){
 
     if( (ProtocolDiscriminator_t)msg->header.protocolDiscriminator.v == EPSMobilityManagementMessages &&
             (SecurityHeaderType_t)msg->header.securityHeaderType.v != PlainNAS){
-        nas_msg(NAS_ERROR, 0, "Cipher and integrity check not implemented yet: %u", msg->header.securityHeaderType.v);
+	    memcpy(msg->ciphered.messageAuthCode, pointer,4);
+	    pointer+=4;
+	    msg->ciphered.sequenceNum = *pointer;
+	    pointer++;
+	    msg->ciphered.msg = pointer;
+	    msg->ciphered.len = size-6;
+	    return;
     }else{
         if((ProtocolDiscriminator_t)msg->header.protocolDiscriminator.v == EPSMobilityManagementMessages){
             dec_EMM(&(msg->plain.eMM), pointer, size-1);

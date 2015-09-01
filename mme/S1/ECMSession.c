@@ -56,7 +56,6 @@ void ecmSession_free(ECMSession h){
 
 void ecmSession_processMsg(ECMSession h, S1AP_Message_t *s1msg, int r_sid){
     ECMSession_t *self = (ECMSession_t *)h;
-    log_msg(LOG_INFO, 0, "TEST");
     self->state->processMsg(self, s1msg, r_sid);
 }
 

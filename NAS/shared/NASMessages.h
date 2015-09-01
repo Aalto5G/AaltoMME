@@ -52,10 +52,10 @@ typedef union NASPlainMsg_c{
 typedef struct SecurityProtectedMsg_c{
     ie_v_t1_l_t     protocolDiscriminator;
     ie_v_t1_h_t     securityHeaderType;
-    uint8_t         procedureTransactionIdentity;
     ie_v_t3_t       messageAuthCode;
     uint8_t         sequenceNum;
-    NASPlainMsg_t   msg;
+    uint8_t         *msg;
+	uint32_t        len;
 }SecurityProtectedMsg_t;
 
 /** Structure defining the generic NAS message, plain or ciphered*/

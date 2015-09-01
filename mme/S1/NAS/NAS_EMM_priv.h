@@ -32,4 +32,8 @@
  * */
 void emm_sendAuthRequest(EMMCtx emm_h);
 
+void emm_sendSecurityModeCommand(EMMCtx emm_h);
+
+void emm_processFirstESMmsg(EMMCtx emm_h);
+
 #endif /* NAS_EMM_PRIV_HFILE */

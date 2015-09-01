@@ -21,7 +21,12 @@
 #include "ECMSession_priv.h"
 
 void freeESMmsg(gpointer msg){
-	g_byte_array_free(msg, TRUE);
+	GByteArray *array = (GByteArray *)msg;
+	log_msg(LOG_INFO, 0, "TEST %u",  array->len);
+	/* g_byte_array_free(array, TRUE); */
+	g_byte_array_unref(array);
+	log_msg(LOG_INFO, 0, "DONE");
+
 }
 
 EMMCtx emmCtx_init(){

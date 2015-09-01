@@ -35,11 +35,11 @@
 #define S1AP_CONTROL_STREAM1 1
 
 char *msgpath[] = {"/home/vicent/S1APmsg/S1AP_id-S1Setup.s1",
-        "/home/vicent/S1APmsg/S1AP_id-initialUEMessageReq.s1",
-        "/home/vicent/S1APmsg/S1AP_id-uplinkNASTransport.s1",
-        /* "/home/vicent/S1APmsg/S1AP_id-uplinkNASTransport-SecurityModeComplete.s1" */
-        "/home/vicent/S1APmsg/S1AP_id-InitialContextSetup_Rsp.s1",
-        "/home/vicent/S1APmsg/S1AP_id-uplinkNASTransport_AttachComplete.s1"
+                   "/home/vicent/S1APmsg/S1AP_id-initialUEMessageReq.s1",
+                   "/home/vicent/S1APmsg/S1AP_id-uplinkNASTransport.s1",
+                   "/home/vicent/S1APmsg/S1AP_id-uplinkNASTransport-SecurityModeComplete.s1",
+                   "/home/vicent/S1APmsg/S1AP_id-InitialContextSetup_Rsp.s1",
+                   "/home/vicent/S1APmsg/S1AP_id-uplinkNASTransport_AttachComplete.s1"
 };
 
 void send_testMsg(int sock, int sid, int i){
@@ -94,10 +94,10 @@ void s1_accept(evutil_socket_t listener, short event, void *arg){
         event_free(ev);
     }
 
-    if(i<5){
+    if(i<6){
 	    send_testMsg(listener, sndrcvinfo.sinfo_stream, i);
 	    i++;
-	    if(i==4){
+	    if(i==5){
 		    send_testMsg(listener, sndrcvinfo.sinfo_stream, i);
 		    i++;
 	    }

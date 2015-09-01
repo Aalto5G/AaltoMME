@@ -148,7 +148,7 @@ const char* subs_getAPN(const Subscription s){
     /*  pdn = (PDNCtx*)value; */
     /* } */
     pdn = self->pdn;
-    pdn->apn->str;
+    return pdn->apn->str;
 }
 
 const uint8_t subs_getPDNType(const Subscription s){
@@ -222,8 +222,6 @@ void pdnCtx_setPDNtype(PDNCtx _pdn, guint8 t){
 }
 
 void pdnCtx_setAPN(PDNCtx _pdn, const char* apn){
-	PDNCtx_t *pdn = (PDNCtx_t *)pdn;
-	log_msg(LOG_ERR, 0, "APN %s", apn);
-	log_msg(LOG_ERR, 0, "APN %p", &(pdn->apn));
+	PDNCtx_t *pdn = (PDNCtx_t *)_pdn;
 	g_string_assign(pdn->apn, apn);
 }

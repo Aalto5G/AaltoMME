@@ -23,7 +23,7 @@ typedef enum SecurityHeaderType_c{
     /*Security protected NAS Message*/
     IntegrityProtected,
     IntegrityProtectedAndCiphered,
-    IntegrityProtectedWithNewEPSSecurituContext,
+    IntegrityProtectedWithNewEPSSecurityContext,
     IntegrityProtectedAndCipheredWithNewEPSSecurityContext,
     /*Non-standard L3 message*/
     SecurityHeaderForServiceRequestMessage = 12,
