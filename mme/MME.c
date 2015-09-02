@@ -258,7 +258,7 @@ int mme_run(struct mme_t *self){
 
     self->ev_readers = g_hash_table_new_full( g_int_hash,
                                               g_int_equal,
-                                              NULL,
+                                              g_free,
                                               (GDestroyNotify) event_free);
 
     self->s1_by_GeNBid = g_hash_table_new_full( (GHashFunc)  globaleNBID_Hash,

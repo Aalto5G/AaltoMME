@@ -22,11 +22,7 @@
 
 void freeESMmsg(gpointer msg){
 	GByteArray *array = (GByteArray *)msg;
-	log_msg(LOG_INFO, 0, "TEST %u",  array->len);
-	/* g_byte_array_free(array, TRUE); */
-	g_byte_array_unref(array);
-	log_msg(LOG_INFO, 0, "DONE");
-
+	g_byte_array_free(array, TRUE);
 }
 
 EMMCtx emmCtx_init(){

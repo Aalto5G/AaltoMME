@@ -207,7 +207,7 @@ void subs_setUEAMBR(Subscription s, guint64 ue_ambr_ul, guint64 ue_ambr_dl){
 }
 
 void pdnCtx_setDefaultBearerQoS(PDNCtx _pdn, struct qos_t *qos){
-	PDNCtx_t *pdn = (PDNCtx_t *)pdn;
+	PDNCtx_t *pdn = (PDNCtx_t *)_pdn;
 	pdn->qos.qci = qos->qci;
 	pdn->qos.arp.level = qos->pl;
 	pdn->qos.arp.preemption_capability = qos->pci;
@@ -217,7 +217,7 @@ void pdnCtx_setDefaultBearerQoS(PDNCtx _pdn, struct qos_t *qos){
 }
 
 void pdnCtx_setPDNtype(PDNCtx _pdn, guint8 t){
-	PDNCtx_t *pdn = (PDNCtx_t *)pdn;
+	PDNCtx_t *pdn = (PDNCtx_t *)_pdn;
 	pdn->pdn_addr_type = t;
 }
 
