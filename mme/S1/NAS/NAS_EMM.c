@@ -150,9 +150,10 @@ void emm_sendSecurityModeCommand(EMMCtx emm_h){
 void emm_processFirstESMmsg(EMMCtx emm_h){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     GByteArray *esmRaw;
+    gsize len;
     esmRaw = g_ptr_array_index(emm->pendingESMmsg, 0);
 
-    esm_processMsg(emm->esm, esmRaw->data, esmRaw->len);
+    esm_processMsg(emm->esm, g_bytes_get_data(esmRaw, &len), len);
 
     g_ptr_array_remove_index(emm->pendingESMmsg, 0);
 }
