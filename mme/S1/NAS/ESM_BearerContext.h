@@ -25,6 +25,8 @@
 #include <stdint.h>
 #include <glib.h>
 
+typedef gpointer ESM_BearerContext;
+
 /**
  * @brief NAS ESM constructor
  * @param [in]  emm EMM stack handler
@@ -32,27 +34,35 @@
  *
  *  Allocates the ESM stack. Use esm_free to delete the structure.
  */
-gpointer esm_bc_init(gpointer emm, uint8_t ebi);
+ESM_BearerContext esm_bc_init(gpointer emm, uint8_t ebi);
 
 /**
  * @brief Dealocates the ESM stack handler
  * @param [in]  esm_h ESM stack handler to be removed.
  */
-void esm_bc_free(gpointer esm_h);
+void esm_bc_free(ESM_BearerContext esm_h);
 
 /**
  * @brief sends the appropiate message to setup the bearer
  * @param [in]  esm_h ESM stack handler
  */
-void esm_activateDefault(gpointer esm_h);
+void esm_activateDefault(ESM_BearerContext esm_h);
 
 /* API to config*/
 
-void esm_bc_setState(gpointer self, ESM_State *s);
+void esm_bc_setState(ESM_BearerContext self, ESM_State *s);
 
-void esm_bc_processMsg(gpointer self, const ESM_Message_t * msg);
+void esm_bc_processMsg(ESM_BearerContext self, const ESM_Message_t * msg);
 
 /* API to ESM*/
-uint8_t *esm_bc_getEBIp(gpointer bc_h);
+guint8 *esm_bc_getEBIp(ESM_BearerContext bc_h);
+
+const guint8 esm_bc_getEBI(const ESM_BearerContext bc_h);
+
+void esm_bc_setS1uSGWfteid(ESM_BearerContext bc_h, gpointer fteid_h, gsize len);
+
+void esm_bc_setS5S8uPGWfteid(ESM_BearerContext bc_h, gpointer fteid_h, gsize len);
+
+
 
 #endif /* ESM_Bearer_Context_H */

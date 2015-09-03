@@ -16,7 +16,7 @@
  */
 
 #include <glib.h>
-#include "NAS_EMM.h"
+#include "NAS_EMM_priv.h"
 #include "NAS.h"
 #include "logmgr.h"
 #include "EMMCtx.h"
@@ -39,6 +39,12 @@ void emm_free(gpointer emm_h){
     emmDestroyFSM();
     emmCtx_free(self);
 }
+
+gpointer emm_getS11(gpointer emm_h){
+	EMMCtx_t *self = (EMMCtx_t*)emm_h;
+	return ecmSession_getS11(self->ecm);
+}
+
 
 void emm_processMsg(gpointer emm_h, gpointer buffer, size_t len){
     EMMCtx_t *self = (EMMCtx_t*)emm_h;
@@ -153,7 +159,7 @@ void emm_processFirstESMmsg(EMMCtx emm_h){
     gsize len;
     esmRaw = g_ptr_array_index(emm->pendingESMmsg, 0);
 
-    esm_processMsg(emm->esm, g_bytes_get_data(esmRaw, &len), len);
+    esm_processMsg(emm->esm, esmRaw->data, esmRaw->len);
 
     g_ptr_array_remove_index(emm->pendingESMmsg, 0);
 }

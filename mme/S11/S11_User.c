@@ -19,6 +19,9 @@
 #include "MME_S11.h"
 #include "nodemgr.h"
 #include "logmgr.h"
+#include "EMMCtx.h"
+#include "EPS_Session_priv.h"
+#include "ESM_BearerContext.h"
 
 #include <string.h>
 #include <netinet/in.h>
@@ -33,7 +36,9 @@ typedef struct{
     struct sockaddr    rAddr;    /**<Peer IP address, IPv4 or IPv6*/
     socklen_t          rAddrLen; /**<Peer Socket length returned by recvfrom*/
     struct fteid_t	   s5s8;     /**< F-TEID PGW S5/S8 (Control Plane)*/
-    struct user_ctx_t  *user;    /**< User information*/
+    EMMCtx             emm;
+    EPS_Session        session;
+    //struct user_ctx_t  *user;    /**< User information*/
     Subscription       subs;     /**< Subscription information*/
     union gtp_packet   oMsg;
     uint32_t           oMsglen;
@@ -53,16 +58,17 @@ parse_error (void)
   return g_quark_from_static_string ("gtpv2-parse-error");
 }
 
-gpointer s11u_newUser(gpointer s11, struct user_ctx_t *user){
+gpointer s11u_newUser(gpointer s11, EMMCtx emm, EPS_Session s){
     struct nodeinfo_t sgw;
     struct sockaddr_in *peer;
 
     S11_user_t *self = g_new0(S11_user_t, 1);
-    self->lTEID = newTeid();
-    self->rTEID = 0;
-    self->user  = user;
-    self->subs  = user->subs;
-    self->s11   = s11;
+    self->lTEID   = newTeid();
+    self->rTEID   = 0;
+    self->emm     = emm;
+    self->session = s;
+    self->subs    = emmCtx_getSubscription(emm);
+    self->s11     = s11;
 
     /*Get SGW addr*/
     getNode(&sgw, SGW, self->subs);
@@ -200,6 +206,8 @@ void sendCreateSessionReq(gpointer u){
     uint32_t ielen, ienum=0;
     uint8_t bytefield[30], *tmp;
     struct nodeinfo_t pgwInfo;
+    uint8_t pco[0xff+2];
+    ESM_BearerContext bearer;
 
     log_msg(LOG_DEBUG, 0, "Enter");
     /*  Send Create Context Request to SGW*/
@@ -211,13 +219,13 @@ void sendCreateSessionReq(gpointer u){
     /*IMSI*/
     ie[ienum].tliv.i=0;
     ie[ienum].tliv.t=GTPV2C_IE_IMSI;
-    dec2tbcd(ie[ienum].tliv.v, &ielen, self->user->imsi);
+    dec2tbcd(ie[ienum].tliv.v, &ielen, emmCtx_getIMSI(self->emm));
     ie[ienum].tliv.l=hton16(ielen);
     ienum++;
     /*MSISDN*/
     ie[ienum].tliv.i=0;
     ie[ienum].tliv.t=GTPV2C_IE_MSISDN;
-    dec2tbcd(ie[ienum].tliv.v, &ielen,  self->user->msisdn);
+    dec2tbcd(ie[ienum].tliv.v, &ielen, emmCtx_getMSISDN(self->emm));
     ie[ienum].tliv.l=hton16(ielen);
     ienum++;
     /*MEI*/
@@ -231,7 +239,7 @@ void sendCreateSessionReq(gpointer u){
     ie[ienum].tliv.i=0;
     ie[ienum].tliv.l=hton16(3);
     ie[ienum].tliv.t=GTPV2C_IE_SERVING_NETWORK;
-    memcpy(ie[ienum].tliv.v, self->user->tAI.sn, 3);
+    memcpy(ie[ienum].tliv.v, emmCtx_getServingNetwork_TBCD(self->emm), 3);
     ienum++;
 
     /*RAT type*/
@@ -312,21 +320,22 @@ void sendCreateSessionReq(gpointer u){
 
 
     /*Protocol Configuration Options*/
-    if(self->user->pco[0]==0x27){
+    if(ePSsession_getPCO(self->session, pco)){
         ie[ienum].tliv.i=0;
-        ie[ienum].tliv.l=hton16(self->user->pco[1]);
+        ie[ienum].tliv.l=hton16(pco[1]);
         ie[ienum].tliv.t=GTPV2C_IE_PCO;
-        tmp = self->user->pco+2;
-        memcpy(ie[ienum].tliv.v, tmp, self->user->pco[1]);
+        tmp = pco+2;
+        memcpy(ie[ienum].tliv.v, tmp, pco[1]);
         ienum++;
     }
     /*Bearer contex*/
+    bearer = ePSsession_getDefaultBearer(self->session);
         /*EPS Bearer ID */
         ie_bearer_ctx[0].tliv.i=0;
         ie_bearer_ctx[0].tliv.l=hton16(1);
         ie_bearer_ctx[0].tliv.t=GTPV2C_IE_EBI;
         /*EBI = 5,  EBI > 4, see 3GPP TS 24.007 11.2.3.1.5  EPS bearer identity */
-        ie_bearer_ctx[0].tliv.v[0]=0x05;
+        ie_bearer_ctx[0].tliv.v[0]=esm_bc_getEBI(bearer);
         /* Bearer QoS */
         ie_bearer_ctx[1].tliv.i=0;
         ie_bearer_ctx[1].tliv.l=hton16(sizeof(struct qos_t));
@@ -354,6 +363,8 @@ void sendModifyBearerReq(gpointer u){
     union gtpie_member ie[13], ie_bearer_ctx[3];
     int hlen, a;
     uint32_t fteid_size;
+    ESM_BearerContext bearer;
+
 
     log_msg(LOG_DEBUG, 0, "Enter");
     /*  Send Create Context Request to SGW*/
@@ -375,13 +386,14 @@ void sendModifyBearerReq(gpointer u){
     memcpy(ie[0].tliv.v, &fteid, FTEID_IP4_SIZE);
 
     /*Bearer contex*/
+    bearer = ePSsession_getDefaultBearer(self->session);
         /*EPS Bearer ID */
         ie_bearer_ctx[0].tliv.i=0;
         ie_bearer_ctx[0].tliv.l=hton16(1);
         ie_bearer_ctx[0].tliv.t=GTPV2C_IE_EBI;
-        ie_bearer_ctx[0].tliv.v[0]=self->user->ebearer[0].id;
+        ie_bearer_ctx[0].tliv.v[0]=esm_bc_getEBI(bearer);
         /* fteid S1-U eNB*/
-        memcpy(&fteid, &(self->user->ebearer[0].s1u_eNB), sizeof(struct fteid_t));
+        //memcpy(&fteid, &(self->user->ebearer[0].s1u_eNB), sizeof(struct fteid_t));
         ie_bearer_ctx[1].tliv.i=0;
         ie_bearer_ctx[1].tliv.t=GTPV2C_IE_FTEID;
         if(fteid.ipv4 == 1 && fteid.ipv6 == 0){
@@ -454,11 +466,12 @@ const int cause(gpointer u){
 void parseCtxRsp(gpointer u, GError **err){
     S11_user_t *self = (S11_user_t*)u;
     union gtpie_member *bearerCtxGroupIE[GTPIE_SIZE];
-    uint8_t value[40];
+    uint8_t value[40], addr[INET6_ADDRSTRLEN], ebi;
     uint16_t vsize;
     uint32_t numIE;
     struct fteid_t fteid;
     struct in_addr s1uaddr;
+    ESM_BearerContext bearer;
 
     /* F-TEID S11 (SGW)*/
     gtp2ie_gettliv(self->ie, GTPV2C_IE_FTEID, 0, value, &vsize);
@@ -479,8 +492,9 @@ void parseCtxRsp(gpointer u, GError **err){
     /* PDN Address Allocation - PAA*/
     gtp2ie_gettliv(self->ie, GTPV2C_IE_PAA, 0, value, &vsize);
     if(value!= NULL && vsize>0){
-        memcpy(&(self->user->pAA), value, vsize);
-        log_msg(LOG_DEBUG, 0, "PDN Allocated Addr type %u", self->user->pAA.type);
+	    ePSsession_setPDNAddress(self->session, value, vsize);
+	    log_msg(LOG_INFO, 0, "PDN Address Allocated %s",
+	            ePSsession_getPDNAddrStr(self->session, addr, INET6_ADDRSTRLEN));
     }
     /* APN Restriction*/
 
@@ -488,34 +502,36 @@ void parseCtxRsp(gpointer u, GError **err){
     /* Protocol Configuration Options PCO*/
     gtp2ie_gettliv(self->ie, GTPV2C_IE_PCO, 0, value, &vsize);
     if(value!= NULL && vsize>0){
-        memcpy(&(self->user->pco[2]), value, vsize);
-        self->user->pco[1]= (uint8_t) ntoh16(vsize);
-        log_msg(LOG_DEBUG, 0, "PDN Allocated Addr type %u", self->user->pAA.type);
+	    ePSsession_setPCO(self->session, value, vsize);
     }
 
     /* Bearer Context*/
+    bearer = ePSsession_getDefaultBearer(self->session);
     gtp2ie_gettliv(self->ie, GTPV2C_IE_BEARER_CONTEXT, 0, value, &vsize);
     if(value!= NULL && vsize>0){
         gtp2ie_decaps_group(bearerCtxGroupIE, &numIE, value, vsize);
 
         /* EPS Bearer ID*/
         gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_EBI, 0, value, &vsize);
-        memcpy(&(self->user->ebearer[0].id), value, vsize);
-        log_msg(LOG_DEBUG, 0, "EPC Bearer ID = %u", self->user->ebearer[0].id);
+        ebi = esm_bc_getEBI(bearer);
+        if(ebi != *value){
+	        log_msg(LOG_ERR, 0, "Wrong EPC Bearer ID %u != %u",
+	                ebi, *value);
+	        return;
+        }
 
         /* F-TEID S1-U (SGW)*/
         gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_FTEID, 0, value, &vsize);
         if(value!= NULL && vsize>0){
-            memcpy(&(self->user->ebearer[0].s1u_sgw), value, vsize);
-            s1uaddr.s_addr = self->user->ebearer[0].s1u_sgw.addr.addrv4;
-            log_msg(LOG_DEBUG, 0, "S1-u Sgw teid = %x, ip = %s", hton32(self->user->ebearer[0].s1u_sgw.teid), inet_ntoa(s1uaddr));
+	        esm_bc_setS1uSGWfteid(bearer, value, vsize);
+	        //log_msg(LOG_DEBUG, 0, "S1-u Sgw teid = %x, ip = %s", hton32(self->user->ebearer[0].s1u_sgw.teid), inet_ntoa(s1uaddr));
         }
 
         /* F-TEID S5/S8-U(PGW)*/
         gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_FTEID, 1, value, &vsize);
         if(value!= NULL && vsize>0){
-            memcpy(&(self->user->ebearer[0].s5s8u), value, vsize);
-            log_msg(LOG_DEBUG, 0, "S5/S8 Pgw teid = %x into", hton32(self->user->ebearer[0].s5s8u.teid));
+	        esm_bc_setS1uSGWfteid(bearer, value, vsize);
+	        //log_msg(LOG_DEBUG, 0, "S5/S8 Pgw teid = %x into", hton32(self->user->ebearer[0].s5s8u.teid));
         }else{
 
         }
@@ -529,6 +545,8 @@ void parseModBearerRsp(gpointer u, GError **err){
     uint16_t vsize;
     uint32_t numIE;
     struct fteid_t fteid;
+    ESM_BearerContext bearer;
+    guint8 ebi;
 
     /*  TODO @Vicent Check message mandatory IE*/
     log_msg(LOG_DEBUG, 0, "Parsing Modify Bearer Req");
@@ -540,12 +558,15 @@ void parseModBearerRsp(gpointer u, GError **err){
 
         /* EPS Bearer ID*/
         gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_EBI, 0, value, &vsize);
-        if(vsize != 1 && self->user->ebearer[0].id != *value){
+
+        bearer = ePSsession_getDefaultBearer(self->session);
+        ebi = esm_bc_getEBI(bearer);
+        if(vsize != 1 && ebi != *value){
             g_set_error (err,
                          PARSE_ERROR,                 // error domain
                          1,            // error code
                          "EPC Bearer ID %u != %u received",
-                         self->user->ebearer[0].id, *value);
+                         ebi, *value);
             return;
         }
 
@@ -553,13 +574,13 @@ void parseModBearerRsp(gpointer u, GError **err){
         gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_FTEID, 0, value, &vsize);
         if(value!= NULL && vsize>0){
             memcpy(&fteid, value, vsize);
-            if(memcmp(&(self->user->ebearer[0].s1u_sgw), value, vsize) != 0){
-                g_set_error (err,
-                             PARSE_ERROR,                 // error domain
-                             1,            // error code
-                             "S1-U SGW FEID not corresponds to the stored one");
-                return;
-            }
+            /* if(memcmp(&(self->user->ebearer[0].s1u_sgw), value, vsize) != 0){ */
+            /*     g_set_error (err, */
+            /*                  PARSE_ERROR,                 // error domain */
+            /*                  1,            // error code */
+            /*                  "S1-U SGW FEID not corresponds to the stored one"); */
+            /*     return; */
+            /* } */
         }
     }
 }

@@ -22,8 +22,9 @@
 #include "MME.h"
 #include "Subscription.h"
 #include "S11_State.h"
+#include "EPS_Session.h"
 
-gpointer s11u_newUser(gpointer s11, struct user_ctx_t *user);
+gpointer s11u_newUser(gpointer s11, EMMCtx emm, EPS_Session s);
 
 void s11u_freeUser(gpointer self);
 

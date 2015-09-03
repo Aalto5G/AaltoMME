@@ -113,6 +113,8 @@ void emm_setState(gpointer emm_h, EMM_State *s);
 
 const guint64 emmCtx_getIMSI(const EMMCtx emm);
 
+const guint64 emmCtx_getMSISDN(const EMMCtx emm);
+
 void emmCtx_setNewAuthQuadruplet(EMMCtx emm, AuthQuadruplet *a);
 
 const AuthQuadruplet *emmCtx_getFirstAuthQuadruplet(EMMCtx emm);

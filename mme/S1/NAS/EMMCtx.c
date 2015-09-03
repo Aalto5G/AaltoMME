@@ -61,6 +61,11 @@ const guint64 emmCtx_getIMSI(const EMMCtx emm){
     return self->imsi;
 }
 
+const guint64 emmCtx_getMSISDN(const EMMCtx emm){
+    EMMCtx_t *self = (EMMCtx_t*)emm;
+    return self->msisdn;
+}
+
 void emmCtx_setNewAuthQuadruplet(EMMCtx emm, AuthQuadruplet *a){
     EMMCtx_t *self = (EMMCtx_t*)emm;
     g_ptr_array_add(self->authQuadrs, a);

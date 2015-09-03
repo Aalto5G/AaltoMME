@@ -328,6 +328,8 @@ void mme_deregisterS1Assoc(struct mme_t *self, gpointer assoc);
 
 gpointer mme_getS6a(struct mme_t *self);
 
+gpointer mme_getS11(struct mme_t *self);
+
 GList *mme_getS1Assocs(struct mme_t *self);
 
 #endif /* MME_HFILE */

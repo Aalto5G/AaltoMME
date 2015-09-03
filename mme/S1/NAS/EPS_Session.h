@@ -12,38 +12,33 @@
  * @date   July, 2015
  * @brief  EPS_Session Information
  *
- * This module implements the EPS_Session. This header is private
+ * EPS Session Interface
  */
 
 #ifndef EPS_SESSION_H
 #define EPS_SESSION_H
 
-#include <glib.h>
-
-#include "EPS_Session_iface.h"
+#include "NAS_ESM.h"
 #include "Subscription.h"
+#include "ESM_BearerContext.h"
 
-typedef struct{
-	Subscription      subs;  /**< Subscription information*/
-    GString           *APN;
-    /* apn_restriction; */
-    GString           *subscribedAPN;
-    guint8            pdn_addr_type;
-    guint8            pdn_addr[20];
-    guint16           charging_characteristics;
-    GString           *apn_io_replacement;
+typedef void* EPS_Session;
 
+/**
+ * @brief EPS_Session Constructor
+ * @return empty session
+ *
+ *  Allocates the EPS_Session handler
+ */
 
-    struct qos_t      qos;
-    guint64           apn_ambr_dl;
-    guint64           apn_ambr_ul;
-    guint8            default_ebi;
+EPS_Session ePSsession_init(ESM esm, Subscription _subs, ESM_BearerContext b);
 
-    uint8_t           pco[0xff+2];   /* TLV Protocol Configuration Options*/
+/**
+ * @brief Dealocates the EPS_Session Handler
+ * @param [in]  s EPS_Session handler to be removed.
+ */
+void ePSsession_free(EPS_Session s);
 
-    GHashTable        *bearers;
-
-}EPS_Session_t;
-
+void ePSsession_parsePDNConnectivityRequest(EPS_Session s, GenericNASMsg_t *msg);
 
 #endif /* EPS_SESSION_H*/

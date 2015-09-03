@@ -22,6 +22,8 @@
 
 /* API to NAS */
 
+gpointer emm_getS11(EMMCtx emm_h);
+
 /**@brief Send the Authentication Request message
  * @param [in] em_h     EMM handler
  * @param [in] msg      Message buffer pointer

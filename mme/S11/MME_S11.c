@@ -100,8 +100,8 @@ struct t_process *S11_handler_create(struct t_engine_data *engine, struct t_proc
 
 /* ======================================================================*/
 
-static gpointer s11_newSession(S11_t *s11, struct user_ctx_t *user){
-	gpointer u = s11u_newUser(s11, user);
+static gpointer s11_newSession(S11_t *s11, EMMCtx emm, EPS_Session s){
+	gpointer u = s11u_newUser(s11, emm, s);
     g_hash_table_insert(s11->users, s11u_getTEIDp(u), u);
     return u;
 }
@@ -1142,14 +1142,14 @@ const char *s11_getLocalAddress(gpointer s11_h){
 /*     return pSelf; */
 /* } */
 
-gpointer S11_newUserAttach(gpointer s11_h, struct user_ctx_t *user,
+gpointer S11_newUserAttach(gpointer s11_h, EMMCtx emm, EPS_Session s,
                         void(*cb)(gpointer), gpointer args){
     log_msg(LOG_DEBUG, 0, "enter S11_newUserAttach()");
 
     S11_t *self = (S11_t *) s11_h;
 
     /* New MME TEID for the new user*/
-    gpointer u = s11_newSession(self, user);
+    gpointer u = s11_newSession(self, emm, s);
 
     /* u->state = STATE_attach; */
     /* u->state(u, S11_attach); */

@@ -72,5 +72,7 @@ void generate_KeNB(const uint8_t *kasme, const uint32_t ulNASCount, uint8_t *keN
 
 gpointer ecmSession_getS6a(const ECMSession h);
 
+gpointer ecmSession_getS11(const ECMSession h);
+
 
 #endif /* ECMSESSION_PRIV_HFILE */

@@ -161,7 +161,7 @@ void stateESM_BearerContextInactive(uint8_t *returnbuffer, uint32_t *bsize, Gene
             TASK_PDNConnectivityReqParse(returnbuffer, bsize, msg, signal);
 
             /*Enter S11 State Machine to set user context*/
-            user->s11 = (gpointer) S11_newUserAttach(SELF_ON_SIG->s11, user,
+            user->s11 = (gpointer) S11_newUserAttach(SELF_ON_SIG->s11, user, NULL,
                               (void(*)(gpointer)) sendFirstStoredSignal,
                               (gpointer)PDATA->sessionHandler);
         }

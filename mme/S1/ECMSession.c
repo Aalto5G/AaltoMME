@@ -142,3 +142,11 @@ gpointer ecmSession_getS6a(const ECMSession h){
     mme = s1_getMME(s1);
     return  mme_getS6a(mme);
 }
+
+gpointer ecmSession_getS11(const ECMSession h){
+    ECMSession_t *self = (ECMSession_t *)h;
+    struct mme_t *mme;
+    S1 s1 = s1Assoc_getS1(self->assoc);
+    mme = s1_getMME(s1);
+    return  mme_getS11(mme);
+}

@@ -24,6 +24,8 @@
 #include <stdint.h>
 #include <glib.h>
 
+typedef gpointer ESM;
+
 /**
  * @brief NAS ESM constructor
  * @param [in]  emm EMM stack handler
@@ -37,7 +39,7 @@ gpointer esm_init(gpointer emm);
  * @brief Dealocates the ESM stack handler
  * @param [in]  esm_h ESM stack handler to be removed.
  */
-void esm_free(gpointer esm_h);
+void esm_free(ESM esm_h);
 
 /**
  * @brief NAS processing function
@@ -47,7 +49,7 @@ void esm_free(gpointer esm_h);
  *
  *  Function to process the ESM message. Used by the lower layer EMM.
  */
-void esm_processMsg(gpointer esm_h, gpointer msg, size_t len);
+void esm_processMsg(ESM esm_h, gpointer msg, size_t len);
 
 
 #endif /* NAS_ESM_H */

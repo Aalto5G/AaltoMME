@@ -548,3 +548,7 @@ GList *mme_getS1Assocs(struct mme_t *self){
 gpointer mme_getS6a(struct mme_t *self){
     return self->s6a;
 }
+
+gpointer mme_getS11(struct mme_t *self){
+    return self->s11;
+}

@@ -20,6 +20,7 @@
 
 #include <glib.h>
 #include "MME.h"
+#include "EPS_Session.h"
 
 /**
  * @brief initiates the S11 stack
@@ -73,13 +74,14 @@ const char *s11_getLocalAddress(gpointer s11_h);
 
 /**@brief Attach new user
  * @param [in]  s11_h Engine reference
- * @param [in]  user  User session structure
+ * @param [in]  emm   Mobility Manamegent Handler
+ * @param [in]  s     EPS session Handler
  * @param [in]  cb    Callback to continue the workflow when the S11 procedure is done
  * @param [in]  args  Argument passed to the callback
  *
  * Used to pass the session to the S11 State machine.
  */
-gpointer S11_newUserAttach(gpointer s11_h, struct user_ctx_t *user,
+gpointer S11_newUserAttach(gpointer s11_h, EMMCtx emm, EPS_Session s,
                        void(*cb)(gpointer), gpointer args);
 
 /**@brief Modify Bearer on Attach procedure
