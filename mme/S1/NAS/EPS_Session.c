@@ -76,8 +76,58 @@ void ePSsession_parsePDNConnectivityRequest(EPS_Session s, GenericNASMsg_t *msg)
     }
 }
 
-void esm_test(gpointer esm){
-	log_msg(LOG_WARNING, 0, "ESM test");
+void esm_test(EPS_Session s){
+	EPS_Session_t *self = (EPS_Session_t*)s;
+
+	guint8 buffer[150], *pointer, apn[150];
+	gsize len;
+
+	memset(buffer, 0, 150);
+	pointer = buffer;
+
+	/*Activate default*/
+	newNASMsg_ESM(&pointer,
+	              EPSSessionManagementMessages,
+	              esm_bc_getEBI(self->defaultBearer));
+    encaps_ESM(&pointer, 1 ,ActivateDefaultEPSBearerContextRequest);
+
+    /* /\* EPS QoS *\/ */
+    /* nasIe_lv_t4(&pointer, &(PDATA->user_ctx->ebearer->qos.qci), 1); */
+
+    /* Access point name*/
+    nasIe_lv_t4(&pointer,
+                subs_getEncodedAPN(self->subs, apn, 150, &len),
+                len);
+
+    /* /\* PDN address *\/ */
+    /* nasIe_lv_t4(&pointer, (uint8_t*)&(PDATA->user_ctx->pAA), len); */
+    /* /\*Optionals *\/ */
+    /* /\* Protocol Configuration Options*\/ */
+    /* if(PDATA->user_ctx->pco[0]==0x27){ */
+	/*     if(PROC->engine->mme->uE_DNS==0){ */
+	/* 	    log_msg(LOG_DEBUG, 0, "Writting PCO IE. Lenght: %d, first byte %#x", */
+	/* 	            PDATA->user_ctx->pco[1]+2, *(PDATA->user_ctx->pco+2)); */
+	/* 	    nasIe_tlv_t4(&pointer, 0x27, PDATA->user_ctx->pco+2, PDATA->user_ctx->pco[1]); */
+	/* 	    *(pointer-1-PDATA->user_ctx->pco[1]) = PDATA->user_ctx->pco[1]; */
+	/*     }else{ */
+	/* 	    pco[0]=0x80; */
+	/* 	    pco[1]=0x80; */
+	/* 	    pco[2]=0x21; */
+	/* 	    pco[3]=0x0a; */
+	/* 	    pco[4]=0x01; */
+	/* 	    pco[5]=0x00; */
+	/* 	    pco[6]=0x00; */
+	/* 	    pco[7]=0x0a; */
+	/* 	    pco[8]=0x81; */
+	/* 	    pco[9]=0x06; */
+	/* 	    memcpy(pco+10, &(PROC->engine->mme->uE_DNS), 4); */
+	/* 	    nasIe_tlv_t4(&pointer, 0x27, pco, 14); */
+	/* 	    *(pointer-15) = 14; */
+	/*     } */
+    /* } */
+
+
+    emm_attachAccept(self->esm->emm, buffer, pointer-buffer);
 }
 
 void ePSsession_activateDefault(EPS_Session s){

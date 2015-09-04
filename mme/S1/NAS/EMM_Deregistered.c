@@ -50,6 +50,7 @@ static void emmProcessMsg(gpointer emm_h,  GenericNASMsg_t* msg){
 
 void linkEMMDeregistered(EMM_State* s){
     s->processMsg = emmProcessMsg;
+    s->attachAccept = emmNotImplemented;
 }
 
 void processAttach(gpointer emm_h,  GenericNASMsg_t* msg){

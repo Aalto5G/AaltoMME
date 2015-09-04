@@ -55,7 +55,6 @@ gpointer esm_getS11iface(ESM esm_h){
 }
 
 
-
 void esm_processMsg(gpointer esm_h, gpointer buffer, size_t len){
 	ESM_t *self = (ESM_t*)esm_h;
 	gpointer bearer;

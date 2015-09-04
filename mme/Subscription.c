@@ -151,6 +151,30 @@ const char* subs_getAPN(const Subscription s){
     return pdn->apn->str;
 }
 
+const guint8* subs_getEncodedAPN(const Subscription s, gpointer buffer, gsize maxLen, gsize *len){
+	Subs_t *self = (Subs_t*)s;
+
+	uint8_t i, label_len=0, *tmp, *res;
+	GString *apn = self->pdn->apn;
+
+    tmp = apn->str;
+    memcpy(buffer, apn->str, apn->len);
+    res = buffer;
+
+    for(i=0; i< apn->len && i<maxLen; i++){
+        if(res[i]=='.'){
+            res[i] = label_len;
+            label_len = 0;
+        }else{
+            label_len++;
+        }
+    }
+    res[apn->len] = label_len;
+
+    *len = apn->len+1;
+    return buffer;
+}
+
 const uint8_t subs_getPDNType(const Subscription s){
     Subs_t *self = (Subs_t*)s;
     PDNCtx_t *pdn;

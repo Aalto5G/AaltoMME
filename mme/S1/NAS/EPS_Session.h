@@ -41,4 +41,6 @@ void ePSsession_free(EPS_Session s);
 
 void ePSsession_parsePDNConnectivityRequest(EPS_Session s, GenericNASMsg_t *msg);
 
+void ePSsession_activateDefault(EPS_Session s);
+
 #endif /* EPS_SESSION_H*/

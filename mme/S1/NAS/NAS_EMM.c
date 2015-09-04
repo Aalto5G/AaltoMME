@@ -22,6 +22,7 @@
 #include "EMMCtx.h"
 #include "ECMSession_priv.h"
 #include "NAS_ESM.h"
+#include "EMM_State.h"
 
 gpointer emm_init(gpointer ecm){
     EMMCtx_t *self = emmCtx_init();
@@ -46,7 +47,7 @@ gpointer emm_getS11(gpointer emm_h){
 }
 
 
-void emm_processMsg(gpointer emm_h, gpointer buffer, size_t len){
+void emm_processMsg(gpointer emm_h, gpointer buffer, gsize len){
     EMMCtx_t *self = (EMMCtx_t*)emm_h;
     GenericNASMsg_t msg;
     dec_NAS(&msg, buffer, len);
@@ -162,4 +163,10 @@ void emm_processFirstESMmsg(EMMCtx emm_h){
     esm_processMsg(emm->esm, esmRaw->data, esmRaw->len);
 
     g_ptr_array_remove_index(emm->pendingESMmsg, 0);
+}
+
+void emm_attachAccept(EMMCtx emm_h, gpointer esm_msg, gsize len){
+	EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+
+	emm->state->attachAccept(emm, esm_msg, len);
 }

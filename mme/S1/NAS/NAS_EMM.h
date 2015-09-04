@@ -19,9 +19,7 @@
 #define NAS_EMM_H
 
 #include "MME.h"
-#include "EMM_State.h"
 
-#include <stdint.h>
 #include <glib.h>
 
 /**
@@ -47,7 +45,7 @@ void emm_free(gpointer emm_h);
  *
  *  Function to process the EMM message. Used by the lower layer EMM.
  */
-void emm_processMsg(gpointer emm_h, gpointer msg, size_t len);
+void emm_processMsg(gpointer emm_h, gpointer msg, gsize len);
 
 
 #endif /* NAS_EMM_H */

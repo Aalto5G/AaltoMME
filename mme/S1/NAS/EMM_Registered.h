@@ -20,7 +20,7 @@
 #include "EMM_State.h"
 
 typedef struct{
-    EMMSTATE
+	EMMSTATE;
 }EMMRegistered;
 
 void linkEMMRegistered(EMM_State* s);

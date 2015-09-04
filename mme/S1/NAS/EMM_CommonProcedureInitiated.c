@@ -67,6 +67,7 @@ static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
 void linkEMMCommonProcedureInitiated(EMM_State* s){
     s->processMsg = emmProcessMsg;
     /* s->authInfoAvailable = emmAuthInfoAvailable; */
+    s->attachAccept = emmNotImplemented;
 }
 
 void sendAuthReject(EMMCtx_t * emm){

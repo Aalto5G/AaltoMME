@@ -20,7 +20,7 @@
 #include "EMM_State.h"
 
 typedef struct{
-	EMMSTATE
+	EMMSTATE;
 }EMMSpecificProcedureInitiated;
 
 void linkEMMSpecificProcedureInitiated(EMM_State* s);

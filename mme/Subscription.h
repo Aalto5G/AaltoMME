@@ -54,6 +54,8 @@ const uint64_t subs_getIMEISV(Subscription s);
 
 const size_t subs_getAPNlen(Subscription s);
 
+const guint8* subs_getEncodedAPN(const Subscription s, gpointer buffer, gsize maxLen, gsize *len);
+
 const char* subs_getAPN(Subscription s);
 
 PDNCtx subs_newPDNCtx(Subscription s);

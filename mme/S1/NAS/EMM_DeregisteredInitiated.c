@@ -27,4 +27,6 @@ static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
 void linkEMMDeregisteredInitiated(EMM_State* s){
     s->processMsg = emmProcessMsg;
     /* s->authInfoAvailable = emmAuthInfoAvailable; */
+    s->attachAccept = emmNotImplemented;
+
 }
