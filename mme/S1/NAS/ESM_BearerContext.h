@@ -63,6 +63,7 @@ void esm_bc_setS1uSGWfteid(ESM_BearerContext bc_h, gpointer fteid_h, gsize len);
 
 void esm_bc_setS5S8uPGWfteid(ESM_BearerContext bc_h, gpointer fteid_h, gsize len);
 
+guint32 esm_bc_getS1uSGWTEID(const ESM_BearerContext bc_h);
 
 
 #endif /* ESM_Bearer_Context_H */

@@ -55,8 +55,6 @@ gboolean ePSsession_getPCO(EPS_Session s, gpointer pco);
 
 void ePSsession_setPCO(EPS_Session s, gconstpointer pco, gsize len);
 
-ESM_BearerContext ePSsession_getDefaultBearer(EPS_Session s);
-
 void ePSsession_setPDNAddress(EPS_Session s, gpointer paa, gsize len);
 
 const char* ePSsession_getPDNAddrStr(EPS_Session s, gpointer str, gsize maxlen);

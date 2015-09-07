@@ -43,4 +43,8 @@ void ePSsession_parsePDNConnectivityRequest(EPS_Session s, GenericNASMsg_t *msg)
 
 void ePSsession_activateDefault(EPS_Session s);
 
+void ePSsession_getPDNAddr(const EPS_Session s, TransportLayerAddress_t* addr);
+
+ESM_BearerContext ePSsession_getDefaultBearer(EPS_Session s);
+
 #endif /* EPS_SESSION_H*/

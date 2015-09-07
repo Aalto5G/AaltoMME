@@ -24,8 +24,8 @@ typedef struct{
 	uint8_t        ebi;
 	gpointer       esm;
 	ESM_State      *state;
-	struct fteid_t *s1u_sgw;
-	struct fteid_t *s5s8u_pgw; 
+	struct fteid_t s1u_sgw;
+	struct fteid_t s5s8u_pgw; 
 
 	uint8_t        oMsg[500];
 	size_t         oLen;
@@ -144,4 +144,9 @@ void esm_bc_setS5S8uPGWfteid(ESM_BearerContext bc_h, gpointer fteid_h, gsize len
         g_error("Unexpected interface type, S5S8U_PGW expected");
 
     memcpy(&(self->s5s8u_pgw), fteid, len);
+}
+
+guint32 esm_bc_getS1uSGWTEID(const ESM_BearerContext bc_h){
+	ESM_BearerContext_t *self = (ESM_BearerContext_t*)bc_h;
+	return self->s1u_sgw.teid;
 }

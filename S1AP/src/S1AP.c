@@ -413,5 +413,3 @@ void *s1ap_newIE(S1AP_Message_t *s1msg, ProtocolIE_ID_t id, Presence_e p, Critic
 
     return (void*)val;
 }
-
-

@@ -21,7 +21,11 @@
 #include "logmgr.h"
 #include "ESM_BearerContext.h"
 #include "EPS_Session.h"
+#include "ECMSession_priv.h"
+#include "MME_S1_priv.h"
+#include "S1Assoc_priv.h"
 
+#include <string.h>
 //#include <stdint.h>
 
 void parse_PDNConnectivityRequest(ESM_t *self, GenericNASMsg_t *msg);
@@ -110,4 +114,12 @@ void esm_processMsg(gpointer esm_h, gpointer buffer, size_t len){
 	default:
 		break;
 	}
+}
+
+uint32_t esm_getDNSsrv(ESM esm_h){
+	ESM_t *self = (ESM_t*)esm_h;
+	EMMCtx_t *emm = (EMMCtx_t *)self->emm;
+	ECMSession_t *ecm = (ECMSession_t*)emm->ecm;
+	struct mme_t *mme = s1_getMME(s1Assoc_getS1(ecm->assoc));
+	return mme->uE_DNS;
 }

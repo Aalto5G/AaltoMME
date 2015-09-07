@@ -19,6 +19,7 @@
 #define NAS_EMM_H
 
 #include "MME.h"
+#include "S1AP.h"
 
 #include <glib.h>
 
@@ -46,6 +47,18 @@ void emm_free(gpointer emm_h);
  *  Function to process the EMM message. Used by the lower layer EMM.
  */
 void emm_processMsg(gpointer emm_h, gpointer msg, gsize len);
+
+/**
+ * @brief get KeNB
+ * @param [in]   emm_h EMM Stack handler
+ * @param [out]  kasme    derived key - 256 bits
+ */
+void emm_getKeNB(const EMMCtx emm, uint8_t *keNB);
+
+void emm_getUESecurityCapabilities(const EMMCtx emm, UESecurityCapabilities_t *cap);
+
+void emm_getUEAMBR(const EMMCtx emm, UEAggregateMaximumBitrate_t *ambr);
+
 
 
 #endif /* NAS_EMM_H */

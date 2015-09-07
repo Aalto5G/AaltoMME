@@ -43,7 +43,7 @@ void subs_free(Subscription s);
 
 /**
  * @brief
- * @param [in]  s Subscription handler to be removed.
+ * @param [in]  s 
  */
 void subs_cpyQoS_GTP(Subscription s, struct qos_t *qos);
 
@@ -54,13 +54,21 @@ const uint64_t subs_getIMEISV(Subscription s);
 
 const size_t subs_getAPNlen(Subscription s);
 
-const guint8* subs_getEncodedAPN(const Subscription s, gpointer buffer, gsize maxLen, gsize *len);
+guint8* subs_getEncodedAPN(const Subscription s, gpointer buffer, gsize maxLen, gsize *len);
+
+const uint8_t subs_getPDNType(const Subscription s);
+
+void subs_getPDNAddr(const Subscription s, struct PAA_t *paa, gsize *len);
+
+void subs_setPDNaddr(Subscription s, const struct PAA_t *paa);
 
 const char* subs_getAPN(Subscription s);
 
 PDNCtx subs_newPDNCtx(Subscription s);
 
 void subs_setUEAMBR(Subscription s, guint64 ue_ambr_ul, guint64 ue_ambr_dl);
+
+void subs_getUEAMBR(const Subscription s, guint64 *ue_ambr_ul, guint64 *ue_ambr_dl);
 
 void pdnCtx_setDefaultBearerQoS(PDNCtx pdn, struct qos_t *qos);
 

@@ -151,26 +151,25 @@ const char* subs_getAPN(const Subscription s){
     return pdn->apn->str;
 }
 
-const guint8* subs_getEncodedAPN(const Subscription s, gpointer buffer, gsize maxLen, gsize *len){
+guint8* subs_getEncodedAPN(const Subscription s, gpointer buffer, gsize maxLen, gsize *len){
 	Subs_t *self = (Subs_t*)s;
 
 	uint8_t i, label_len=0, *tmp, *res;
 	GString *apn = self->pdn->apn;
 
     tmp = apn->str;
-    memcpy(buffer, apn->str, apn->len);
-    res = buffer;
+    memcpy(buffer+1, apn->str, apn->len);
+    res = buffer+1;
 
     for(i=0; i< apn->len && i<maxLen; i++){
         if(res[i]=='.'){
-            res[i] = label_len;
+            res[i-label_len-1] = label_len;
             label_len = 0;
         }else{
             label_len++;
         }
     }
-    res[apn->len] = label_len;
-
+    res[i-label_len-1] = label_len;
     *len = apn->len+1;
     return buffer;
 }
@@ -189,6 +188,32 @@ const uint8_t subs_getPDNType(const Subscription s){
     /* } */
     pdn = self->pdn;
     return pdn->pdn_addr_type;
+}
+
+void subs_getPDNAddr(const Subscription s, struct PAA_t *paa, gsize *len){
+	Subs_t *self = (Subs_t*)s;
+    PDNCtx_t *pdn;
+    memset(paa, 0, sizeof(struct PAA_t));
+    pdn = self->pdn;
+
+	paa->type = pdn->pdn_addr_type;
+	switch(pdn->pdn_addr_type){
+	case PAA_IP4:
+		*len = 5;
+		memcpy(&(paa->addr.ipv4), pdn->pdn_addr, 4);
+		break;
+	case PAA_IP6:
+		*len = 17;
+		memcpy(paa->addr.ipv6, pdn->pdn_addr, 16);
+		break;
+	case PAA_IP46:
+		*len = 21;
+		memcpy(paa->addr.both.ipv6, pdn->pdn_addr, 16);
+		memcpy(&(paa->addr.both.ipv4), pdn->pdn_addr + 16, 4);
+        break;
+	default:
+		g_error("Wrong coding of PDN address, type %u", pdn->pdn_addr_type);
+	}
 }
 
 void subs_setPDNaddr(Subscription s, const struct PAA_t *paa){
@@ -228,6 +253,12 @@ void subs_setUEAMBR(Subscription s, guint64 ue_ambr_ul, guint64 ue_ambr_dl){
 	Subs_t *self = (Subs_t*)s;
 	self->ambr_ul = ue_ambr_ul;
     self->ambr_dl = ue_ambr_dl;
+}
+
+void subs_getUEAMBR(const Subscription s, guint64 *ue_ambr_ul, guint64 *ue_ambr_dl){
+	Subs_t *self = (Subs_t*)s;
+	*ue_ambr_ul = self->ambr_ul;
+    *ue_ambr_dl = self->ambr_dl;
 }
 
 void pdnCtx_setDefaultBearerQoS(PDNCtx _pdn, struct qos_t *qos){

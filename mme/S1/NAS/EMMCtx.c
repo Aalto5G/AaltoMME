@@ -20,6 +20,9 @@
 #include "logmgr.h"
 #include "ECMSession_priv.h"
 
+#include <time.h>
+#include <stdlib.h>
+
 void freeESMmsg(gpointer msg){
 	GByteArray *array = (GByteArray *)msg;
 	g_byte_array_free(array, TRUE);
@@ -98,4 +101,26 @@ Subscription emmCtx_getSubscription(const EMMCtx emm){
 void emmCtx_setMSISDN(EMMCtx emm, guint64 msisdn){
 	EMMCtx_t *self = (EMMCtx_t*)emm;
 	self->msisdn = msisdn;
+}
+
+void emmCtx_newGUTI(EMMCtx emm, guti_t *guti){
+	EMMCtx_t *self = (EMMCtx_t*)emm;
+	guint32 sn, r;
+	guint16 mmegi;
+	guint8 mmec;
+	guint64 n;
+
+	ecmSession_getGUMMEI(self->ecm, &sn, &mmegi, &mmec);
+	self->guti.tbcd_plmn = sn;
+	self->guti.mmegi = mmegi;
+	self->guti.mmec = mmec;
+
+	/* M-TMSI IMSI hash salted with random number*/
+	srand(time(NULL));
+	r = rand();
+	n = self->imsi ^ ((guint64)r & ((guint64)r)<<32);
+	self->guti.mtmsi = g_int64_hash(&n);
+
+	if(guti!=NULL)
+		memcpy(guti, &(self->guti), 10);
 }

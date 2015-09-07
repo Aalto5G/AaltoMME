@@ -38,6 +38,6 @@ void emm_sendSecurityModeCommand(EMMCtx emm_h);
 
 void emm_processFirstESMmsg(EMMCtx emm_h);
 
-void emm_attachAccept(EMMCtx emm_h, gpointer esm_msb, gsize len);
+void emm_attachAccept(EMMCtx emm_h, gpointer esm_msb, gsize len, GList *bearers);
 
 #endif /* NAS_EMM_PRIV_HFILE */

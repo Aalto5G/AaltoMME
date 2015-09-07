@@ -18,7 +18,6 @@
 
 #include <arpa/inet.h>
 
-
 void nasIe_v_t1_l(uint8_t** p, uint8_t v){
     ((ie_v_t1_l_t *)*p)->v = v;
 }
@@ -75,10 +74,9 @@ void nasIe_tlv_t4(uint8_t** p, uint8_t t, uint8_t *v, uint8_t len){
     uint8_t i;
 
     ((ie_tlv_t4_t *)*p)->t = t;
-    (*p)++;
 
     ((ie_tlv_t4_t *)*p)->l = len;
-    (*p)++;
+    (*p)+=2;
 
     for(i=0; i<len; i++){
         (*p)[i] = v[i];
@@ -101,10 +99,9 @@ void nasIe_tlv_t6(uint8_t** p, uint8_t t, uint8_t *v, uint16_t len){
     uint16_t i;
 
     ((ie_tlv_t6_t *)*p)->t = t;
-    (*p)++;
 
     ((ie_tlv_t6_t *)*p)->l = htons(len);
-    (*p)+=2;
+    (*p)+=3;
 
     for(i=0; i<len; i++){
         (*p)[i] = v[i];

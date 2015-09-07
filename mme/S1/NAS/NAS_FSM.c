@@ -827,7 +827,7 @@ uint32_t TASK_EMM_ForgeAttachAccept(uint8_t *returnbuffer, uint32_t *bsize, Sign
     memcpy(guti+1, &(PDATA->user_ctx->guti), 10);
 
     nasIe_tlv_t4(&pointer, 0x50, guti, 11);
-    *(pointer-12) = 11;
+    /* *(pointer-12) = 11; */
 
     *bsize = pointer-returnbuffer;
 

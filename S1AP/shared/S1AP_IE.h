@@ -1378,6 +1378,8 @@ typedef struct E_RABToBeSetupListCtxtSUReq_c{
     void                                (*freeIE)(void *);
     void                                (*showIE)(void *);
     void                                (*additem)(struct E_RABToBeSetupListCtxtSUReq_c*, ProtocolIE_SingleContainer_t* ie);
+	void                                *(*newItem)(struct E_RABToBeSetupListCtxtSUReq_c*);
+
     uint8_t                             size;               /*<Number of items*/
     ProtocolIE_SingleContainer_t        **item;             /*<Item Array */
 }E_RABToBeSetupListCtxtSUReq_t;

@@ -60,19 +60,17 @@ typedef struct{
  * */
 void ecm_send(ECMSession h, gpointer msg, size_t len);
 
-const guint8 *ecmSession_getServingNetwork_TBCD(const ECMSession h);
+void ecm_sendCtxtSUReq(ECMSession h, gpointer msg, size_t len, GList *bearers);
 
-/**
- * @brief generate_KeNB - KDF function to derive the K_eNB
- * @param [in]  kasme       derived key - 256 bits
- * @param [in]  ulNASCount  Uplink NAS COUNT
- * @param [out] keNB        eNB result key - 256 bits
- */
-void generate_KeNB(const uint8_t *kasme, const uint32_t ulNASCount, uint8_t *keNB);
+const guint8 *ecmSession_getServingNetwork_TBCD(const ECMSession h);
 
 gpointer ecmSession_getS6a(const ECMSession h);
 
 gpointer ecmSession_getS11(const ECMSession h);
+
+void ecmSession_getTAIlist(const ECMSession h, NAS_tai_list_t *tail, gsize *len);
+
+void ecmSession_getGUMMEI(const ECMSession h, guint32* sn, guint16 *mmegi, guint8 *mmec);
 
 
 #endif /* ECMSESSION_PRIV_HFILE */

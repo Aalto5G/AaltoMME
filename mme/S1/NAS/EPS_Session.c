@@ -79,8 +79,14 @@ void ePSsession_parsePDNConnectivityRequest(EPS_Session s, GenericNASMsg_t *msg)
 void esm_test(EPS_Session s){
 	EPS_Session_t *self = (EPS_Session_t*)s;
 
-	guint8 buffer[150], *pointer, apn[150];
+	guint8 buffer[150], *pointer, apn[150], pco[30];
 	gsize len;
+
+	struct qos_t qos;
+	struct PAA_t paa;
+
+	guint32 dns;
+
 
 	memset(buffer, 0, 150);
 	pointer = buffer;
@@ -92,42 +98,67 @@ void esm_test(EPS_Session s){
     encaps_ESM(&pointer, 1 ,ActivateDefaultEPSBearerContextRequest);
 
     /* /\* EPS QoS *\/ */
-    /* nasIe_lv_t4(&pointer, &(PDATA->user_ctx->ebearer->qos.qci), 1); */
-
+    subs_cpyQoS_GTP(self->subs, &qos);
+    nasIe_lv_t4(&pointer, &(qos.qci), 1);
+    
     /* Access point name*/
+    len=0;
+    subs_getEncodedAPN(self->subs, apn, 150, &len);
     nasIe_lv_t4(&pointer,
-                subs_getEncodedAPN(self->subs, apn, 150, &len),
+                apn,
                 len);
 
     /* /\* PDN address *\/ */
-    /* nasIe_lv_t4(&pointer, (uint8_t*)&(PDATA->user_ctx->pAA), len); */
+    memset(&paa, 0, sizeof(struct PAA_t));
+    paa.type = self->pdn_addr_type;
+    switch(self->pdn_addr_type) {
+    case 1: /*IPv4*/
+	    memcpy(&(paa.addr.ipv4), self->pdn_addr, 4);
+	    len=5;
+	    break;
+	case 2: /*IPv6*/
+		memcpy(&(paa.addr.ipv6), self->pdn_addr, 16);
+		len=17;
+		break;
+	case 3: /* IPv4v6*/
+		memcpy(&(paa.addr.both.ipv4), self->pdn_addr, 4);
+		memcpy(&(paa.addr.both.ipv6), self->pdn_addr+4, 16);
+		len=21;
+		break;
+	default:
+		g_error("Wrong PDN address type %u", self->pdn_addr_type);
+    }
+    nasIe_lv_t4(&pointer, (uint8_t*)&paa, len);
+
     /* /\*Optionals *\/ */
-    /* /\* Protocol Configuration Options*\/ */
-    /* if(PDATA->user_ctx->pco[0]==0x27){ */
-	/*     if(PROC->engine->mme->uE_DNS==0){ */
-	/* 	    log_msg(LOG_DEBUG, 0, "Writting PCO IE. Lenght: %d, first byte %#x", */
-	/* 	            PDATA->user_ctx->pco[1]+2, *(PDATA->user_ctx->pco+2)); */
-	/* 	    nasIe_tlv_t4(&pointer, 0x27, PDATA->user_ctx->pco+2, PDATA->user_ctx->pco[1]); */
-	/* 	    *(pointer-1-PDATA->user_ctx->pco[1]) = PDATA->user_ctx->pco[1]; */
-	/*     }else{ */
-	/* 	    pco[0]=0x80; */
-	/* 	    pco[1]=0x80; */
-	/* 	    pco[2]=0x21; */
-	/* 	    pco[3]=0x0a; */
-	/* 	    pco[4]=0x01; */
-	/* 	    pco[5]=0x00; */
-	/* 	    pco[6]=0x00; */
-	/* 	    pco[7]=0x0a; */
-	/* 	    pco[8]=0x81; */
-	/* 	    pco[9]=0x06; */
-	/* 	    memcpy(pco+10, &(PROC->engine->mme->uE_DNS), 4); */
-	/* 	    nasIe_tlv_t4(&pointer, 0x27, pco, 14); */
-	/* 	    *(pointer-15) = 14; */
-	/*     } */
-    /* } */
-
-
-    emm_attachAccept(self->esm->emm, buffer, pointer-buffer);
+    ePSsession_getPCO(self, pco);
+    /* Protocol Configuration Options*/
+    if(pco[0]==0x27){
+	    dns = esm_getDNSsrv(self->esm);
+	    log_msg(LOG_ERR, 0, "ESM DNS %x", dns);
+	    if(dns==0){
+		    log_msg(LOG_DEBUG, 0, "Writting PCO IE. Lenght: %d, first byte %#x",
+		            pco[1]+2, pco+2);
+		    nasIe_tlv_t4(&pointer, 0x27, pco+2, pco[1]);
+		    *(pointer-1-pco[1]) = pco[1];
+	    }else{
+		    pco[0]=0x80;
+		    pco[1]=0x80;
+		    pco[2]=0x21;
+		    pco[3]=0x0a;
+		    pco[4]=0x01;
+		    pco[5]=0x00;
+		    pco[6]=0x00;
+		    pco[7]=0x0a;
+		    pco[8]=0x81;
+		    pco[9]=0x06;
+		    memcpy(pco+10, &(dns), 4);
+		    nasIe_tlv_t4(&pointer, 0x27, pco, 14);
+		    *(pointer-15) = 14;
+	    }
+    }
+    emm_attachAccept(self->esm->emm, buffer, pointer-buffer,
+                     g_list_append(NULL, self));
 }
 
 void ePSsession_activateDefault(EPS_Session s){
@@ -162,6 +193,7 @@ void ePSsession_setPDNAddress(EPS_Session s, gpointer paa, gsize len){
 	guint8 *p;
 	p = (guint8*)paa;
 	self->pdn_addr_type = p[0]&0x07;
+	log_msg(LOG_ERR, 0, "ESM Session PDN addr type %u", self->pdn_addr_type);
 	memcpy(self->pdn_addr, p+1, len-1);
 }
 
@@ -183,5 +215,28 @@ const char* ePSsession_getPDNAddrStr(EPS_Session s, gpointer str, gsize maxlen){
 	default:
 		/* strncpy(s, "Unknown AF", maxlen); */
 		return "Not valid";
+    }
+}
+
+
+void ePSsession_getPDNAddr(const EPS_Session s, TransportLayerAddress_t* addr){
+    EPS_Session_t *self = (EPS_Session_t*)s;
+
+    switch(self->pdn_addr_type) {
+	case 1: /*IPv4*/
+		memcpy(addr->addr, self->pdn_addr, 4);
+		addr->len = 32;
+		break;
+	case 2: /*IPv6*/
+		memcpy(addr->addr, self->pdn_addr, 16);
+		addr->len = 128;
+		break;
+	case 3: /* IPv4v6*/
+		memcpy(addr->addr, self->pdn_addr, 20);
+		addr->len = 160;
+		break;
+	default:
+		/* strncpy(s, "Unknown AF", maxlen); */
+		g_error("PDN Addr not valid in EPS Session");
     }
 }

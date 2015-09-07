@@ -37,5 +37,7 @@ typedef struct{
  * */
 gpointer esm_getS11iface(ESM esm_h);
 
+uint32_t esm_getDNSsrv(ESM esm_h);
+
 
 #endif /* NAS_ESM_PRIV_HFILE */

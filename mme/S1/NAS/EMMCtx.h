@@ -125,4 +125,6 @@ const guint8 *emmCtx_getServingNetwork_TBCD(const EMMCtx emm);
 
 Subscription emmCtx_getSubscription(const EMMCtx emm);
 
+void emmCtx_newGUTI(EMMCtx emm, guti_t *guti);
+
 #endif /* EMM_CTX_H*/

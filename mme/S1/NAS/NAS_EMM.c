@@ -24,6 +24,8 @@
 #include "NAS_ESM.h"
 #include "EMM_State.h"
 
+#include "hmac_sha2.h"
+
 gpointer emm_init(gpointer ecm){
     EMMCtx_t *self = emmCtx_init();
     emmConfigureFSM();
@@ -124,7 +126,7 @@ void emm_sendSecurityModeCommand(EMMCtx emm_h){
 
     count = emm->nasDlCount % 0xff;
     nasIe_v_t3(&pointer, (uint8_t*)&count, 1);
-
+    emm->nasDlCount++;
 
     newNASMsg_EMM(&pointer, EPSMobilityManagementMessages, PlainNAS);
 
@@ -165,8 +167,50 @@ void emm_processFirstESMmsg(EMMCtx emm_h){
     g_ptr_array_remove_index(emm->pendingESMmsg, 0);
 }
 
-void emm_attachAccept(EMMCtx emm_h, gpointer esm_msg, gsize len){
+void emm_attachAccept(EMMCtx emm_h, gpointer esm_msg, gsize len, GList *bearers){
 	EMMCtx_t *emm = (EMMCtx_t*)emm_h;
 
-	emm->state->attachAccept(emm, esm_msg, len);
+	emm->state->attachAccept(emm, esm_msg, len, bearers);
+}
+
+
+/**
+ * @brief generate_KeNB - KDF function to derive the K_eNB
+ * @param [in]  kasme       derived key - 256 bits
+ * @param [in]  ulNASCount  Uplink NAS COUNT
+ * @param [out] keNB        eNB result key - 256 bits
+ */
+static void generate_KeNB(const uint8_t *kasme, const uint32_t ulNASCount, uint8_t *keNB){
+
+    /*
+    FC = 0x11,
+    P0 = Uplink NAS COUNT,
+    L0 = length of uplink NAS COUNT (i.e. 0x00 0x04)
+     */
+    uint8_t s[7];
+    s[0]=0x11;
+    memcpy(s+1, &ulNASCount, 4);
+    s[5]=0x00;
+    s[6]=0x04;
+
+    hmac_sha256(kasme, 32, s, 7, keNB, 32);
+}
+
+void emm_getKeNB(const EMMCtx emm, uint8_t *keNB){
+	EMMCtx_t *self = (EMMCtx_t*)emm;
+	generate_KeNB(self->kasme, self->nasUlCount, keNB);
+}
+
+void emm_getUESecurityCapabilities(const EMMCtx emm, UESecurityCapabilities_t *cap){
+	EMMCtx_t *self = (EMMCtx_t*)emm;
+	cap->encryptionAlgorithms.v = hton16(self->ueCapabilities>>8);
+    cap->integrityProtectionAlgorithms.v = hton16(self->ueCapabilities&0x00ff);
+}
+
+void emm_getUEAMBR(const EMMCtx emm, UEAggregateMaximumBitrate_t *ambr){
+	EMMCtx_t *self = (EMMCtx_t*)emm;
+	guint64 ul, dl;
+	subs_getUEAMBR(self->subs, &ul, &dl);
+	ambr->uEaggregateMaximumBitRateDL.rate = dl;
+	ambr->uEaggregateMaximumBitRateUL.rate = ul;
 }

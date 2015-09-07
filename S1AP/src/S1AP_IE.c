@@ -2747,6 +2747,19 @@ void E_RABToBeSetupListCtxtSUReq_addItem(E_RABToBeSetupListCtxtSUReq_t* c, Proto
     }
 }
 
+void *E_RABToBeSetupListCtxtSUReq_newItem(struct E_RABToBeSetupListCtxtSUReq_c* eRABlist){
+	S1AP_PROTOCOL_IES_t* ie = newProtocolIE();
+	E_RABToBeSetupItemCtxtSUReq_t *eRABitem = new_E_RABToBeSetupItemCtxtSUReq();	
+    ie->value = eRABitem;
+	ie->showValue = eRABitem->showIE;
+	ie->freeValue = eRABitem->freeIE;
+	ie->id = id_E_RABToBeSetupItemCtxtSUReq;
+	ie->presence = optional;
+	ie->criticality = reject;
+	eRABlist->additem(eRABlist, ie);
+	return eRABitem;
+}
+
 /** @brief Constructor of E_RABToBeSetupListCtxtSUReq type
  *  @return E_RABToBeSetupListCtxtSUReq_t allocated  and initialized structure
  * */
@@ -2763,6 +2776,7 @@ E_RABToBeSetupListCtxtSUReq_t *new_E_RABToBeSetupListCtxtSUReq(){
     self->freeIE=free_E_RABToBeSetupListCtxtSUReq;
     self->showIE=show_E_RABToBeSetupListCtxtSUReq;
     self->additem=E_RABToBeSetupListCtxtSUReq_addItem;
+    self->newItem = E_RABToBeSetupListCtxtSUReq_newItem;
 
     return self;
 }

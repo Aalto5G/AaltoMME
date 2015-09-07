@@ -527,10 +527,11 @@ void parseCtxRsp(gpointer u, GError **err){
 	        //log_msg(LOG_DEBUG, 0, "S1-u Sgw teid = %x, ip = %s", hton32(self->user->ebearer[0].s1u_sgw.teid), inet_ntoa(s1uaddr));
         }
 
-        /* F-TEID S5/S8-U(PGW)*/
+        /* F-TEID S5/S8-U(PGW) */
+        memset(value, 0, 40);
         gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_FTEID, 1, value, &vsize);
         if(value!= NULL && vsize>0){
-	        esm_bc_setS1uSGWfteid(bearer, value, vsize);
+	        esm_bc_setS5S8uPGWfteid(bearer, value, vsize);
 	        //log_msg(LOG_DEBUG, 0, "S5/S8 Pgw teid = %x into", hton32(self->user->ebearer[0].s5s8u.teid));
         }else{
 
