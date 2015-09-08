@@ -141,8 +141,12 @@ void emm_sendSecurityModeCommand(EMMCtx emm_h){
     pointer++; /*Spare half octet*/
 
     /* Replayed UE security capabilities */
-    capabilities = hton16(emm->ueCapabilities);
-    nasIe_lv_t4(&pointer, (uint8_t*)&capabilities, 2); /* 256 bits */
+    if(emm->ueCapabilitiesLen >4){
+	    nasIe_lv_t4(&pointer, emm->ueCapabilities, 4);
+    }else{
+	    nasIe_lv_t4(&pointer, emm->ueCapabilities, emm->ueCapabilitiesLen);
+    }
+
 
     /* IMEISV request */
     req = 0xc0&0xf0  /* Type*/
@@ -203,8 +207,8 @@ void emm_getKeNB(const EMMCtx emm, uint8_t *keNB){
 
 void emm_getUESecurityCapabilities(const EMMCtx emm, UESecurityCapabilities_t *cap){
 	EMMCtx_t *self = (EMMCtx_t*)emm;
-	cap->encryptionAlgorithms.v = hton16(self->ueCapabilities>>8);
-    cap->integrityProtectionAlgorithms.v = hton16(self->ueCapabilities&0x00ff);
+	cap->encryptionAlgorithms.v = self->ueCapabilities[0];
+    cap->integrityProtectionAlgorithms.v = self->ueCapabilities[1];
 }
 
 void emm_getUEAMBR(const EMMCtx emm, UEAggregateMaximumBitrate_t *ambr){

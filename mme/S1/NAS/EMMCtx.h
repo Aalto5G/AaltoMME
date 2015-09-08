@@ -86,7 +86,8 @@ typedef struct{
     guint32      used_ambr_dl;
 
     /* Network Capability */
-    guint16      ueCapabilities;
+    gsize        ueCapabilitiesLen;
+    guint8       ueCapabilities[15];
     /* MS Network Capability */
     /* MEI*/
 

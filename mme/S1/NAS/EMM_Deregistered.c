@@ -84,12 +84,10 @@ void processAttach(gpointer emm_h,  GenericNASMsg_t* msg){
         emm->imsi = mobid;
     }
 
-    if(attachMsg->uENetworkCapability.l != 2){
-	    log_msg(LOG_ERR, 0,"NAS: UE Network Capability IE wrong");
-	    return;
-    }
-    memcpy(&cap, attachMsg->uENetworkCapability.v, 2);
-    emm->ueCapabilities = ntoh16(cap);
+    memcpy(emm->ueCapabilities,
+           attachMsg->uENetworkCapability.v,
+           attachMsg->uENetworkCapability.l);
+    emm->ueCapabilitiesLen = attachMsg->uENetworkCapability.l;
 
     if(mobid == 0ULL){ /* !isIMSIavailable(emm) */
         if(0){
