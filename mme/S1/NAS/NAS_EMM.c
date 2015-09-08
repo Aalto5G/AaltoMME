@@ -205,8 +205,8 @@ void emm_getKeNB(const EMMCtx emm, uint8_t *keNB){
 
 void emm_getUESecurityCapabilities(const EMMCtx emm, UESecurityCapabilities_t *cap){
 	EMMCtx_t *self = (EMMCtx_t*)emm;
-	cap->encryptionAlgorithms.v = self->ueCapabilities[0];
-    cap->integrityProtectionAlgorithms.v = self->ueCapabilities[1];
+	cap->encryptionAlgorithms.v = self->ueCapabilities[0] <<8 | 0x0;
+    cap->integrityProtectionAlgorithms.v = self->ueCapabilities[1]<<8 | 0x0;
 }
 
 void emm_getUEAMBR(const EMMCtx emm, UEAggregateMaximumBitrate_t *ambr){
