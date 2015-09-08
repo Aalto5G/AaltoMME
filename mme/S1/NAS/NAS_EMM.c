@@ -74,6 +74,12 @@ void emm_sendAuthRequest(EMMCtx emm_h){
     encaps_EMM(&pointer, AuthenticationRequest);
 
     /* NAS Key Set ID */
+    if(emm->ksi < 6){
+	    emm->old_ksi = emm->ksi;
+	    emm->ksi++;
+    }else{
+        emm->ksi = 1;
+    }
     nasIe_v_t1_l(&pointer, emm->ksi&0x0F);
     pointer++; /*Spare half octet*/
 
@@ -93,15 +99,9 @@ void emm_setSecurityQuadruplet(EMMCtx emm_h){
     AuthQuadruplet *sec;
     sec = (AuthQuadruplet *)g_ptr_array_index(emm->authQuadrs,0);
 
-    if(emm->ksi < 6){
-        emm->old_ksi = emm->ksi;
-        emm->old_ncc = emm->ncc;
-        memcpy(emm->old_kasme, emm->kasme, 32);
-        memcpy(emm->old_nh, emm->nh, 32);
-        emm->ksi++;
-    }else{
-        emm->ksi = 1;
-    }
+    emm->old_ncc = emm->ncc;
+    memcpy(emm->old_kasme, emm->kasme, 32);
+    memcpy(emm->old_nh, emm->nh, 32);
 
     memcpy(emm->kasme, sec->kASME, 32);
 
