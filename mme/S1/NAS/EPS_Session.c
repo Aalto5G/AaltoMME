@@ -135,7 +135,6 @@ void esm_test(EPS_Session s){
     /* Protocol Configuration Options*/
     if(pco[0]==0x27){
 	    dns = esm_getDNSsrv(self->esm);
-	    log_msg(LOG_ERR, 0, "ESM DNS %x", dns);
 	    if(dns==0){
 		    log_msg(LOG_DEBUG, 0, "Writting PCO IE. Lenght: %d, first byte %#x",
 		            pco[1]+2, pco+2);
@@ -193,7 +192,6 @@ void ePSsession_setPDNAddress(EPS_Session s, gpointer paa, gsize len){
 	guint8 *p;
 	p = (guint8*)paa;
 	self->pdn_addr_type = p[0]&0x07;
-	log_msg(LOG_ERR, 0, "ESM Session PDN addr type %u", self->pdn_addr_type);
 	memcpy(self->pdn_addr, p+1, len-1);
 }
 

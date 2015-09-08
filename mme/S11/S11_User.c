@@ -466,12 +466,15 @@ const int cause(gpointer u){
 void parseCtxRsp(gpointer u, GError **err){
     S11_user_t *self = (S11_user_t*)u;
     union gtpie_member *bearerCtxGroupIE[GTPIE_SIZE];
-    uint8_t value[40], addr[INET6_ADDRSTRLEN], ebi;
+    uint8_t value[GTP2IE_MAX], value_bc[GTP2IE_MAX], addr[INET6_ADDRSTRLEN], ebi;
     uint16_t vsize;
     uint32_t numIE;
     struct fteid_t fteid;
     struct in_addr s1uaddr;
     ESM_BearerContext bearer;
+
+    memset(bearerCtxGroupIE, 0, sizeof(union gtpie_member*)*GTPIE_SIZE);
+    memset(value, 0, GTP2IE_MAX * sizeof(uint8_t));
 
     /* F-TEID S11 (SGW)*/
     gtp2ie_gettliv(self->ie, GTPV2C_IE_FTEID, 0, value, &vsize);
@@ -512,26 +515,25 @@ void parseCtxRsp(gpointer u, GError **err){
         gtp2ie_decaps_group(bearerCtxGroupIE, &numIE, value, vsize);
 
         /* EPS Bearer ID*/
-        gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_EBI, 0, value, &vsize);
+        gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_EBI, 0, value_bc, &vsize);
         ebi = esm_bc_getEBI(bearer);
-        if(ebi != *value){
+        if(ebi != *value_bc){
 	        log_msg(LOG_ERR, 0, "Wrong EPC Bearer ID %u != %u",
-	                ebi, *value);
+	                ebi, *value_bc);
 	        return;
         }
 
         /* F-TEID S1-U (SGW)*/
-        gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_FTEID, 0, value, &vsize);
-        if(value!= NULL && vsize>0){
-	        esm_bc_setS1uSGWfteid(bearer, value, vsize);
+        gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_FTEID, 0, value_bc, &vsize);
+        if(value_bc!= NULL && vsize>0){
+	        esm_bc_setS1uSGWfteid(bearer, value_bc, vsize);
 	        //log_msg(LOG_DEBUG, 0, "S1-u Sgw teid = %x, ip = %s", hton32(self->user->ebearer[0].s1u_sgw.teid), inet_ntoa(s1uaddr));
         }
 
         /* F-TEID S5/S8-U(PGW) */
-        memset(value, 0, 40);
-        gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_FTEID, 1, value, &vsize);
-        if(value!= NULL && vsize>0){
-	        esm_bc_setS5S8uPGWfteid(bearer, value, vsize);
+        gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_FTEID, 2, value_bc, &vsize);
+        if(value_bc!= NULL && vsize>0){
+	        esm_bc_setS5S8uPGWfteid(bearer, value_bc, vsize);
 	        //log_msg(LOG_DEBUG, 0, "S5/S8 Pgw teid = %x into", hton32(self->user->ebearer[0].s5s8u.teid));
         }else{
 

@@ -29,7 +29,7 @@ static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
     GenericNASMsg_t msg2;
 
 	if(msg->header.securityHeaderType.v != PlainNAS){
-		log_msg(LOG_INFO, 0, "Received Cyphered and Integrity protected message");
+		log_msg(LOG_DEBUG, 0, "Received Cyphered and Integrity protected message");
 		ciph = msg;
 		msg = &msg2;
 		dec_NAS(msg, ciph->ciphered.msg, ciph->ciphered.len);
@@ -47,7 +47,7 @@ static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
 		log_msg(LOG_ERR, 0, "Received AuthenticationFailure, not implemented");
 		break;
 	case SecurityModeComplete:
-		log_msg(LOG_ERR, 0, "Received SecurityModeComplete, not implemented");
+		log_msg(LOG_DEBUG, 0, "Received SecurityModeComplete, not implemented");
 		s6a_UpdateLocation(emm->s6a, emm,
 		                   (void(*)(gpointer)) emm_processFirstESMmsg,
 		                   (gpointer)emm);

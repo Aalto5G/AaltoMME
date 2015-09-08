@@ -57,14 +57,11 @@ static int gtpie_getie(union gtpie_member* ie[], int type, int instance) {
   for (j=0; j< GTPIE_SIZE; j++) {
       if(ie[j]==NULL)
             break;
-      if ((ie[j] != 0) && (ie[j]->t == type)) {
-          if (instance-- == 0){
-              if (GTPIE_DEBUG) printf("IE found, IE #%d\n", j);
-              return j;
-          }
-      }
-      else{
-          if (GTPIE_DEBUG) printf("IE # %d, Type %d != %d\n", j, ie[j]->t, type);
+      if(ie[j]->tli.t == type && ie[j]->tli.i == instance){
+	      if (GTPIE_DEBUG) printf("IE found, IE #%d\n", j);
+	      return j;
+      }else{
+	      if (GTPIE_DEBUG) printf("IE # %d, Type %d != %d\n", j, ie[j]->t, type);
       }
   }
   return -1;
@@ -106,16 +103,14 @@ int gtp2ie_gettliv(union gtpie_member* ie[], int type, int instance, uint8_t dst
   int ien;
   ien = gtpie_getie(ie, type, instance);
 
-  if (ien>=0 && instance == ie[ien]->tliv.i){
-      if (GTPIE_DEBUG) printf("IE type %d found, length %d\n", type, ntoh16(ie[ien]->tliv.l));
+  if (ien>=0){
+      if (GTPIE_DEBUG)
+	      printf("IE type %d found, length %d\n", type, ntoh16(ie[ien]->tliv.l));
       memcpy(dst, ie[ien]->tliv.v, ntoh16(ie[ien]->tliv.l));
+      *iesize = ntoh16(ie[ien]->tliv.l);
+      return 0;
   }
-  else{
-
-      return EOF;
-  }
-  *iesize = ntoh16(ie[ien]->tliv.l);
-  return 0;
+  return EOF;
 }
 
 int gtp2ie_decap(union gtpie_member* ie[], void *pack, unsigned len) {
@@ -193,8 +188,9 @@ int gtp2ie_decaps_group(union gtpie_member **ie, unsigned int *size, void *from,
 
 	if (p==end) {
 		if (GTPIE_DEBUG) printf("GTPIE normal return. %lx %lx\n",
-							(unsigned long) p, (unsigned long) end);
-	return 0; /* We landed at the end of the packet: OK */
+		                        (unsigned long) p, (unsigned long) end);
+		ie[j]=NULL;
+		return 0; /* We landed at the end of the packet: OK */
 	}
 	else if (!(j<GTPIE_SIZE)) {
 		if (GTPIE_DEBUG) printf("GTPIE too many elements.\n");
