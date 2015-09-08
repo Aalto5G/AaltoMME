@@ -48,6 +48,10 @@ static void ecm_processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
                                                         id_RRC_Establishment_Cause);
 
         ecm->l_sid = 1;
+        if(r_sid != 0){
+	        ecm->r_sid_valid = TRUE;
+	        ecm->r_sid = r_sid;
+        }
         emm_processMsg(ecm->emm, nASPDU->str, nASPDU->len);
         ecm_ChangeState(ecm, ECM_Connected);
     }

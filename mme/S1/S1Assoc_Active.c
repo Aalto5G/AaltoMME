@@ -61,9 +61,14 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid){
                     elementaryProcedureName[s1msg->pdu->procedureCode]);
             return;
         }
+    }else if(s1msg->pdu->procedureCode == id_initialUEMessage &&
+             s1msg->choice == initiating_message){
+	    /* ************************************************** */
+        /*         Setup of new UE associated signaling       */
+        /* ************************************************** */
+	    ecm = ecmSession_init(assoc, mme_newLocalUEid(mme));
+	    ecmSession_processMsg(ecm, s1msg, r_sid);
     }else{
-
-
         /* ************************************************** */
         /*               UE associated signaling              */
         /* ************************************************** */
