@@ -15,6 +15,7 @@
 
 #include "NAS.h"
 #include "NASlog.h"
+#include "NASHandler.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -291,4 +292,55 @@ uint32_t encapPLMN(uint16_t mcc, uint16_t mnc){
     }
     memcpy(&tbcd, tmp, 3);
     return tbcd;
+}
+
+NAS nas_newHandler(){
+	NASHandler *n = (NASHandler*)malloc(sizeof(NASHandler));
+	memset(n, 0, sizeof(NASHandler));
+	return n;
+}
+
+void nas_freeHandler(NAS h){
+	free(h);
+	return;
+}
+
+void nas_setSecurity(NAS h, NAS_EIA i, NAS_EEA e, uint8_t *key){
+	NASHandler *n = (NASHandler*)h;
+	n->i = i;
+	n->e = e;
+	memcpy(n->key, key, 16);
+	return;
+}
+
+SecurityHeaderType_t dec_secNAS(const NAS h,
+                                GenericNASMsg_t *msg,
+                                const uint8_t *buf,
+                                const uint32_t size){
+	GenericNASMsg_t tmp;
+	uint8_t *pointer;
+	NASHandler *n = (NASHandler*)h;
+
+    pointer = buf;
+    msg->header.protocolDiscriminator.v = (*pointer)&0x0F;
+    msg->header.protocolDiscriminator.s = 0;
+    msg->header.securityHeaderType.v = ((*pointer)&0xF0)>>4;
+    msg->header.securityHeaderType.s = 0;
+    pointer++;
+
+    nas_msg(NAS_DEBUG, 0,"DEC : protocolDiscriminator = %x, securityHeaderType = %x",
+            msg->header.protocolDiscriminator.v, msg->header.securityHeaderType.v);
+
+    if((ProtocolDiscriminator_t)msg->header.protocolDiscriminator.v == EPSMobilityManagementMessages &&
+       (SecurityHeaderType_t)msg->header.securityHeaderType.v != PlainNAS){
+	    memcpy(msg->ciphered.messageAuthCode, pointer,4);
+	    pointer+=4;
+	    msg->ciphered.sequenceNum = *pointer;
+	    pointer++;
+	    msg->ciphered.msg = pointer;
+	    msg->ciphered.len = size-6;
+	    return;
+    }else{
+	    dec_NAS(msg, buff, size);
+    }
 }

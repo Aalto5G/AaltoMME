@@ -581,7 +581,7 @@ static int STATE_S1_SetupOfUEContext(Signal *signal){
                                        (gpointer)PDATA->sessionHandler);
         }
         signal->processTo->next_state = STATE_S1_Active;
-    }else if(s1msg->choice == unsuccessfull_outcome){
+    }else if(s1msg->choice == unsuccessful_outcome){
 
     }
     return 0;
@@ -684,7 +684,7 @@ static int STATE_S1_UEContextRelease(Signal *signal){
             free(PDATA);                            /* Delete session */
             process_stop(signal->processFrom);      /* Delete process */
         }
-    }else if(s1msg->choice == unsuccessfull_outcome){
+    }else if(s1msg->choice == unsuccessful_outcome){
 
     }
     return 0;

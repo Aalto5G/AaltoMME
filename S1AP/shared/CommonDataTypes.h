@@ -70,7 +70,7 @@ typedef uint16_t ProtocolIE_ID_t;
 typedef enum TriggeringMessage_c{
     initiating_message,
     successful_outcome,
-    unsuccessfull_outcome,
+    unsuccessful_outcome,
     ext_not_implemented,
 }TriggeringMessage_e;
 
