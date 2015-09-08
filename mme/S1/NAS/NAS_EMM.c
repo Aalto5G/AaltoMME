@@ -111,7 +111,7 @@ void emm_setSecurityQuadruplet(EMMCtx emm_h){
 void emm_sendSecurityModeCommand(EMMCtx emm_h){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     guint8 *pointer, algorithms;
-    guint16 capabilities;
+    guint8 capabilities[5];
     guint32 mac;
     guint8 count, buffer[150], req;
     memset(buffer, 0, 150);
@@ -141,12 +141,10 @@ void emm_sendSecurityModeCommand(EMMCtx emm_h){
     pointer++; /*Spare half octet*/
 
     /* Replayed UE security capabilities */
-    if(emm->ueCapabilitiesLen >4){
-	    nasIe_lv_t4(&pointer, emm->ueCapabilities, 4);
-    }else{
-	    nasIe_lv_t4(&pointer, emm->ueCapabilities, emm->ueCapabilitiesLen);
-    }
-
+    memset(capabilities, 0, 5);
+    memcpy(capabilities, emm->ueCapabilities, 4);
+    capabilities[4]=0x70;
+    nasIe_lv_t4(&pointer, capabilities, 5);
 
     /* IMEISV request */
     req = 0xc0&0xf0  /* Type*/
