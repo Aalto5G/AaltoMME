@@ -341,6 +341,6 @@ SecurityHeaderType_t dec_secNAS(const NAS h,
 	    msg->ciphered.len = size-6;
 	    return;
     }else{
-	    dec_NAS(msg, buff, size);
+	    dec_NAS(msg, buf, size);
     }
 }

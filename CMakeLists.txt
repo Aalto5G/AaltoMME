@@ -18,6 +18,8 @@ add_definitions(${LIBCONFIG_CFLAGS})
 
 find_package(SCTP REQUIRED)
 find_package(MySQL REQUIRED)
+find_package(OpenSSL REQUIRED)
+#FindOpenSSL()
 
 ##Doxygen
 set(CMAKE_MODULE_PATH ${CMAKE_CURRENT_SOURCE_DIR})
@@ -38,6 +40,7 @@ include_directories(
   ${COMMON_INCLUDES}
   ${GLIB2_INCLUDE_DIRS}
   ${MYSQL_INCLUDE_DIR}
+  ${OPENSSL_INCLUDE_DIR}
   mme/
   mme/S1
   mme/S6a
@@ -92,6 +95,7 @@ include_directories(NAS/shared)
 
 
 # Test
+enable_testing()
 add_subdirectory(test)
 
 ################################

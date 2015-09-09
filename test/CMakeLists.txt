@@ -3,10 +3,10 @@
 # include_directories(${COMMON_INCLUDES}) in other CMakeLists.txt files.
 # set(COMMON_INCLUDES ${PROJECT_SOURCE_DIR}/include)
 
-FILE(GLOB_RECURSE MME_SRCS "*.c")
-FILE(GLOB_RECURSE MME_INCLUDES "*.h")
+FILE(GLOB_RECURSE TEST_SRCS "*.c")
+FILE(GLOB_RECURSE TEST_INCLUDES "*.h")
 
-#include_directories(${MME_INCLUDES})
+include_directories(./)
 #include_directories(${COMMON_INCLUDES})
 
 ################################
@@ -18,8 +18,10 @@ FILE(GLOB_RECURSE MME_INCLUDES "*.h")
 # used elsewhere.
 
 
-add_executable (glib-tests main_tests.c)
+add_executable (glib-tests ${TEST_SRCS})
 
 #target_link_libraries(mme gtp s1ap nas)
-enable_testing()
-add_test(MyTest glib-tests)
+target_link_libraries(glib-tests ${GLIB2_LIBRARIES} ${OPENSSL_LIBRARIES})
+#add_test(MyTest glib-tests COMMAND $<TARGET_FILE:glib-tests>)
+add_test(crypto ${EXECUTABLE_OUTPUT_PATH}/glib-tests)
+
