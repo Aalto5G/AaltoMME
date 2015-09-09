@@ -90,6 +90,10 @@ add_subdirectory(NAS)
 
 include_directories(NAS/shared)
 
+
+# Test
+add_subdirectory(test)
+
 ################################
 # build a CPack driven installer package
 ################################
