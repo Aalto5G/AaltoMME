@@ -17,9 +17,16 @@
 #define _NAS_HANDLER_H
 
 typedef struct{
-	NAS_EIA i;
-	NAS_EEA e;
-	uint8_t key[16];
+    NAS_EIA  i;                        /**< NAS Integrity Algorithm*/
+    uint8_t  ikey[16];                 /**< NAS Integrity Key*/
+    NAS_EEA  e;                        /**< NAS Encryption Algorithm */
+    uint8_t  ekey[16];                 /**< NAS Encryption Key*/
+    uint32_t nas_count[2];             /**< NAS COUNT vector,
+                                            index: 0 Uplink, 1 Downlink */
+    void     (*countOverflow)(void*);  /**< Callback to be called in the
+                                            event of the NAS Count Overflow */
+    void     *udata;                   /**< User data to be sent to the
+                                            previous callback */
 }NASHandler;
 
 #endif  /* !_NAS_HANDLER_H */
