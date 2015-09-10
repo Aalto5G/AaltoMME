@@ -18,6 +18,7 @@
 #include "NASHandler.h"
 #include <stdlib.h>
 #include <string.h>
+#include <openssl/hmac.h>
 
 /* ***** Decoding functions ***** */
 
@@ -229,7 +230,7 @@ int dec_NAS(GenericNASMsg_t *msg, const uint8_t *buf, const uint32_t size){
             " securityHeaderType = %x", p, s);
 
     if(s != PlainNAS ||
-       p != EPSSessionManagementMessages || p != EPSMobilityManagementMessages){
+       !(p != EPSSessionManagementMessages || p != EPSMobilityManagementMessages)){
         return 0;
     }
 
@@ -312,7 +313,6 @@ int newNASMsg_sec(const NAS h,
 
     /* Encode new Message with Security header*/
     newNASMsg_EMM(&pointer, p, s);
-    pointer++;
     /* Add message autherntication code*/
     nasIe_v_t3(&pointer, mac, 4);
     /* Add sequence number and cyphered message */
@@ -363,19 +363,62 @@ void nas_freeHandler(NAS h){
     return;
 }
 
-void nas_setSecurity(NAS h,
-                     NAS_EIA i, const uint8_t *ikey,
-                     NAS_EEA e, const uint8_t *ekey){
+static void hmac_sha256(const unsigned char *key, unsigned int key_size,
+                        const unsigned char *message, unsigned int message_len,
+                        unsigned char *mac, unsigned mac_size)
+{
+	uint8_t res[EVP_MAX_MD_SIZE];
+	uint32_t len;
+	HMAC_CTX ctx;
+
+	HMAC_CTX_init(&ctx);
+	HMAC_Init_ex(&ctx, key, key_size, EVP_sha256(), NULL);
+	HMAC_Update(&ctx, message, message_len);
+	HMAC_Final(&ctx, res, &len);
+    HMAC_CTX_cleanup(&ctx);
+    memcpy(mac, res, mac_size);
+}
+
+/**
+ * @brief Key derivation function
+ * @param [in]  kasme          derived key - 256 bits
+ * @param [in]  distinguisher  Uplink NAS COUNT
+ * @param [in]  algId          Algorithm identity
+ * @param [out] k              Derived Key - 256 bits
+ */
+static void kdf(const uint8_t *kasme,
+                const uint8_t distinguisher, const uint8_t algId,
+                uint8_t *k){
+
+    /*
+    FC = 0x15,
+    P0 = algorithm type distinguisher,
+    L0 = length of algorithm type distinguisher (i.e. 0x00 0x01)
+    P1 = algorithm identity
+    L1 = length of algorithm identity (i.e. 0x00 0x01)
+     */
+    uint8_t s[7];
+    s[0]=0x15;
+    s[1]=distinguisher;
+    s[2]=0x00;
+    s[3]=0x01;
+    s[4]=algId;
+    s[5]=0x00;
+    s[6]=0x01;
+
+    hmac_sha256(kasme, 32, s, 7, k, 16);
+}
+
+void nas_setSecurity(NAS h, const NAS_EIA i, const NAS_EEA e,
+                     const uint8_t *kasme){
 
     NASHandler *n = (NASHandler*)h;
 
     n->i = i;
     n->e = e;
 
-    if(ikey)
-        memcpy(n->ikey, ikey, 16);
-    if(ekey)
-        memcpy(n->ekey, ekey, 16);
+    kdf(kasme, 0x02, i, n->ikey);
+    kdf(kasme, 0x01, e, n->ekey);
 
     n->nas_count[0] = 0;
     n->nas_count[1] = 0;
@@ -384,15 +427,13 @@ void nas_setSecurity(NAS h,
 
 int nas_getHeader(const uint8_t *buf, const uint32_t size,
                    SecurityHeaderType_t *s, ProtocolDiscriminator_t *p){
-    NAS_Header_t h;
     if(!buf || size<1){
         return 0;
     }
-    memcpy(&h, buf, 1);
     if(s)
-        *s = h.securityHeaderType.v;
+	    *s = (buf[0]&0xf0)>>4;
     if(p)
-        *p = h.protocolDiscriminator.v;
+	    *p = buf[0]&0x0f;
     return 1;
 }
 
@@ -442,7 +483,7 @@ int nas_authenticateMsg(const NAS h,
         memcpy(count, &ncount, 4);
         eia_cb[n->i](n->ikey, count, 0, direction, buf+5, (size-5)*8, mac_x);
 
-        if(memcmp(mac, mac_x, 4) == 0){
+        if(memcmp(mac, mac_x, 4) == 0 || n->i == NAS_EIA0){
             *isAuth = 1;
         }
         return 1;

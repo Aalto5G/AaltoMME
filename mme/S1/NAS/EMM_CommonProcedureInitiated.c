@@ -88,7 +88,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         log_msg(LOG_ERR, 0, "Received AuthenticationFailure, not implemented");
         break;
     case SecurityModeComplete:
-        log_msg(LOG_DEBUG, 0, "Received SecurityModeComplete, not implemented");
+        nas_incrementNASCount(emm->parser, NAS_UpLink);
         s6a_UpdateLocation(emm->s6a, emm,
                            (void(*)(gpointer)) emm_processFirstESMmsg,
                            (gpointer)emm);
@@ -155,8 +155,7 @@ void processAuthResp(EMMCtx_t * emm,  GenericNASMsg_t* msg){
     /* } */
 
     emm_setSecurityQuadruplet(emm);
-    nas_setSecurity(emm->parser, NAS_EIA2, ikey, NAS_EEA0, ekey);
-    /* emm->nasDlCount = 0; */
-    /* emm->nasUlCount = 0; */
+
+    nas_setSecurity(emm->parser, NAS_EIA2, NAS_EEA0, emm->kasme);
     emm_sendSecurityModeCommand(emm);
 }

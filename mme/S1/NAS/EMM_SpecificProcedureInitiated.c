@@ -71,7 +71,7 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
 		
 		newNASMsg_sec(emm->parser, out, &len,
 		              EPSMobilityManagementMessages,
-		              IntegrityProtectedWithNewEPSSecurityContext,
+		              IntegrityProtectedAndCiphered,
 		              NAS_DownLink,
 		              plain, pointer-plain);
 		nas_incrementNASCount(emm->parser, NAS_DownLink);

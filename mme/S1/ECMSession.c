@@ -169,10 +169,15 @@ void ecm_sendCtxtSUReq(ECMSession h, gpointer msg, size_t len, GList *bearers){
     eRABitem->eRABlevelQoSParameters = new_E_RABLevelQoSParameters();
     eRABitem->transportLayerAddress = new_TransportLayerAddress();
     eRABitem->eRABlevelQoSParameters->allocationRetentionPriority = new_AllocationAndRetentionPriority();
-    eRABitem->nAS_PDU = new_Unconstrained_Octed_String();
 
-    eRABitem->nAS_PDU->str = msg;
-    eRABitem->nAS_PDU->len = len;
+    /* NAS PDU is optional */
+    if(msg && len>0){
+	    eRABitem->opt |=0x80;
+	    eRABitem->nAS_PDU = new_Unconstrained_Octed_String();
+	    eRABitem->nAS_PDU->str = msg;
+	    eRABitem->nAS_PDU->len = len;
+    }
+
     first = g_list_first(bearers);
     session = (EPS_Session)first->data;
     bearer = ePSsession_getDefaultBearer(session);

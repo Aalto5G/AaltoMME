@@ -72,17 +72,15 @@ void nas_freeHandler(NAS h);
  * @brief Reset NAS handler information
  * @param [inout] h           NAS handler
  * @param [in]    i           Integrity algorithm
- * @param [in]    ikey        NAS Integrity Key (16 bytes)
  * @param [in]    e           Encryption algorithm
- * @param [in]    ekey        NAS Encryption Key (16 bytes)
+ * @param [in]    kasme       K ASME
  *
  * This function allows NULL parameters to maintain them unchanged, thus
  * allowing the to change some of them, except the integrity and encryption
  * algorithms that are always required.
  */
-void nas_setSecurity(NAS h,
-                     NAS_EIA i, const uint8_t *ikey,
-                     NAS_EEA e, const uint8_t *ekey);
+void nas_setSecurity(NAS h, const NAS_EIA i, const NAS_EEA e,
+                     const uint8_t *kasme);
 
 
 /**

@@ -77,10 +77,6 @@ typedef struct{
     uint8_t  ekey[16];                 /**< NAS Encryption Key*/
     uint32_t nas_count[2];             /**< NAS COUNT vector,
                                             index: 0 Uplink, 1 Downlink */
-    void     (*countOverflow)(void*);  /**< Callback to be called in the
-                                            event of the NAS Count Overflow */
-    void     *udata;                   /**< User data to be sent to the
-                                            previous callback */
 }NASHandler;
 
 #endif  /* !_NAS_HANDLER_H */
