@@ -376,15 +376,16 @@ static void hmac_sha256(const unsigned char *key, unsigned int key_size,
 	HMAC_Update(&ctx, message, message_len);
 	HMAC_Final(&ctx, res, &len);
     HMAC_CTX_cleanup(&ctx);
-    memcpy(mac, res, mac_size);
+    /* Use least significant bits */
+    memcpy(mac, res + len - mac_size, mac_size);
 }
 
 /**
  * @brief Key derivation function
  * @param [in]  kasme          derived key - 256 bits
- * @param [in]  distinguisher  Uplink NAS COUNT
+ * @param [in]  distinguisher  Algorithm distinguisher
  * @param [in]  algId          Algorithm identity
- * @param [out] k              Derived Key - 256 bits
+ * @param [out] k              Derived Key - 128 bits
  */
 static void kdf(const uint8_t *kasme,
                 const uint8_t distinguisher, const uint8_t algId,
