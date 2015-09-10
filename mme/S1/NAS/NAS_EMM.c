@@ -33,28 +33,43 @@ gpointer emm_init(gpointer ecm){
     self->ecm = ecm;
     self->s6a = ecmSession_getS6a(ecm);
     self->esm = esm_init(self);
+    self->parser = nas_newHandler();
     return self;
 }
 
 void emm_free(gpointer emm_h){
     EMMCtx_t *self = (EMMCtx_t*)emm_h;
+    nas_freeHandler(self->parser);
     esm_free(self->esm);
     emmDestroyFSM();
     emmCtx_free(self);
 }
 
 gpointer emm_getS11(gpointer emm_h){
-	EMMCtx_t *self = (EMMCtx_t*)emm_h;
-	return ecmSession_getS11(self->ecm);
+    EMMCtx_t *self = (EMMCtx_t*)emm_h;
+    return ecmSession_getS11(self->ecm);
 }
 
 
 void emm_processMsg(gpointer emm_h, gpointer buffer, gsize len){
     EMMCtx_t *self = (EMMCtx_t*)emm_h;
     GenericNASMsg_t msg;
-    dec_NAS(&msg, buffer, len);
+    SecurityHeaderType_t s;
+    ProtocolDiscriminator_t p;
 
-    self->state->processMsg(self, &msg);
+    if (!nas_getHeader(buffer, len, &s, &p))
+        g_error("Empty NAS message buffer");
+
+    if(s == PlainNAS){
+        dec_NAS(&msg, buffer, len);
+        self->state->processMsg(self, &msg);
+    }else if(s > PlainNAS && s <= IntegrityProtectedAndCipheredWithNewEPSSecurityContext){
+        self->state->processSecMsg(self, buffer, len);
+    }else if(s == SecurityHeaderForServiceRequestMessage){
+        log_msg(LOG_WARNING, 0, "Service Request Not implemented");
+    }else{
+        log_msg(LOG_INFO, 0, "Invalid Security Header received: Ignoring");
+    }
 }
 
 void emm_sendAuthRequest(EMMCtx emm_h){
@@ -75,8 +90,8 @@ void emm_sendAuthRequest(EMMCtx emm_h){
 
     /* NAS Key Set ID */
     if(emm->ksi < 6){
-	    emm->old_ksi = emm->ksi;
-	    emm->ksi++;
+        emm->old_ksi = emm->ksi;
+        emm->ksi++;
     }else{
         emm->ksi = 1;
     }
@@ -112,28 +127,19 @@ void emm_sendSecurityModeCommand(EMMCtx emm_h){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     guint8 *pointer, algorithms;
     guint8 capabilities[5];
-    guint32 mac;
-    guint8 count, buffer[150], req;
-    memset(buffer, 0, 150);
+    guint32 len;
+    guint8 count, out[156], plain[150], req;
+    memset(out, 0, 156);
+    memset(plain, 0, 150);
 
      /* Build Security Mode Command*/
-    pointer = buffer;
-    newNASMsg_EMM(&pointer, EPSMobilityManagementMessages,
-                  IntegrityProtectedWithNewEPSSecurityContext);
-
-    mac = 0;
-    nasIe_v_t3(&pointer, (uint8_t *)&mac, 4);
-
-    count = emm->nasDlCount % 0xff;
-    nasIe_v_t3(&pointer, (uint8_t*)&count, 1);
-    emm->nasDlCount++;
-
+    pointer = plain;
     newNASMsg_EMM(&pointer, EPSMobilityManagementMessages, PlainNAS);
 
     encaps_EMM(&pointer, SecurityModeCommand);
 
     /* Selected NAS security algorithms */
-    algorithms=0;
+    algorithms = 0 | NAS_EEA0<<4 | NAS_EIA2;
     nasIe_v_t3(&pointer, &algorithms, 1);
 
     /*NAS key set identifier*/
@@ -152,7 +158,14 @@ void emm_sendSecurityModeCommand(EMMCtx emm_h){
         | 0x01&0x07; /* Request*/
     nasIe_v_t3(&pointer, &req, 1);
 
-    ecm_send(emm->ecm, buffer, pointer-buffer);
+    newNASMsg_sec(emm->parser, out, &len,
+                  EPSMobilityManagementMessages,
+                  IntegrityProtectedWithNewEPSSecurityContext,
+                  NAS_DownLink,
+                  plain, pointer-plain);
+
+    ecm_send(emm->ecm, out, len);
+    nas_incrementNASCount(emm->parser, NAS_DownLink);
     emmChangeState(emm, EMM_CommonProcedureInitiated);
 
     /* Set timer T3460*/
@@ -170,9 +183,9 @@ void emm_processFirstESMmsg(EMMCtx emm_h){
 }
 
 void emm_attachAccept(EMMCtx emm_h, gpointer esm_msg, gsize len, GList *bearers){
-	EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
 
-	emm->state->attachAccept(emm, esm_msg, len, bearers);
+    emm->state->attachAccept(emm, esm_msg, len, bearers);
 }
 
 
@@ -199,20 +212,21 @@ static void generate_KeNB(const uint8_t *kasme, const uint32_t ulNASCount, uint8
 }
 
 void emm_getKeNB(const EMMCtx emm, uint8_t *keNB){
-	EMMCtx_t *self = (EMMCtx_t*)emm;
-	generate_KeNB(self->kasme, self->nasUlCount, keNB);
+    EMMCtx_t *self = (EMMCtx_t*)emm;
+    guint32 nasUlCount = nas_getCount(self->parser, NAS_UpLink);
+    generate_KeNB(self->kasme, nasUlCount, keNB);
 }
 
 void emm_getUESecurityCapabilities(const EMMCtx emm, UESecurityCapabilities_t *cap){
-	EMMCtx_t *self = (EMMCtx_t*)emm;
-	cap->encryptionAlgorithms.v = self->ueCapabilities[0] <<8 | 0x0;
+    EMMCtx_t *self = (EMMCtx_t*)emm;
+    cap->encryptionAlgorithms.v = self->ueCapabilities[0] <<8 | 0x0;
     cap->integrityProtectionAlgorithms.v = self->ueCapabilities[1]<<8 | 0x0;
 }
 
 void emm_getUEAMBR(const EMMCtx emm, UEAggregateMaximumBitrate_t *ambr){
-	EMMCtx_t *self = (EMMCtx_t*)emm;
-	guint64 ul, dl;
-	subs_getUEAMBR(self->subs, &ul, &dl);
-	ambr->uEaggregateMaximumBitRateDL.rate = dl;
-	ambr->uEaggregateMaximumBitRateUL.rate = ul;
+    EMMCtx_t *self = (EMMCtx_t*)emm;
+    guint64 ul, dl;
+    subs_getUEAMBR(self->subs, &ul, &dl);
+    ambr->uEaggregateMaximumBitRateDL.rate = dl;
+    ambr->uEaggregateMaximumBitRateUL.rate = ul;
 }

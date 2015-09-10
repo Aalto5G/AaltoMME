@@ -25,28 +25,27 @@ static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
     log_msg(LOG_ERR, 0, "Not Implemented");
 }
 
+static void emm_processSecMsg(gpointer emm_h, gpointer buff, gsize len){
+	EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+
+	log_msg(LOG_ERR, 0, "Received unexpected NAS message with security header");
+
+}
+
 static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GList *bearers){
 	EMMCtx_t *emm = (EMMCtx_t*)emm_h;
-	guint8 *pointer, buffer[150], count, t3412, guti_b[11];
+	guint8 *pointer, out[156], plain[150], count, t3412, guti_b[11];
 	guti_t guti;
-	guint32 mac;
+	guint32 len;
 	NAS_tai_list_t tAIl;
-	gsize len;
 
-	memset(buffer, 0, 150);
-    pointer = buffer;
+	memset(out, 0, 156);
+	memset(plain, 0, 150);
+    pointer = plain;
 
 	if (emm->attachStarted == TRUE){
 		emm->attachStarted = FALSE;
 		/* Build Attach Accept*/
-		newNASMsg_EMM(&pointer, EPSMobilityManagementMessages,
-		              IntegrityProtectedAndCiphered);
-		mac = 0;
-		nasIe_v_t3(&pointer, (uint8_t *)&mac, 4);
-		count = emm->nasDlCount % 0xff;
-		nasIe_v_t3(&pointer, (uint8_t*)&count, 1);
-		emm->nasDlCount++;
-
 		newNASMsg_EMM(&pointer, EPSMobilityManagementMessages, PlainNAS);
 
 		encaps_EMM(&pointer, AttachAccept);
@@ -68,10 +67,18 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
 		guti_b[0]=0xF6;   /*1111 0 110 - spare, odd/even , GUTI id*/
 		memcpy(guti_b+1, &guti, 10);
 		nasIe_tlv_t4(&pointer, 0x50, guti_b, 11);
-	}else{
+
 		
+		newNASMsg_sec(emm->parser, out, &len,
+		              EPSMobilityManagementMessages,
+		              IntegrityProtectedWithNewEPSSecurityContext,
+		              NAS_DownLink,
+		              plain, pointer-plain);
+		nas_incrementNASCount(emm->parser, NAS_DownLink);
+	}else{
+		return;
 	}
-	ecm_sendCtxtSUReq(emm->ecm, buffer, pointer-buffer, bearers);
+	ecm_sendCtxtSUReq(emm->ecm, out, len, bearers);
 	emmChangeState(emm, EMM_Registered);
 }
 
@@ -79,6 +86,7 @@ void linkEMMSpecificProcedureInitiated(EMM_State* s){
     s->processMsg = emmProcessMsg;
     /* s->authInfoAvailable = emmAuthInfoAvailable; */
     s->attachAccept = emmAttachAccept;
+    s->processSecMsg = emm_processSecMsg;
 }
 
 

@@ -24,8 +24,17 @@ static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
 }
 
 
+static void emm_processSecMsg(gpointer emm_h, gpointer buff, gsize len){
+	EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+
+	log_msg(LOG_ERR, 0, "Received unexpected NAS message with security header");
+
+}
+
+
 void linkEMMRegistered(EMM_State* s){
     s->processMsg = emmProcessMsg;
     /* s->authInfoAvailable = emmAuthInfoAvailable; */
-    s->attachAccept = emmNotImplemented;
+    s->attachAccept = NULL;
+    s->processSecMsg = emm_processSecMsg;
 }

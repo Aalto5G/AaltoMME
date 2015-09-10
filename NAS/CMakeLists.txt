@@ -26,7 +26,7 @@ include_directories(${PROJECT_SOURCE_DIR}/shared)
 # used elsewhere.
 
 add_executable (testNASApp testApp/NAStest.c)
-target_link_libraries(testNASApp nas)
+target_link_libraries(testNASApp nas ${OPENSSL_LIBRARIES})
 
 
 add_library(${PROJECT_NAME} ${NAS_SRCS})

@@ -1,3 +1,18 @@
+/* This application was initially developed as a Final Project by
+ *     Vicent Ferrer Guasch (vicent.ferrerguasch@aalto.fi)
+ * under the supervision of,
+ *     Jukka Manner (jukka.manner@aalto.fi)
+ *     Jose Costa-Requena (jose.costa@aalto.fi)
+ * in AALTO University and partially funded by EIT ICT labs.
+ */
+
+/**
+ * @file   eia2.c
+ * @Author Vicent Ferrer
+ * @date   September, 2015
+ * @brief  EPS Integrity Algorithm 2
+ */
+
 #include "eia2.h"
 
 #include <string.h>
@@ -186,21 +201,22 @@ int NAS_CMAC_Final(NAS_CMAC_CTX *ctx, unsigned char *out, size_t *poutlen)
 }
 
 void eia2(const void *k,
-          const void *count, const guint8 bearer, const guint8 direction,
-          const void* msg, const gsize mLen,
+          const void *count, const uint8_t bearer, const uint8_t direction,
+          const void* msg, const size_t mLen,
           void *digest){
 
-	guint8 *s;
-	guint8 mact[16] = {0};
-	gsize sLen, mactlen;
-	gsize len = 64 + mLen;
+	uint8_t *s;
+	uint8_t mact[16] = {0};
+	size_t sLen, mactlen;
+	size_t len = 64 + mLen;
 
     NAS_CMAC_CTX *ctx = NAS_CMAC_CTX_new();
 
     
     /* Creation of S */
     sLen = 8 + mLen/8 + (mLen%8?1:0);
-    s = g_new0(guint8, sLen);
+    s = (uint8_t *)malloc(sLen);
+    memset(s, 0, sLen);
     memcpy(s, count, 4);
     s[4] = bearer<<3 | direction << 2;
     memcpy(s+8, msg, sLen-8);
@@ -214,5 +230,5 @@ void eia2(const void *k,
     memcpy(digest, mact, 4);
     
     NAS_CMAC_CTX_free(ctx);
-    g_free(s);
+    free(s);
 }

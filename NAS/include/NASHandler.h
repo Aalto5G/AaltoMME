@@ -16,6 +16,60 @@
 #ifndef _NAS_HANDLER_H
 #define _NAS_HANDLER_H
 
+#include "eia0.h"
+#include "eia2.h"
+
+#include "eea0.h"
+
+typedef void (*EIAcb) (const void *k,
+                       const void *count, const uint8_t bearer,
+                       const uint8_t direction,
+                       const void* msg, const size_t mLen,
+                       void *digest);
+
+typedef void (*EEAdec_cb) (const void *k,
+                            const void *count, const uint8_t bearer,
+                            const uint8_t direction,
+                            const void* msg, const size_t mLen,
+                            void* plain, size_t *pLen);
+
+typedef void (*EEAcyph_cb) (const void *k,
+                            const void *count, const uint8_t bearer,
+                            const uint8_t direction,
+                            void* msg, size_t *mLen,
+                            const void* plain, const size_t pLen);
+
+const EIAcb eia_cb[] = {
+	eia0,
+	NULL,
+	eia2,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+};
+
+const EEAdec_cb eea_dec_cb[] = {
+	eea0_dec,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+};
+
+const EEAcyph_cb eea_cyph_cb[] = {
+	eea0_cyph,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+	NULL,
+};
+
+
 typedef struct{
     NAS_EIA  i;                        /**< NAS Integrity Algorithm*/
     uint8_t  ikey[16];                 /**< NAS Integrity Key*/

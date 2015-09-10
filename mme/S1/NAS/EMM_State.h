@@ -26,12 +26,14 @@
 
 typedef void (*EMM_event)(gpointer);
 typedef void (*EMM_eventMsg)(gpointer, GenericNASMsg_t*);
+typedef void (*EMM_eventSecMsg)(gpointer, gpointer, gsize);
 typedef void (*EMM_sendMsg)(gpointer, gpointer, gsize, GList *);
 
 #define EMMSTATE \
-    EMM_eventMsg processMsg;          /*  */ \
-    EMM_event    authInfoAvailable;   /*  */ \
-    EMM_sendMsg  attachAccept         /*  */ \
+    EMM_eventMsg       processMsg;          /*  */ \
+    EMM_event          authInfoAvailable;   /*  */ \
+    EMM_sendMsg        attachAccept;         /*  */	\
+    EMM_eventSecMsg    processSecMsg        /*  */ \
 
 typedef struct{
     EMMSTATE;

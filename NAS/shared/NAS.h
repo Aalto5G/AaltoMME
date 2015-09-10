@@ -44,6 +44,10 @@ typedef enum{
     NAS_EEA7, /**< EPS encription algorithm EEA7*/
 }NAS_EEA;
 
+typedef enum{
+    NAS_UpLink,   /**< */
+    NAS_DownLink, /**< */
+}NAS_Direction;
 
 
 /**
@@ -71,8 +75,6 @@ void nas_freeHandler(NAS h);
  * @param [in]    ikey        NAS Integrity Key (16 bytes)
  * @param [in]    e           Encryption algorithm
  * @param [in]    ekey        NAS Encryption Key (16 bytes)
- * @param [in]    cb          NAS Count Overflow event callback
- * @param [in]    user_data   User data to call the overflow callback
  *
  * This function allows NULL parameters to maintain them unchanged, thus
  * allowing the to change some of them, except the integrity and encryption
@@ -80,8 +82,7 @@ void nas_freeHandler(NAS h);
  */
 void nas_setSecurity(NAS h,
                      NAS_EIA i, const uint8_t *ikey,
-                     NAS_EEA e, const uint8_t *ekey,
-                     void (*cb)(void*), void* user_data);
+                     NAS_EEA e, const uint8_t *ekey);
 
 
 /**
@@ -98,6 +99,28 @@ void nas_setSecurity(NAS h,
 int nas_getHeader(const uint8_t *buf, const uint32_t size,
                   SecurityHeaderType_t *s, ProtocolDiscriminator_t *p);
 
+/**
+ * @brief Get NAS Count
+ * @param [in] h           NAS handler
+ * @param [in] direction   0 for uplink, 1 for downlink
+ * @return full NAS Count (24 bits)
+ *
+ * This function allows to access the NAS COUNT values to derive other keys
+ */
+const uint32_t nas_getCount(const NAS h, const NAS_Direction direction);
+
+
+/**
+ * @brief Increment the NAS Counter
+ * @param [in]  h           NAS handler
+ * @param [in]  direction   0 for uplink, 1 for downlink
+ * @return 1 on success, 0 if overflow
+ *
+ * It increments the NAS counter depending on the direction provided,
+ * if an overflow is about to occur (5 counts before), returns 0
+ */
+int nas_incrementNASCount(const NAS h, const NAS_Direction direction);
+
 
 /**
  * @brief Check NAS integrity of a message
@@ -106,7 +129,7 @@ int nas_getHeader(const uint8_t *buf, const uint32_t size,
  * @param [in]  size        Received NAS message length
  * @param [in]  direction   0 for uplink, 1 for downlink
  * @param [out] isAuth      set to 1 if authentication is valid, 0 otherwise
- * @return 1 on success, 0 if any error
+ * @return 1 on success, 2 if NAS COUNT mismatch, 0 if any error
  *
  * Function to authenticate the NAS message. It validates the received MAC with
  * the calculated value.
@@ -118,7 +141,7 @@ int nas_getHeader(const uint8_t *buf, const uint32_t size,
  */
 int nas_authenticateMsg(const NAS h,
                         const uint8_t *buf, const uint32_t size,
-                        const uint8_t direction,
+                        const NAS_Direction direction,
                         uint8_t *isAuth);
 
 
@@ -126,6 +149,7 @@ int nas_authenticateMsg(const NAS h,
  * @brief Decode a NAS message with security context.
  * @param [in]  h           NAS handler
  * @param [out] msg         Parsed NAS message
+ * @param [in]  direction   0 for uplink, 1 for downlink
  * @param [in]  buf         Buffer with the NAS message to be parsed
  * @param [in]  size        Size of the NAS message buffer
  * @return 1 on success, 0 if any error
@@ -134,16 +158,29 @@ int nas_authenticateMsg(const NAS h,
  * doesn't authenticate the message, use nas_authenticateMsg for that purpose
  *
  * Don't use it for Plain NAS, the user is suposed to check the security
- * context  beforehand using the function nas_getHeader
+ * context beforehand using the function nas_getHeader
+ *
+ * The decoded and deciphered  message is returned in the msg structure,
+ * the security header is not provided, just the PlainNAS (NAS message from
+ * octet 7 only).
  */
 int dec_secNAS(const NAS h,
-               GenericNASMsg_t *msg,
+               GenericNASMsg_t *msg, const NAS_Direction direction,
                const uint8_t *buf, const uint32_t size);
 
-
-void dec_NAS(GenericNASMsg_t *msg,
-             const uint8_t *buf,
-             const uint32_t size);
+/**
+ * @brief Decode a NAS message without security context.
+ * @param [out] msg         Parsed NAS message
+ * @param [in]  buf         Buffer with the NAS message to be parsed
+ * @param [in]  size        Size of the NAS message buffer
+ * @return 1 on success, 0 if any error
+ *
+ * Function to parse a NAS message without a security context.
+ *
+ * Use  it only for Plain NAS, the user is suposed to check the security
+ * context beforehand using the function nas_getHeader
+ */
+int dec_NAS(GenericNASMsg_t *msg, const uint8_t *buf, const uint32_t size);
 
 
 void dec_ESM(ESM_Message_t *msg, uint8_t *buf, uint32_t size);
@@ -157,6 +194,33 @@ void newNASMsg_EMM(uint8_t **curpos,
 void newNASMsg_ESM(uint8_t **curpos,
                    ProtocolDiscriminator_t protocolDiscriminator,
                    uint8_t ePSBearerId);
+
+
+/**
+ * @brief Encode a NAS message with security header
+ * @param [in]  h           NAS handler
+ * @param [out] out         Buffer to place the encoded NAS message
+ * @param [out] len         Size of the NAS message buffer
+ * @param [in]  p           Protocol Discriminator
+ * @param [in]  s           Security Header type
+ * @param [in]  direction   0 for uplink, 1 for downlink
+ * @param [in]  plain       Encoded plain NAS message
+ * @param [in]  pLen        Size of the NAS plain message buffer
+ * @return 1 on success, 0 if any error
+ *
+ * Function to encode a NAS message with a security context. The function
+ * is intelligent enough to know when cyphering is required depending on the
+ * security header type provided.
+ *
+ * The out buffer needs to have enough space to store the resulting
+ * message.
+ */
+int newNASMsg_sec(const NAS h,
+                  uint8_t *out, uint32_t *len,
+                  const ProtocolDiscriminator_t p,
+                  const SecurityHeaderType_t s,
+                  const NAS_Direction direction,
+                  const uint8_t *plain, const uint32_t pLen);
 
 
 void encaps_ESM(uint8_t **curpos,

@@ -6,7 +6,7 @@
 FILE(GLOB_RECURSE TEST_SRCS "*.c")
 FILE(GLOB_RECURSE TEST_INCLUDES "*.h")
 
-include_directories(./)
+include_directories(${PROJECT_SOURCE_DIR}/NAS/include)
 #include_directories(${COMMON_INCLUDES})
 
 ################################
@@ -21,7 +21,7 @@ include_directories(./)
 add_executable (glib-tests ${TEST_SRCS})
 
 #target_link_libraries(mme gtp s1ap nas)
-target_link_libraries(glib-tests ${GLIB2_LIBRARIES} ${OPENSSL_LIBRARIES})
+target_link_libraries(glib-tests ${GLIB2_LIBRARIES} ${OPENSSL_LIBRARIES} nas)
 #add_test(MyTest glib-tests COMMAND $<TARGET_FILE:glib-tests>)
 add_test(crypto ${EXECUTABLE_OUTPUT_PATH}/glib-tests)
 

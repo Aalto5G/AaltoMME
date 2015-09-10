@@ -28,34 +28,24 @@ static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
     NASPlainMsg_t *plain;
     GenericNASMsg_t msg2;
 
-	if(msg->header.securityHeaderType.v != PlainNAS){
-		log_msg(LOG_DEBUG, 0, "Received Cyphered and Integrity protected message");
-		ciph = msg;
-		msg = &msg2;
-		dec_NAS(msg, ciph->ciphered.msg, ciph->ciphered.len);
-	}
+    if(msg->header.securityHeaderType.v != PlainNAS){
+        g_error("NAS message with security is not processed here");
+    }
 
-	switch(msg->plain.eMM.messageType){
+    switch(msg->plain.eMM.messageType){
 
     case IdentityResponse:
-	    log_msg(LOG_ERR, 0, "Received IdentityResponse, not implemented");
+        log_msg(LOG_ERR, 0, "Received IdentityResponse, not implemented");
         break;
-	case AuthenticationResponse:
-		processAuthResp(emm, msg);
-		break;
-	case AuthenticationFailure:
-		log_msg(LOG_ERR, 0, "Received AuthenticationFailure, not implemented");
-		break;
-	case SecurityModeComplete:
-		log_msg(LOG_DEBUG, 0, "Received SecurityModeComplete, not implemented");
-		s6a_UpdateLocation(emm->s6a, emm,
-		                   (void(*)(gpointer)) emm_processFirstESMmsg,
-		                   (gpointer)emm);
-		emmChangeState(emm, EMM_SpecificProcedureInitiated);
-		break;
-	case SecurityModeReject:
-		log_msg(LOG_ERR, 0, "Received SecurityModeReject, not implemented");
-		break;
+    case AuthenticationResponse:
+        processAuthResp(emm, msg);
+        break;
+    case AuthenticationFailure:
+        log_msg(LOG_ERR, 0, "Received AuthenticationFailure, not implemented");
+        break;
+    case SecurityModeReject:
+        log_msg(LOG_ERR, 0, "Received SecurityModeReject, not implemented");
+        break;
     default:
         log_msg(LOG_WARNING, 0,
                 "NAS Message type (%u) not recognized in this context",
@@ -63,61 +53,110 @@ static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
     }
 }
 
+static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+
+    GenericNASMsg_t msg;
+
+    SecurityHeaderType_t s;
+    ProtocolDiscriminator_t p;
+    guint8 isAuth, res;
+
+    nas_getHeader(buf, len, &s, &p);
+
+    res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, &isAuth);
+    if(res==2){
+        log_msg(LOG_WARNING, 0, "Wrong SQN Count");
+        return;
+    }else if(res==0){
+        g_error("NAS Authentication Error");
+    }
+
+    if(!dec_secNAS(emm->parser, &msg, NAS_UpLink, buf, len)){
+        g_error("NAS Decyphering Error");
+    }
+
+    switch(msg.plain.eMM.messageType){
+
+    case IdentityResponse:
+        log_msg(LOG_ERR, 0, "Received IdentityResponse, not implemented");
+        break;
+    case AuthenticationResponse:
+        processAuthResp(emm, &msg);
+        break;
+    case AuthenticationFailure:
+        log_msg(LOG_ERR, 0, "Received AuthenticationFailure, not implemented");
+        break;
+    case SecurityModeComplete:
+        log_msg(LOG_DEBUG, 0, "Received SecurityModeComplete, not implemented");
+        s6a_UpdateLocation(emm->s6a, emm,
+                           (void(*)(gpointer)) emm_processFirstESMmsg,
+                           (gpointer)emm);
+        emmChangeState(emm, EMM_SpecificProcedureInitiated);
+        break;
+    case SecurityModeReject:
+        log_msg(LOG_ERR, 0, "Received SecurityModeReject, not implemented");
+        break;
+    default:
+        log_msg(LOG_WARNING, 0,
+                "NAS Message type (%u) not recognized in this context",
+                msg.plain.eMM.messageType);
+    }
+
+}
+
 
 void linkEMMCommonProcedureInitiated(EMM_State* s){
     s->processMsg = emmProcessMsg;
     /* s->authInfoAvailable = emmAuthInfoAvailable; */
-    s->attachAccept = emmNotImplemented;
+    s->attachAccept = NULL;
+    s->processSecMsg = emm_processSecMsg;
 }
 
 void sendAuthReject(EMMCtx_t * emm){
-	guint8 *pointer;
+    guint8 *pointer;
     guint8 buffer[150];
     uint8_t c;
 
     pointer = buffer;
     newNASMsg_EMM(&pointer, EPSMobilityManagementMessages, PlainNAS);
     encaps_EMM(&pointer, AuthenticationReject);
-  
-	ecm_send(emm->ecm, buffer, pointer-buffer);
-	emmChangeState(emm, EMM_Deregistered);
+
+    ecm_send(emm->ecm, buffer, pointer-buffer);
+    emmChangeState(emm, EMM_Deregistered);
 }
 
 void test(EMMCtx_t emm){
-	log_msg(LOG_ERR, 0, "Upsated S6a location");
+    log_msg(LOG_ERR, 0, "Upsated S6a location");
 }
 
 void processAuthResp(EMMCtx_t * emm,  GenericNASMsg_t* msg){
-	AuthenticationResponse_t * authRsp;
-	authRsp = (AuthenticationResponse_t*)&(msg->plain.eMM);
-	AuthQuadruplet *sec;
+    AuthenticationResponse_t * authRsp;
+    authRsp = (AuthenticationResponse_t*)&(msg->plain.eMM);
+    AuthQuadruplet *sec;
+    guint8 ekey[16] = {0};
+    guint8 ikey[16] = {0};
 
-	sec = (AuthQuadruplet *)g_ptr_array_index(emm->authQuadrs,0);
+    sec = (AuthQuadruplet *)g_ptr_array_index(emm->authQuadrs,0);
 
-	/* Stop T3460*/
+    /* Stop T3460*/
 
-	/* Check XRES == RES*/
-	if(authRsp->authParam.l != 8){
-		log_msg(LOG_ERR, 0, "NAS: Authentication Parameter has a wrong lenght");
-		return;
-	}
+    /* Check XRES == RES*/
+    if(authRsp->authParam.l != 8){
+        log_msg(LOG_ERR, 0, "NAS: Authentication Parameter has a wrong lenght");
+        return;
+    }
 
-	/* Check Commented for testing*/
-	/* if(memcmp(authRsp->authParam.v, sec->xRES, 8)!=0){ */
-	/* 	log_msg(LOG_WARNING, 0, "NAS: Authentication Failed for user: %llu", emm->imsi); */
-	/* 	sendAuthReject(emm); */
-	/* 	return; */
-	/* } */
+    /* Check Commented for testing*/
+    /* if(memcmp(authRsp->authParam.v, sec->xRES, 8)!=0){ */
+    /*  log_msg(LOG_WARNING, 0, "NAS: Authentication Failed for user: %llu", emm->imsi); */
+    /*  sendAuthReject(emm); */
+    /*  return; */
+    /* } */
 
-	emm_setSecurityQuadruplet(emm);
-	emm->nasDlCount = 0;
-	emm->nasUlCount = 0;
-	emm_sendSecurityModeCommand(emm);
-	/*Temporary*/
-	/* @TODO Comment the following line and uncomment the next ones
-	 *  to activate the Security Mode Procedure
-	 */
-	/* s6a_UpdateLocation(emm->s6a, emm, */
-	/*                    (void(*)(gpointer)) test, */
-	/*                    (gpointer)emm); */
+    emm_setSecurityQuadruplet(emm);
+    nas_setSecurity(emm->parser, NAS_EIA2, ikey, NAS_EEA0, ekey);
+    /* emm->nasDlCount = 0; */
+    /* emm->nasUlCount = 0; */
+    emm_sendSecurityModeCommand(emm);
 }

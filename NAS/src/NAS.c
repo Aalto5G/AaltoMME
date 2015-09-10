@@ -210,46 +210,45 @@ void dec_ESM(ESM_Message_t *msg, uint8_t *buf, uint32_t size){
     }
 }
 
-void dec_NAS(GenericNASMsg_t *msg, const uint8_t *buf, const uint32_t size){
+int dec_NAS(GenericNASMsg_t *msg, const uint8_t *buf, const uint32_t size){
     uint8_t const *pointer;
+    ProtocolDiscriminator_t p;
+    SecurityHeaderType_t s;
+
+    if(!nas_getHeader(buf, size, &s, &p))
+        return 0;
+
     pointer = buf;
-    msg->header.protocolDiscriminator.v = (*pointer)&0x0F;
+    msg->header.protocolDiscriminator.v = p;
     msg->header.protocolDiscriminator.s = 0;
-    msg->header.securityHeaderType.v = ((*pointer)&0xF0)>>4;
+    msg->header.securityHeaderType.v = s;
     msg->header.securityHeaderType.s = 0;
     pointer++;
 
-    nas_msg(NAS_DEBUG, 0,"DEC : protocolDiscriminator = %x, securityHeaderType = %x",
-            msg->header.protocolDiscriminator.v, msg->header.securityHeaderType.v);
+    nas_msg(NAS_DEBUG, 0,"DEC : protocolDiscriminator = %x,"
+            " securityHeaderType = %x", p, s);
 
-    if( (ProtocolDiscriminator_t)msg->header.protocolDiscriminator.v == EPSMobilityManagementMessages &&
-            (SecurityHeaderType_t)msg->header.securityHeaderType.v != PlainNAS){
-        memcpy(msg->ciphered.messageAuthCode, pointer,4);
-        pointer+=4;
-        msg->ciphered.sequenceNum = *pointer;
-        pointer++;
-        msg->ciphered.msg = pointer;
-        msg->ciphered.len = size-6;
-        return;
-    }else{
-        if((ProtocolDiscriminator_t)msg->header.protocolDiscriminator.v == EPSMobilityManagementMessages){
-            dec_EMM(&(msg->plain.eMM), pointer, size-1);
-
-        }else if((ProtocolDiscriminator_t)msg->header.protocolDiscriminator.v == EPSSessionManagementMessages){
-            dec_ESM(&(msg->plain.eSM), pointer, size-1);
-        }else{
-            nas_msg(NAS_ERROR, 0, "Protocol discriminator not recognized: %u", msg->header.protocolDiscriminator.v);
-            msg=NULL;
-            return;
-        }
+    if(s != PlainNAS ||
+       p != EPSSessionManagementMessages || p != EPSMobilityManagementMessages){
+        return 0;
     }
+
+    if(p == EPSMobilityManagementMessages){
+        dec_EMM(&(msg->plain.eMM), pointer, size-1);
+        return 1;
+    }
+
+    dec_ESM(&(msg->plain.eSM), pointer, size-1);
+    return 1;
 }
 
 
 /* ***** Encoding functions ***** */
 
 
-void newNASMsg_EMM(uint8_t **curpos, ProtocolDiscriminator_t protocolDiscriminator, SecurityHeaderType_t securityHeaderType){
+void newNASMsg_EMM(uint8_t **curpos,
+                   ProtocolDiscriminator_t protocolDiscriminator,
+                   SecurityHeaderType_t securityHeaderType){
     if(curpos == NULL){
         nas_msg(NAS_ERROR, 0,"ENC : buffer parameter not allocated");
         return;
@@ -258,7 +257,9 @@ void newNASMsg_EMM(uint8_t **curpos, ProtocolDiscriminator_t protocolDiscriminat
     nasIe_v_t1_h(curpos, securityHeaderType);
 }
 
-void newNASMsg_ESM(uint8_t **curpos, ProtocolDiscriminator_t protocolDiscriminator, uint8_t ePSBearerId){
+void newNASMsg_ESM(uint8_t **curpos,
+                   ProtocolDiscriminator_t protocolDiscriminator,
+                   uint8_t ePSBearerId){
     if(curpos == NULL){
         nas_msg(NAS_ERROR, 0,"ENC : buffer parameter not allocated");
         return;
@@ -267,7 +268,63 @@ void newNASMsg_ESM(uint8_t **curpos, ProtocolDiscriminator_t protocolDiscriminat
     nasIe_v_t1_h(curpos, ePSBearerId);
 }
 
-void encaps_ESM(uint8_t **curpos, ProcedureTransactionId_t procedureTransactionIdentity, NASMessageType_t messageType){
+int newNASMsg_sec(const NAS h,
+                  uint8_t *out, uint32_t *len,
+                  const ProtocolDiscriminator_t p,
+                  const SecurityHeaderType_t s,
+                  const NAS_Direction direction,
+                  const uint8_t *plain, const uint32_t pLen){
+
+    uint8_t buf[pLen+1], count[4], mac[4], *pointer;
+    uint32_t ncount, cLen = 0;
+    NASHandler *n = (NASHandler*)h;
+
+    if(!(s == IntegrityProtected ||
+         s == IntegrityProtectedAndCiphered ||
+         s == IntegrityProtectedWithNewEPSSecurityContext ||
+         s == IntegrityProtectedAndCipheredWithNewEPSSecurityContext)){
+        /*We shouldn't be here*/
+        return 0;
+    }
+
+    ncount = htonl(n->nas_count[direction]);
+    memcpy(count, &ncount, 4);
+    memset(mac, 0, 4);
+    *len = 0;
+    pointer = out;
+
+    /* Cypher Message*/
+    if(s == IntegrityProtectedAndCiphered ||
+       s == IntegrityProtectedAndCipheredWithNewEPSSecurityContext){
+        eea_cyph_cb[n->e](n->ekey, count, 0, direction, buf+1, &cLen, plain, pLen);
+        if(pLen != cLen){
+            return 0;
+        }
+    }else{
+        memcpy(buf+1, plain, pLen);
+    }
+
+    /* NAS SQN*/
+    buf[0] = (uint8_t) (n->nas_count[direction] &0xff);
+
+    /* Calculate MAC*/
+    eia_cb[n->i](n->ikey, count, 0, direction, buf, (pLen +1)*8, mac);
+
+    /* Encode new Message with Security header*/
+    newNASMsg_EMM(&pointer, p, s);
+    pointer++;
+    /* Add message autherntication code*/
+    nasIe_v_t3(&pointer, mac, 4);
+    /* Add sequence number and cyphered message */
+    nasIe_v_t3(&pointer, buf, pLen + 1);
+    *len = pointer - out;
+    return 1;
+}
+
+
+void encaps_ESM(uint8_t **curpos,
+                ProcedureTransactionId_t procedureTransactionIdentity,
+                NASMessageType_t messageType){
     nasIe_v_t3(curpos, (uint8_t*)&procedureTransactionIdentity, 1);
     nasIe_v_t3(curpos, (uint8_t*)&messageType, 1);
 }
@@ -308,8 +365,7 @@ void nas_freeHandler(NAS h){
 
 void nas_setSecurity(NAS h,
                      NAS_EIA i, const uint8_t *ikey,
-                     NAS_EEA e, const uint8_t *ekey,
-                     void (*cb)(void*), void* user_data){
+                     NAS_EEA e, const uint8_t *ekey){
 
     NASHandler *n = (NASHandler*)h;
 
@@ -323,12 +379,6 @@ void nas_setSecurity(NAS h,
 
     n->nas_count[0] = 0;
     n->nas_count[1] = 0;
-
-    if(cb)
-        n->countOverflow = cb;
-    if(user_data)
-        n->udata = user_data;
-
     return;
 }
 
@@ -346,34 +396,56 @@ int nas_getHeader(const uint8_t *buf, const uint32_t size,
     return 1;
 }
 
+const uint32_t nas_getCount(const NAS h, const NAS_Direction direction){
+    NASHandler *n = (NASHandler*)h;
+    return n->nas_count[direction];
+}
+
+int nas_incrementNASCount(const NAS h, const NAS_Direction direction){
+    NASHandler *n = (NASHandler*)h;
+    n->nas_count[direction]++;
+    if(n->nas_count[direction] > 0xffffff-5){
+        return 0;
+    }
+    return 1;
+}
+
 int nas_authenticateMsg(const NAS h,
                         const uint8_t *buf, const uint32_t size,
-                        const uint8_t direction, uint8_t *isAuth){
+                        const NAS_Direction direction, uint8_t *isAuth){
     SecurityHeaderType_t s;
     NASHandler *n = (NASHandler*)h;
+    uint8_t count[4], res = 0;
+    uint32_t ncount;
 
     nas_getHeader(buf, size, &s, NULL);
-    isAuth = 0;
-    uint8_t const *pointer;
+
+    *isAuth = 0;
+
     uint8_t mac[4], mac_x[4], nas_sqn;
-    size_t len;
     if( s == PlainNAS ){
         return 0;
-    }else if(s == IntegrityProtected ||
-             s == IntegrityProtectedAndCiphered ||
-             s == IntegrityProtectedWithNewEPSSecurityContext ||
-             s == IntegrityProtectedAndCipheredWithNewEPSSecurityContext ){
+    }
+
+    if(s == IntegrityProtected ||
+       s == IntegrityProtectedAndCiphered ||
+       s == IntegrityProtectedWithNewEPSSecurityContext ||
+       s == IntegrityProtectedAndCipheredWithNewEPSSecurityContext ){
         /*Check NAS SQN*/
         nas_sqn = buf[5];
         if(n->nas_count[direction]&0xff != nas_sqn){
-            *isAuth = 0;
-            return 1;
+            return 2;
         }
         /*Calculate and validate MAC*/
         memcpy(mac, buf+1, 4);
+        ncount = htonl(n->nas_count[direction]);
+        memcpy(count, &ncount, 4);
+        eia_cb[n->i](n->ikey, count, 0, direction, buf+5, (size-5)*8, mac_x);
 
-        pointer = buf + 5;
-        len = size - 5;
+        if(memcmp(mac, mac_x, 4) == 0){
+            *isAuth = 1;
+        }
+        return 1;
     }else if(s == SecurityHeaderForServiceRequestMessage){
         return 0;
         /*Non-standard L3 message*/
@@ -383,32 +455,28 @@ int nas_authenticateMsg(const NAS h,
 }
 
 int dec_secNAS(const NAS h,
-                GenericNASMsg_t *msg,
-                const uint8_t *buf, const uint32_t size){
-    GenericNASMsg_t tmp;
-    uint8_t const *pointer;
+               GenericNASMsg_t *msg, const NAS_Direction direction,
+               const uint8_t *buf, const uint32_t size){
+
+    SecurityHeaderType_t s;
     NASHandler *n = (NASHandler*)h;
+    uint8_t plain[size], count[4];
+    size_t len;
+    uint32_t ncount;
 
-    pointer = buf;
-    msg->header.protocolDiscriminator.v = (*pointer)&0x0F;
-    msg->header.protocolDiscriminator.s = 0;
-    msg->header.securityHeaderType.v = ((*pointer)&0xF0)>>4;
-    msg->header.securityHeaderType.s = 0;
-    pointer++;
+    nas_getHeader(buf, size, &s, NULL);
 
-    nas_msg(NAS_DEBUG, 0,"DEC : protocolDiscriminator = %x, securityHeaderType = %x",
-            msg->header.protocolDiscriminator.v, msg->header.securityHeaderType.v);
-
-    if((ProtocolDiscriminator_t)msg->header.protocolDiscriminator.v == EPSMobilityManagementMessages &&
-       (SecurityHeaderType_t)msg->header.securityHeaderType.v != PlainNAS){
-        memcpy(msg->ciphered.messageAuthCode, pointer,4);
-        pointer+=4;
-        msg->ciphered.sequenceNum = *pointer;
-        pointer++;
-        msg->ciphered.msg = pointer;
-        msg->ciphered.len = size-6;
-        return;
-    }else{
-        dec_NAS(msg, buf, size);
+    if( ! (s == IntegrityProtectedAndCiphered ||
+           s == IntegrityProtectedAndCipheredWithNewEPSSecurityContext ||
+           s == SecurityHeaderForServiceRequestMessage)){
+        return 0;
     }
+
+    ncount = htonl(n->nas_count[direction]);
+    memcpy(count, &ncount, 4);
+    eea_dec_cb[n->e](n->ekey, count, 0, direction,
+                     buf + 6, size - 6,
+                     plain, &len);
+
+    return dec_NAS(msg, plain, len);
 }
