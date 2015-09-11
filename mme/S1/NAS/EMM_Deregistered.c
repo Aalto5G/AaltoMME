@@ -70,8 +70,12 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         g_error("NAS Authentication Error");
     }
 
-    if(!dec_secNAS(emm->parser, &msg, NAS_UpLink, buf, len)){
+    if(s ==  IntegrityProtected){
+	    dec_NAS(&msg, buf+6, len-6);
+    }else{
+	    if(!dec_secNAS(emm->parser, &msg, NAS_UpLink, buf, len)){
         g_error("NAS Decyphering Error");
+	    }
     }
 
     switch(msg.plain.eMM.messageType){
