@@ -25,6 +25,7 @@
 
 
 void processAttach(gpointer emm_h,  GenericNASMsg_t* msg, guint8 *ksi_msg);
+void attachContinuationSwitch(gpointer emm_h, guint8 ksi_msg);
 void sendIdentityReq(gpointer emm_h);
 void emm_AuthInfoAvailable(gpointer emm_h);
 
