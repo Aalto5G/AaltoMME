@@ -18,6 +18,7 @@
 #include "NASHandler.h"
 #include <stdlib.h>
 #include <string.h>
+#include <arpa/inet.h>     /*htonl*/
 #include <openssl/hmac.h>
 
 /* ***** Decoding functions ***** */
@@ -277,7 +278,8 @@ int newNASMsg_sec(const NAS h,
                   const uint8_t *plain, const uint32_t pLen){
 
     uint8_t buf[pLen+1], count[4], mac[4], *pointer;
-    uint32_t ncount, cLen = 0;
+    uint32_t ncount;
+    size_t cLen = 0;
     NASHandler *n = (NASHandler*)h;
 
     if(!(s == IntegrityProtected ||
@@ -367,14 +369,14 @@ static void hmac_sha256(const unsigned char *key, unsigned int key_size,
                         const unsigned char *message, unsigned int message_len,
                         unsigned char *mac, unsigned mac_size)
 {
-	uint8_t res[EVP_MAX_MD_SIZE];
-	uint32_t len;
-	HMAC_CTX ctx;
+    uint8_t res[EVP_MAX_MD_SIZE];
+    uint32_t len;
+    HMAC_CTX ctx;
 
-	HMAC_CTX_init(&ctx);
-	HMAC_Init_ex(&ctx, key, key_size, EVP_sha256(), NULL);
-	HMAC_Update(&ctx, message, message_len);
-	HMAC_Final(&ctx, res, &len);
+    HMAC_CTX_init(&ctx);
+    HMAC_Init_ex(&ctx, key, key_size, EVP_sha256(), NULL);
+    HMAC_Update(&ctx, message, message_len);
+    HMAC_Final(&ctx, res, &len);
     HMAC_CTX_cleanup(&ctx);
     /* Use least significant bits */
     memcpy(mac, res + len - mac_size, mac_size);
@@ -423,6 +425,7 @@ void nas_setSecurity(NAS h, const NAS_EIA i, const NAS_EEA e,
 
     n->nas_count[0] = 0;
     n->nas_count[1] = 0;
+    n->isValid = 1;
     return;
 }
 
@@ -432,9 +435,9 @@ int nas_getHeader(const uint8_t *buf, const uint32_t size,
         return 0;
     }
     if(s)
-	    *s = (buf[0]&0xf0)>>4;
+        *s = (buf[0]&0xf0)>>4;
     if(p)
-	    *p = buf[0]&0x0f;
+        *p = buf[0]&0x0f;
     return 1;
 }
 
@@ -445,6 +448,9 @@ const uint32_t nas_getCount(const NAS h, const NAS_Direction direction){
 
 int nas_incrementNASCount(const NAS h, const NAS_Direction direction){
     NASHandler *n = (NASHandler*)h;
+    if(!n->isValid)
+        return 0;
+
     n->nas_count[direction]++;
     if(n->nas_count[direction] > 0xffffff-5){
         return 0;
@@ -463,6 +469,8 @@ int nas_authenticateMsg(const NAS h,
     nas_getHeader(buf, size, &s, NULL);
 
     *isAuth = 0;
+    if(!n->isValid)
+        return 0;
 
     uint8_t mac[4], mac_x[4], nas_sqn;
     if( s == PlainNAS ){
@@ -508,11 +516,20 @@ int dec_secNAS(const NAS h,
 
     nas_getHeader(buf, size, &s, NULL);
 
-    if( ! (s == IntegrityProtectedAndCiphered ||
-           s == IntegrityProtectedAndCipheredWithNewEPSSecurityContext ||
-           s == SecurityHeaderForServiceRequestMessage)){
-        return 0;
+    if(s ==  IntegrityProtected){
+	    dec_NAS(msg, buf+6, len-6);
+	    return 1;
+    }else if( ! (s == IntegrityProtectedAndCiphered ||
+                 s == IntegrityProtectedAndCipheredWithNewEPSSecurityContext ||
+                 s == SecurityHeaderForServiceRequestMessage)){
+	    return 0;
     }
+
+    /* Keep it here, so it can decode IntegrityProtected Messages
+     * without a valid context. The context is only checked when decyphering
+     * is required. */
+    if(!n->isValid)
+        return 0;
 
     ncount = htonl(n->nas_count[direction]);
     memcpy(count, &ncount, 4);

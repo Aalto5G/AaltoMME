@@ -65,16 +65,18 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
 
     nas_getHeader(buf, len, &s, &p);
 
-    res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
-    if(res==2){
-        log_msg(LOG_WARNING, 0, "Wrong SQN Count");
-        return;
-    }else if(res==0){
-        g_error("NAS Authentication Error");
+    if(emm->sci || s == IntegrityProtectedAndCipheredWithNewEPSSecurityContext){
+	    res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
+	    if(res==2){
+		    log_msg(LOG_WARNING, 0, "Wrong SQN Count");
+		    return;
+	    }else if(res==0){
+		    g_error("NAS Authentication Error");
+	    }
     }
-
+    
     if(!dec_secNAS(emm->parser, &msg, NAS_UpLink, buf, len)){
-        g_error("NAS Decyphering Error");
+	    g_error("NAS Decyphering Error");
     }
 
     switch(msg.plain.eMM.messageType){

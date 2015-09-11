@@ -60,23 +60,23 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
 
     SecurityHeaderType_t s;
     ProtocolDiscriminator_t p;
-    guint8 isAuth, res, msg_ksi;
+    guint8 res, msg_ksi;
+    guint8 isAuth;
 
     nas_getHeader(buf, len, &s, &p);
-    res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, &isAuth);
-    if(res==2){
-        log_msg(LOG_WARNING, 0, "Wrong SQN Count");
-        return;
-    }else if(res==0){
-        g_error("NAS Authentication Error");
+    
+    if(emm->sci){
+	    res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
+	    if(res==2){
+		    log_msg(LOG_WARNING, 0, "Wrong SQN Count");
+		    return;
+	    }else if(res==0){
+		    g_error("NAS Authentication Error");
+	    }
     }
 
-    if(s ==  IntegrityProtected){
-	    dec_NAS(&msg, buf+6, len-6);
-    }else{
-	    if(!dec_secNAS(emm->parser, &msg, NAS_UpLink, buf, len)){
-        g_error("NAS Decyphering Error");
-	    }
+    if(!dec_secNAS(emm->parser, &msg, NAS_UpLink, buf, len)){
+	    g_error("NAS Decyphering Error");
     }
 
     switch(msg.plain.eMM.messageType){
@@ -88,7 +88,8 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
 		    emm->next_ksi = msg_ksi ++;
 	    }
 
-	    if(!isAuth){
+	    /*If is not authenticated or no security context is available*/
+	    if(!isAuth || !emm->sci){
 		    attachContinuationSwitch(emm, msg_ksi);
 	    }else{
 		    emmChangeState(emm, EMM_SpecificProcedureInitiated);

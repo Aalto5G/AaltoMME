@@ -18,7 +18,7 @@
 #include "logmgr.h"
 #include "EMM_FSMConfig.h"
 #include "NAS.h"
-#include "NAS.h"
+#include "ECMSession_priv.h"
 #include <string.h>
 
 static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
@@ -37,6 +37,7 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
 	guint8 *pointer, out[256], plain[250], count, t3412, guti_b[11];
 	guti_t guti;
 	guint32 len;
+    gsize tlen;
 	NAS_tai_list_t tAIl;
 
 	memset(out, 0, 156);
@@ -57,8 +58,8 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
 		t3412 = 0x23;
 		nasIe_v_t3(&pointer, &t3412, 1); /* EPS only */
 		/* TAI list */
-		ecmSession_getTAIlist(emm->ecm, &tAIl, &len);
-		nasIe_lv_t4(&pointer, (uint8_t*)&tAIl, len);
+		ecmSession_getTAIlist(emm->ecm, &tAIl, &tlen);
+		nasIe_lv_t4(&pointer, (uint8_t*)&tAIl, tlen);
 		/* ESM message container */
 		nasIe_lv_t6(&pointer, esm_msg, msgLen);
 
