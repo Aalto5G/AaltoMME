@@ -34,7 +34,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buff, gsize len){
 
 static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GList *bearers){
 	EMMCtx_t *emm = (EMMCtx_t*)emm_h;
-	guint8 *pointer, out[156], plain[150], count, t3412, guti_b[11];
+	guint8 *pointer, out[256], plain[250], count, t3412, guti_b[11];
 	guti_t guti;
 	guint32 len;
 	NAS_tai_list_t tAIl;

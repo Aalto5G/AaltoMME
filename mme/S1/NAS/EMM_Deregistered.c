@@ -23,7 +23,7 @@
 #include "NAS_EMM_priv.h"
 #include "MME_S6a.h"
 
-void processAttach(gpointer emm_h,  GenericNASMsg_t* msg);
+void processAttach(gpointer emm_h,  GenericNASMsg_t* msg, gboolean isAuth);
 void sendIdentityReq(gpointer emm_h);
 void emm_AuthInfoAvailable(gpointer emm_h);
 
@@ -38,7 +38,7 @@ static void emmProcessMsg(gpointer emm_h,  GenericNASMsg_t* msg){
     switch(msg->plain.eMM.messageType){
 
     case AttachRequest:
-        processAttach(emm, msg);
+        processAttach(emm, msg, FALSE);
         break;
     default:
         log_msg(LOG_WARNING, 0,
@@ -48,11 +48,39 @@ static void emmProcessMsg(gpointer emm_h,  GenericNASMsg_t* msg){
 }
 
 
-static void emm_processSecMsg(gpointer emm_h, gpointer buff, gsize len){
-	EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
 
-	log_msg(LOG_ERR, 0, "Received unexpected NAS message with security header");
 
+    GenericNASMsg_t msg;
+
+    SecurityHeaderType_t s;
+    ProtocolDiscriminator_t p;
+    guint8 isAuth, res;
+
+    nas_getHeader(buf, len, &s, &p);
+    res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, &isAuth);
+    if(res==2){
+        log_msg(LOG_WARNING, 0, "Wrong SQN Count");
+        return;
+    }else if(res==0){
+        g_error("NAS Authentication Error");
+    }
+
+    if(!dec_secNAS(emm->parser, &msg, NAS_UpLink, buf, len)){
+        g_error("NAS Decyphering Error");
+    }
+
+    switch(msg.plain.eMM.messageType){
+
+    case AttachRequest:
+        processAttach(emm, &msg, isAuth);
+        break;
+    default:
+        log_msg(LOG_WARNING, 0,
+                "NAS Message type (%u) not recognized in this context",
+                msg.plain.eMM.messageType);
+    }
 }
 
 
@@ -64,7 +92,7 @@ void linkEMMDeregistered(EMM_State* s){
 
 
 
-void processAttach(gpointer emm_h,  GenericNASMsg_t* msg){
+void processAttach(gpointer emm_h,  GenericNASMsg_t* msg, gboolean isAuth){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     AttachRequest_t *attachMsg;
     guint ksi_msg, i;
@@ -124,6 +152,10 @@ void processAttach(gpointer emm_h,  GenericNASMsg_t* msg){
         emm_sendAuthRequest(emm);
         emmChangeState(emm, EMM_CommonProcedureInitiated);
         return;
+    }else if(!isAuth){
+        /*Security context exists but Integrity check failed*/
+        emm_sendAuthRequest(emm);
+        emmChangeState(emm, EMM_CommonProcedureInitiated);
     }
     /* User Authenticated,
      * Proof:
