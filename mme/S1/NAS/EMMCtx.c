@@ -40,6 +40,7 @@ EMMCtx emmCtx_init(){
     self->attachStarted = FALSE;
 
     self->ksi = 7;
+    self->next_ksi = 1;
 
     return self;
 }

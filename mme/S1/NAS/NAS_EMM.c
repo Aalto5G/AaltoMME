@@ -77,6 +77,7 @@ void emm_sendAuthRequest(EMMCtx emm_h){
     guint8 *pointer;
     guint8 buffer[150];
     AuthQuadruplet *sec;
+    guint8 old_ksi;
 
     log_msg(LOG_DEBUG, 0, "Initiating UE authentication");
 
@@ -89,11 +90,12 @@ void emm_sendAuthRequest(EMMCtx emm_h){
     encaps_EMM(&pointer, AuthenticationRequest);
 
     /* NAS Key Set ID */
-    if(emm->ksi < 6){
-        emm->old_ksi = emm->ksi;
-        emm->ksi++;
+    emm->old_ksi = emm->ksi;
+    emm->ksi = emm->next_ksi;
+    if(emm->next_ksi < 6){
+	    emm->next_ksi++;
     }else{
-        emm->ksi = 1;
+	    emm->next_ksi = 1;
     }
     nasIe_v_t1_l(&pointer, emm->ksi&0x0F);
     pointer++; /*Spare half octet*/

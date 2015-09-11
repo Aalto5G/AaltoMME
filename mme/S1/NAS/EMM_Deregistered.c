@@ -23,12 +23,14 @@
 #include "NAS_EMM_priv.h"
 #include "MME_S6a.h"
 
-void processAttach(gpointer emm_h,  GenericNASMsg_t* msg, gboolean isAuth);
+
+void processAttach(gpointer emm_h,  GenericNASMsg_t* msg, guint8 *ksi_msg);
 void sendIdentityReq(gpointer emm_h);
 void emm_AuthInfoAvailable(gpointer emm_h);
 
 static void emmProcessMsg(gpointer emm_h,  GenericNASMsg_t* msg){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    guint8 ksi_msg;
 
     if(msg->header.securityHeaderType.v != PlainNAS){
         log_msg(LOG_ERR, 0, "NAS Integrity or security not implemented");
@@ -38,7 +40,8 @@ static void emmProcessMsg(gpointer emm_h,  GenericNASMsg_t* msg){
     switch(msg->plain.eMM.messageType){
 
     case AttachRequest:
-        processAttach(emm, msg, FALSE);
+	    processAttach(emm, msg, &ksi_msg);
+        attachContinuationSwitch(emm, ksi_msg);
         break;
     default:
         log_msg(LOG_WARNING, 0,
@@ -56,7 +59,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
 
     SecurityHeaderType_t s;
     ProtocolDiscriminator_t p;
-    guint8 isAuth, res;
+    guint8 isAuth, res, msg_ksi;
 
     nas_getHeader(buf, len, &s, &p);
     res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, &isAuth);
@@ -74,7 +77,18 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     switch(msg.plain.eMM.messageType){
 
     case AttachRequest:
-        processAttach(emm, &msg, isAuth);
+	    processAttach(emm, &msg, &msg_ksi);
+
+	    if(msg_ksi < 6){
+		    emm->next_ksi = msg_ksi ++;
+	    }
+
+	    if(!isAuth){
+		    attachContinuationSwitch(emm, msg_ksi);
+	    }else{
+		    emmChangeState(emm, EMM_SpecificProcedureInitiated);
+		    emm_processFirstESMmsg(emm);
+	    }
         break;
     default:
         log_msg(LOG_WARNING, 0,
@@ -92,17 +106,17 @@ void linkEMMDeregistered(EMM_State* s){
 
 
 
-void processAttach(gpointer emm_h,  GenericNASMsg_t* msg, gboolean isAuth){
+void processAttach(gpointer emm_h,  GenericNASMsg_t* msg, guint8 *ksi_msg){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     AttachRequest_t *attachMsg;
-    guint ksi_msg, i;
+    guint i;
     uint64_t mobid=0ULL;
     GByteArray *esmRaw;
     guint16 cap;
 
     attachMsg = (AttachRequest_t*)&(msg->plain.eMM);
     emm->attachStarted = TRUE;
-    ksi_msg = attachMsg->nASKeySetId.v & 0x07;
+    *ksi_msg = attachMsg->nASKeySetId.v & 0x07;
 
     esmRaw = g_byte_array_new();
     g_byte_array_append(esmRaw,
@@ -138,6 +152,10 @@ void processAttach(gpointer emm_h,  GenericNASMsg_t* msg, gboolean isAuth){
             return;
         }
     }
+}
+
+void attachContinuationSwitch(gpointer emm_h, guint8 ksi_msg){
+	EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     /* Check Auth, Proof down*/
     if( emm->ksi == 7 && !emm->authQuadrsLen>0){
         log_msg(LOG_DEBUG, 0,"Getting info from HSS");
@@ -149,13 +167,9 @@ void processAttach(gpointer emm_h,  GenericNASMsg_t* msg, gboolean isAuth){
         /* New context available in EMM ctx*/
         /* Send Auth request */
         /* Set T3460 */
-        emm_sendAuthRequest(emm);
+	    emm_sendAuthRequest(emm);
         emmChangeState(emm, EMM_CommonProcedureInitiated);
         return;
-    }else if(!isAuth){
-        /*Security context exists but Integrity check failed*/
-        emm_sendAuthRequest(emm);
-        emmChangeState(emm, EMM_CommonProcedureInitiated);
     }
     /* User Authenticated,
      * Proof:

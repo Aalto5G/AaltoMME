@@ -20,13 +20,14 @@
 #include "NAS.h"
 #include "NAS_EMM_priv.h"
 
-void processAuthResp(EMMCtx_t * emm,  GenericNASMsg_t* msg);
+void processAuthResp(EMMCtx_t * emm,  GenericNASMsg_t* msg, gboolean *isAuth);
 
 static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     GenericNASMsg_t *ciph;
     NASPlainMsg_t *plain;
     GenericNASMsg_t msg2;
+    gboolean isAuth;
 
     if(msg->header.securityHeaderType.v != PlainNAS){
         g_error("NAS message with security is not processed here");
@@ -38,7 +39,7 @@ static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
         log_msg(LOG_ERR, 0, "Received IdentityResponse, not implemented");
         break;
     case AuthenticationResponse:
-        processAuthResp(emm, msg);
+	    processAuthResp(emm, msg, &isAuth);
         break;
     case AuthenticationFailure:
         log_msg(LOG_ERR, 0, "Received AuthenticationFailure, not implemented");
@@ -60,11 +61,11 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
 
     SecurityHeaderType_t s;
     ProtocolDiscriminator_t p;
-    guint8 isAuth, res;
+    gboolean isAuth, res;
 
     nas_getHeader(buf, len, &s, &p);
 
-    res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, &isAuth);
+    res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
     if(res==2){
         log_msg(LOG_WARNING, 0, "Wrong SQN Count");
         return;
@@ -82,13 +83,18 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         log_msg(LOG_ERR, 0, "Received IdentityResponse, not implemented");
         break;
     case AuthenticationResponse:
-        processAuthResp(emm, &msg);
+	    processAuthResp(emm, &msg, &isAuth);
         break;
     case AuthenticationFailure:
         log_msg(LOG_ERR, 0, "Received AuthenticationFailure, not implemented");
         break;
     case SecurityModeComplete:
+	    if(!isAuth){
+		    log_msg(LOG_ERR, 0, "Authentication Error on Security Mode Complete");
+		    return;
+	    }
         nas_incrementNASCount(emm->parser, NAS_UpLink);
+        emm->sci = TRUE;
         s6a_UpdateLocation(emm->s6a, emm,
                            (void(*)(gpointer)) emm_processFirstESMmsg,
                            (gpointer)emm);
@@ -130,13 +136,14 @@ void test(EMMCtx_t emm){
     log_msg(LOG_ERR, 0, "Upsated S6a location");
 }
 
-void processAuthResp(EMMCtx_t * emm,  GenericNASMsg_t* msg){
+void processAuthResp(EMMCtx_t * emm,  GenericNASMsg_t* msg, gboolean *isAuth){
     AuthenticationResponse_t * authRsp;
     authRsp = (AuthenticationResponse_t*)&(msg->plain.eMM);
     AuthQuadruplet *sec;
     guint8 ekey[16] = {0};
     guint8 ikey[16] = {0};
 
+    *isAuth = FALSE;
     sec = (AuthQuadruplet *)g_ptr_array_index(emm->authQuadrs,0);
 
     /* Stop T3460*/
@@ -148,11 +155,12 @@ void processAuthResp(EMMCtx_t * emm,  GenericNASMsg_t* msg){
     }
 
     /* Check Commented for testing*/
-    /* if(memcmp(authRsp->authParam.v, sec->xRES, 8)!=0){ */
-    /*  log_msg(LOG_WARNING, 0, "NAS: Authentication Failed for user: %llu", emm->imsi); */
-    /*  sendAuthReject(emm); */
-    /*  return; */
-    /* } */
+    if(memcmp(authRsp->authParam.v, sec->xRES, 8)!=0){
+	    log_msg(LOG_WARNING, 0, "NAS: Authentication Failed for user: %llu", emm->imsi);
+	    sendAuthReject(emm);
+	    return;
+    }
+    *isAuth = TRUE;
 
     emm_setSecurityQuadruplet(emm);
 

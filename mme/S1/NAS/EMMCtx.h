@@ -65,12 +65,14 @@ typedef struct{
     gboolean     uambri;        /**< Used AMBR Indicator */
     gboolean     sambri;        /**< Subscribed AMBR Indicator */
     gboolean     osci;          /**< Old Security Context indicator */
+    guint8       next_ksi;
     guint8       ksi;
     guint8       nasIntAlg;
     guint8       nasCipAlg;
     NAS          parser;
     //    guint32      nasUlCount;
     //    guint32      nasDlCount;
+    gboolean     sci;          /**< Security Context indicator */
     guint8       kasme[32];
     gsize        authQuadrsLen;
     GPtrArray    *authQuadrs;
