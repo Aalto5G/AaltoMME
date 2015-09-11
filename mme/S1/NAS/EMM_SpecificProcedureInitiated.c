@@ -19,17 +19,43 @@
 #include "EMM_FSMConfig.h"
 #include "NAS.h"
 #include "ECMSession_priv.h"
+#include "NAS_EMM_priv.h"
 #include <string.h>
 
 static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
     log_msg(LOG_ERR, 0, "Not Implemented");
 }
 
-static void emm_processSecMsg(gpointer emm_h, gpointer buff, gsize len){
+static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
 	EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+	GenericNASMsg_t msg;
+	SecurityHeaderType_t s;
+    ProtocolDiscriminator_t p;
+    gboolean isAuth = FALSE, res;
+	nas_getHeader(buf, len, &s, &p);
+	log_msg(LOG_INFO, 0, "PING");
+	if(emm->sci){
+		res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
+		if(res==2){
+			log_msg(LOG_WARNING, 0, "Wrong SQN Count");
+			return;
+		}else if(res==0){
+			g_error("NAS Authentication Error");
+		}
+	}
+	if(!isAuth){
+		log_msg(LOG_INFO, 0, "Received Message with wrong MAC");
+		return;
+	}
 
-	log_msg(LOG_ERR, 0, "Received unexpected NAS message with security header");
+	if(!dec_secNAS(emm->parser, &msg, NAS_UpLink, buf, len)){
+		g_error("NAS Decyphering Error");
+	}
 
+	if(p == EPSSessionManagementMessages){
+		esm_processMsg(emm->esm, &(msg.plain.eSM));
+		return;
+	}
 }
 
 static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GList *bearers){
@@ -88,6 +114,7 @@ void linkEMMSpecificProcedureInitiated(EMM_State* s){
     /* s->authInfoAvailable = emmAuthInfoAvailable; */
     s->attachAccept = emmAttachAccept;
     s->processSecMsg = emm_processSecMsg;
+    s->sendESM = emm_internalSendESM;
 }
 
 

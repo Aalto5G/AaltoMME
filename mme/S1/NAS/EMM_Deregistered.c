@@ -108,6 +108,7 @@ void linkEMMDeregistered(EMM_State* s){
     s->processMsg = emmProcessMsg;
     s->attachAccept = NULL;
     s->processSecMsg = emm_processSecMsg;
+    s->sendESM = NULL;
 }
 
 

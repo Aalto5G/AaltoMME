@@ -331,42 +331,45 @@ void dec_PDNConnectivityRequest(PDNConnectivityRequest_t *msg, uint8_t *buffer, 
     opT = *buffer;
     if((opT&0xF0) == 0xD0){
         /*ESM information transfer flag*/
+	    msg->optionals[numOp].v_t1_h.v = opT&0xF0>>4;
+	    msg->optionals[numOp].v_t1_l.v = opT&0x01;
         buffer++;
         size--;
         numOp++;
         if(size == 0)
             return;
-    opT = *buffer;
+        opT = *buffer;
     }
     if(opT == 0x28){
-    /*Access point name*/
-    temp = (ie_tlv_t4_t *)buffer;
-    buffer += temp->l;
-    size -= 2;
-    size -= temp->l;
-    numOp++;
-    if(size == 0)
-        return;
-    opT = *buffer;
+	    /*Access point name*/
+	    temp = (ie_tlv_t4_t *)buffer;
+	    memcpy( msg->optionals +numOp, temp, temp->l+2);
+	    buffer += temp->l;
+	    size -= 2;
+	    size -= temp->l;
+	    numOp++;
+	    if(size == 0)
+		    return;
+	    opT = *buffer;
     }
     if(opT == 0x27){
-    /*Protocol configuration options*/
-    temp = (ie_tlv_t4_t *)buffer;
-        memcpy( msg->optionals +numOp, temp, temp->l+2);
+	    /*Protocol configuration options*/
+	    temp = (ie_tlv_t4_t *)buffer;
+	    memcpy( msg->optionals +numOp, temp, temp->l+2);
 
-    buffer += temp->l;
-    size -= 2;
-    size -= temp->l;
-    numOp++;
-    if(size == 0)
-        return;
-    opT = *buffer;
+	    buffer += temp->l;
+	    size -= 2;
+	    size -= temp->l;
+	    numOp++;
+	    if(size == 0)
+		    return;
+	    opT = *buffer;
     }
     if(opT&0xF0 == 0x0C0){
-        /*Device properties*/
-        numOp++;
-    buffer++;
-    size--;
+	    /*Device properties*/
+	    numOp++;
+	    buffer++;
+	    size--;
     }
 }
 

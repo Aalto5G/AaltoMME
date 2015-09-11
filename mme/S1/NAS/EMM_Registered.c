@@ -18,6 +18,7 @@
 #include "logmgr.h"
 #include "EMM_FSMConfig.h"
 #include "NAS.h"
+#include "NAS_EMM_priv.h"
 
 static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
     log_msg(LOG_ERR, 0, "Not Implemented");
@@ -37,4 +38,5 @@ void linkEMMRegistered(EMM_State* s){
     /* s->authInfoAvailable = emmAuthInfoAvailable; */
     s->attachAccept = NULL;
     s->processSecMsg = emm_processSecMsg;
+    s->sendESM = emm_internalSendESM;
 }

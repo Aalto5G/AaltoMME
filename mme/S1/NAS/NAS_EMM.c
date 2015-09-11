@@ -176,10 +176,12 @@ void emm_sendSecurityModeCommand(EMMCtx emm_h){
 void emm_processFirstESMmsg(EMMCtx emm_h){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     GByteArray *esmRaw;
-    gsize len;
+    GenericNASMsg_t msg;
+
     esmRaw = g_ptr_array_index(emm->pendingESMmsg, 0);
 
-    esm_processMsg(emm->esm, esmRaw->data, esmRaw->len);
+    dec_NAS(&msg, esmRaw->data, esmRaw->len);
+    esm_processMsg(emm->esm, &(msg.plain.eSM));
 
     g_ptr_array_remove_index(emm->pendingESMmsg, 0);
 }
@@ -231,4 +233,29 @@ void emm_getUEAMBR(const EMMCtx emm, UEAggregateMaximumBitrate_t *ambr){
     subs_getUEAMBR(self->subs, &ul, &dl);
     ambr->uEaggregateMaximumBitRateDL.rate = dl;
     ambr->uEaggregateMaximumBitRateUL.rate = ul;
+}
+
+void emm_sendESM(const EMMCtx emm, const gpointer msg, const gsize len, GError **e){
+	EMMCtx_t *self = (EMMCtx_t*)emm;
+	self->state->sendESM(self, msg, len, e);
+}
+
+void emm_internalSendESM(const EMMCtx emm, const gpointer msg, const gsize len, GError **e){
+	EMMCtx_t *self = (EMMCtx_t*)emm;
+	guint8 out[len+6];
+	gsize oLen;
+
+	if(!self->sci){
+		ecm_send(self->ecm, msg, len);
+		return;
+	}
+
+	newNASMsg_sec(self->parser, out, &oLen,
+	              EPSSessionManagementMessages,
+	              IntegrityProtectedAndCiphered,
+                  NAS_DownLink,
+                  msg, len);
+
+    ecm_send(self->ecm, out, len);
+    nas_incrementNASCount(self->parser, NAS_DownLink);
 }

@@ -40,4 +40,8 @@ void emm_processFirstESMmsg(EMMCtx emm_h);
 
 void emm_attachAccept(EMMCtx emm_h, gpointer esm_msb, gsize len, GList *bearers);
 
+void emm_sendESM(const EMMCtx emm, const gpointer msg, const gsize len, GError **e);
+
+void emm_internalSendESM(const EMMCtx emm, const gpointer msg, const gsize len, GError **e);
+
 #endif /* NAS_EMM_PRIV_HFILE */

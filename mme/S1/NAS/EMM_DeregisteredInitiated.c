@@ -35,4 +35,5 @@ void linkEMMDeregisteredInitiated(EMM_State* s){
     /* s->authInfoAvailable = emmAuthInfoAvailable; */
     s->attachAccept = NULL;
     s->processSecMsg = emm_processSecMsg;
+    s->sendESM = NULL;
 }

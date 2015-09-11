@@ -20,7 +20,7 @@
 #include "NAS.h"
 #include "NAS_EMM_priv.h"
 
-void processAuthResp(EMMCtx_t * emm,  GenericNASMsg_t* msg, gboolean *isAuth);
+static void processAuthResp(EMMCtx_t * emm,  GenericNASMsg_t* msg, gboolean *isAuth);
 
 static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
@@ -119,6 +119,7 @@ void linkEMMCommonProcedureInitiated(EMM_State* s){
     /* s->authInfoAvailable = emmAuthInfoAvailable; */
     s->attachAccept = NULL;
     s->processSecMsg = emm_processSecMsg;
+    s->sendESM = NULL;
 }
 
 void sendAuthReject(EMMCtx_t * emm){
@@ -138,7 +139,7 @@ void test(EMMCtx_t emm){
     log_msg(LOG_ERR, 0, "Upsated S6a location");
 }
 
-void processAuthResp(EMMCtx_t * emm,  GenericNASMsg_t* msg, gboolean *isAuth){
+static void processAuthResp(EMMCtx_t * emm,  GenericNASMsg_t* msg, gboolean *isAuth){
     AuthenticationResponse_t * authRsp;
     authRsp = (AuthenticationResponse_t*)&(msg->plain.eMM);
     AuthQuadruplet *sec;

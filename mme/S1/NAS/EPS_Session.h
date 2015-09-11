@@ -39,7 +39,7 @@ EPS_Session ePSsession_init(ESM esm, Subscription _subs, ESM_BearerContext b);
  */
 void ePSsession_free(EPS_Session s);
 
-void ePSsession_parsePDNConnectivityRequest(EPS_Session s, GenericNASMsg_t *msg);
+void ePSsession_parsePDNConnectivityRequest(EPS_Session s, ESM_Message_t *msg, gboolean *infoTxRequired);
 
 void ePSsession_activateDefault(EPS_Session s);
 

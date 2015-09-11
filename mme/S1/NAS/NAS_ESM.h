@@ -45,11 +45,11 @@ void esm_free(ESM esm_h);
  * @brief NAS processing function
  * @param [in]  esm_h ESM Stack handler
  * @param [in]  msg pointer to the message to be processed
- * @param [in]  len message lenght
  *
  *  Function to process the ESM message. Used by the lower layer EMM.
  */
-void esm_processMsg(ESM esm_h, gpointer msg, size_t len);
+
+void esm_processMsg(gpointer esm_h, ESM_Message_t* msg);
 
 
 #endif /* NAS_ESM_H */

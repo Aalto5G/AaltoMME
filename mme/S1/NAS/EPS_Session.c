@@ -49,15 +49,17 @@ void ePSsession_free(EPS_Session s){
     g_free(self);
 }
 
-void ePSsession_parsePDNConnectivityRequest(EPS_Session s, GenericNASMsg_t *msg){
+void ePSsession_parsePDNConnectivityRequest(EPS_Session s, ESM_Message_t *msg, gboolean *infoTxRequired){
 	uint8_t  *pointer, numOp=0;
 	ie_tlv_t4_t *temp;
 	EPS_Session_t *self = (EPS_Session_t*)s;
-	PDNConnectivityRequest_t *pdnReq = (PDNConnectivityRequest_t*)&(msg->plain.eSM);
+	PDNConnectivityRequest_t *pdnReq = (PDNConnectivityRequest_t*)&(msg);
 
+	*infoTxRequired = FALSE;
 	/*Optionals*/
     if(pdnReq->optionals[numOp].iei&0xF0 == 0xD0){
         /*ESM information transfer flag*/
+	    *infoTxRequired = (gboolean)pdnReq->optionals[numOp].v_t1_l.v;
         numOp++;
     }
     if(pdnReq->optionals[numOp].iei == 0x28){
@@ -70,7 +72,7 @@ void ePSsession_parsePDNConnectivityRequest(EPS_Session s, GenericNASMsg_t *msg)
         memcpy(self->pco, temp, temp->l+2);
         numOp++;
     }
-    if(pdnReq->optionals[numOp].iei&0xF0 == 0x0C0){
+    if(pdnReq->optionals[numOp].iei&0xF0 == 0xC0){
         /*Device properties*/
         numOp++;
     }

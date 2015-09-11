@@ -59,17 +59,17 @@ gpointer esm_getS11iface(ESM esm_h){
 }
 
 
-void esm_processMsg(gpointer esm_h, gpointer buffer, size_t len){
+void esm_processMsg(gpointer esm_h, ESM_Message_t* msg){
 	ESM_t *self = (ESM_t*)esm_h;
 	gpointer bearer;
-	GenericNASMsg_t msg;
 	EPS_Session s;
-	dec_NAS(&msg, buffer, len);
-	
-	g_assert((ProtocolDiscriminator_t)msg.header.protocolDiscriminator.v
+	gboolean infoTxRequired;
+	guint8 *pointer, buf[100];
+
+	g_assert((ProtocolDiscriminator_t)msg->protocolDiscriminator.v
 	         == EPSSessionManagementMessages);
 
-	switch(msg.plain.eSM.messageType){
+	switch(msg->messageType){
 	/*Network Initiated*/
 	case ActivateDefaultEPSBearerContextAccept:
 	case ActivateDefaultEPSBearerContextReject:
@@ -79,18 +79,17 @@ void esm_processMsg(gpointer esm_h, gpointer buffer, size_t len){
 	case ModifyEPSBearerContextReject:
 	case DeactivateEPSBearerContextAccept:
 		if (!g_hash_table_lookup_extended (self->bearers,
-		                                   &(msg.plain.eSM.bearerIdendity),
+		                                   &(msg->bearerIdendity),
 		                                   &bearer,
 		                                   NULL)){
 			log_msg(LOG_WARNING, 0, "Received wrong EBI");
 			return;
 		}
-		esm_bc_processMsg(bearer, &(msg.plain.eSM));
+		esm_bc_processMsg(bearer, msg);
 		break;
 	/* UE Requests*/
 	case PDNConnectivityRequest:
-		log_msg(LOG_WARNING, 0, "Received PDNConnectivityRequest");
-
+		log_msg(LOG_DEBUG, 0, "Received PDNConnectivityRequest");
 		bearer = esm_bc_init(self->emm, self->next_ebi);
 		self->next_ebi++;
 		g_hash_table_insert(self->bearers, esm_bc_getEBIp(bearer), bearer);
@@ -99,16 +98,27 @@ void esm_processMsg(gpointer esm_h, gpointer buffer, size_t len){
 		                    emmCtx_getSubscription(self->emm),
 		                    bearer);
 		g_hash_table_add(self->sessions, s);
-
-		ePSsession_parsePDNConnectivityRequest(s, &msg);
-		ePSsession_activateDefault(s);
-
+		ePSsession_parsePDNConnectivityRequest(s, msg, &infoTxRequired);
+		if(!infoTxRequired){
+			ePSsession_activateDefault(s);
+		}else{
+			pointer = buf;
+			newNASMsg_ESM(&pointer,
+			              EPSSessionManagementMessages,
+			              0);
+			encaps_ESM(&pointer,
+			           msg->procedureTransactionIdentity,
+			           ESMInformationRequest);
+			emm_sendESM(self->emm, buf, pointer-buf, NULL);
+		}
 	case PDNDisconnectRequest:
 	case BearerResourceAllocationRequest:
 	case BearerResourceModificationRequest:
 		break;
 	/* Miscelaneous*/
 	case ESMInformationResponse:
+		log_msg(LOG_DEBUG, 0, "Received ESMInformationResponse");
+		break;
 	case ESMStatus:
 		break;
 	default:
