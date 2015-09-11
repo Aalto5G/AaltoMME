@@ -33,7 +33,6 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     ProtocolDiscriminator_t p;
     gboolean isAuth = FALSE, res;
 	nas_getHeader(buf, len, &s, &p);
-	log_msg(LOG_INFO, 0, "PING");
 	if(emm->sci){
 		res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
 		if(res==2){
@@ -47,6 +46,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
 		log_msg(LOG_INFO, 0, "Received Message with wrong MAC");
 		return;
 	}
+	nas_incrementNASCount(emm->parser, NAS_UpLink);
 
 	if(!dec_secNAS(emm->parser, &msg, NAS_UpLink, buf, len)){
 		g_error("NAS Decyphering Error");

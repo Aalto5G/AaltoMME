@@ -117,7 +117,13 @@ void esm_processMsg(gpointer esm_h, ESM_Message_t* msg){
 		break;
 	/* Miscelaneous*/
 	case ESMInformationResponse:
-		log_msg(LOG_DEBUG, 0, "Received ESMInformationResponse");
+		log_msg(LOG_ERR, 0, "Received ESMInformationResponse");
+		GList *l;
+		l = g_hash_table_get_values (self->sessions);
+		ePSsession_activateDefault(l->data);
+		/* g_hash_table_foreach (GHashTable *hash_table, */
+		/*                       GHFunc func, */
+		/*                       gpointer user_data); */
 		break;
 	case ESMStatus:
 		break;

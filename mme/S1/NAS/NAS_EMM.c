@@ -16,6 +16,7 @@
  */
 
 #include <glib.h>
+#include <arpa/inet.h>
 #include "NAS_EMM_priv.h"
 #include "NAS.h"
 #include "logmgr.h"
@@ -256,6 +257,6 @@ void emm_internalSendESM(const EMMCtx emm, const gpointer msg, const gsize len, 
                   NAS_DownLink,
                   msg, len);
 
-    ecm_send(self->ecm, out, len);
+    ecm_send(self->ecm, out, oLen);
     nas_incrementNASCount(self->parser, NAS_DownLink);
 }

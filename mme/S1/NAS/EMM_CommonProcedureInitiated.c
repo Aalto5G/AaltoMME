@@ -97,10 +97,10 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
 	    }
         nas_incrementNASCount(emm->parser, NAS_UpLink);
         emm->sci = TRUE;
+        emmChangeState(emm, EMM_SpecificProcedureInitiated);
         s6a_UpdateLocation(emm->s6a, emm,
                            (void(*)(gpointer)) emm_processFirstESMmsg,
                            (gpointer)emm);
-        emmChangeState(emm, EMM_SpecificProcedureInitiated);
         break;
     case SecurityModeReject:
         log_msg(LOG_ERR, 0, "Received SecurityModeReject, not implemented");

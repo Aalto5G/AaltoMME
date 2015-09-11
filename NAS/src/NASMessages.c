@@ -148,7 +148,7 @@ void dec_AttachRequest(AttachRequest_t *msg, uint8_t *buffer, uint32_t size){
 
     /*ESM_MessageContainer*/
     memcpy(&(msg->eSM_MessageContainer.l), buffer, 2);
-    msg->eSM_MessageContainer.l = htons(msg->eSM_MessageContainer.l);
+    msg->eSM_MessageContainer.l = ntohs(msg->eSM_MessageContainer.l);
     buffer+=2;
     memcpy(msg->eSM_MessageContainer.v, buffer, msg->eSM_MessageContainer.l);
     buffer+=msg->eSM_MessageContainer.l;
@@ -331,7 +331,7 @@ void dec_PDNConnectivityRequest(PDNConnectivityRequest_t *msg, uint8_t *buffer, 
     opT = *buffer;
     if((opT&0xF0) == 0xD0){
         /*ESM information transfer flag*/
-	    msg->optionals[numOp].v_t1_h.v = opT&0xF0>>4;
+	    msg->optionals[numOp].v_t1_h.v = (opT&0xF0)>>4;
 	    msg->optionals[numOp].v_t1_l.v = opT&0x01;
         buffer++;
         size--;

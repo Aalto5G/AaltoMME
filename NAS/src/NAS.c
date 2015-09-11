@@ -131,7 +131,7 @@ void dec_ESM(ESM_Message_t *msg, uint8_t *buf, uint32_t size){
 
     msg->procedureTransactionIdentity = *(buf++);
     msg->messageType = *(buf++);
-    size=-2;
+    size-=2;
 
     nas_msg(NAS_DEBUG, 0, "DEC : procedureTransactionIdentity %#x, messageType %#x",
             msg->procedureTransactionIdentity, msg->messageType);
