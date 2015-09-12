@@ -41,7 +41,7 @@ static void emmProcessMsg(gpointer emm_h,  GenericNASMsg_t* msg){
     switch(msg->plain.eMM.messageType){
 
     case AttachRequest:
-	    processAttach(emm, msg, &ksi_msg);
+        processAttach(emm, msg, &ksi_msg);
         attachContinuationSwitch(emm, ksi_msg);
         break;
     default:
@@ -64,37 +64,37 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     guint8 isAuth;
 
     nas_getHeader(buf, len, &s, &p);
-    
+
     if(emm->sci){
-	    res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
-	    if(res==2){
-		    log_msg(LOG_WARNING, 0, "Wrong SQN Count");
-		    return;
-	    }else if(res==0){
-		    g_error("NAS Authentication Error");
-	    }
+        res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
+        if(res==2){
+            log_msg(LOG_WARNING, 0, "Wrong SQN Count");
+            return;
+        }else if(res==0){
+            g_error("NAS Authentication Error");
+        }
     }
 
     if(!dec_secNAS(emm->parser, &msg, NAS_UpLink, buf, len)){
-	    g_error("NAS Decyphering Error");
+        g_error("NAS Decyphering Error");
     }
 
     switch(msg.plain.eMM.messageType){
 
     case AttachRequest:
-	    processAttach(emm, &msg, &msg_ksi);
+        processAttach(emm, &msg, &msg_ksi);
 
-	    if(msg_ksi < 6){
-		    emm->next_ksi = msg_ksi ++;
-	    }
+        if(msg_ksi < 6){
+            emm->next_ksi = msg_ksi ++;
+        }
 
-	    /*If is not authenticated or no security context is available*/
-	    if(!isAuth || !emm->sci){
-		    attachContinuationSwitch(emm, msg_ksi);
-	    }else{
-		    emmChangeState(emm, EMM_SpecificProcedureInitiated);
-		    emm_processFirstESMmsg(emm);
-	    }
+        /*If is not authenticated or no security context is available*/
+        if(!isAuth || !emm->sci){
+            attachContinuationSwitch(emm, msg_ksi);
+        }else{
+            emmChangeState(emm, EMM_SpecificProcedureInitiated);
+            emm_processFirstESMmsg(emm);
+        }
         break;
     default:
         log_msg(LOG_WARNING, 0,
@@ -148,8 +148,13 @@ void processAttach(gpointer emm_h,  GenericNASMsg_t* msg, guint8 *ksi_msg){
            attachMsg->uENetworkCapability.v,
            attachMsg->uENetworkCapability.l);
     emm->ueCapabilitiesLen = attachMsg->uENetworkCapability.l;
+}
 
-    if(mobid == 0ULL){ /* !isIMSIavailable(emm) */
+void attachContinuationSwitch(gpointer emm_h, guint8 ksi_msg){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+
+
+    if(emm->imsi == 0ULL){ /* !isIMSIavailable(emm) */
         if(0){
             /* Get EMM context from the correct MME (use GUTI)*/
             return;
@@ -159,10 +164,7 @@ void processAttach(gpointer emm_h,  GenericNASMsg_t* msg, guint8 *ksi_msg){
             return;
         }
     }
-}
 
-void attachContinuationSwitch(gpointer emm_h, guint8 ksi_msg){
-	EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     /* Check Auth, Proof down*/
     if( emm->ksi == 7 && !emm->authQuadrsLen>0){
         log_msg(LOG_DEBUG, 0,"Getting info from HSS");
@@ -174,7 +176,7 @@ void attachContinuationSwitch(gpointer emm_h, guint8 ksi_msg){
         /* New context available in EMM ctx*/
         /* Send Auth request */
         /* Set T3460 */
-	    emm_sendAuthRequest(emm);
+        emm_sendAuthRequest(emm);
         emmChangeState(emm, EMM_CommonProcedureInitiated);
         return;
     }
@@ -218,5 +220,5 @@ void sendIdentityReq(gpointer emm_h){
     nasIe_v_t1_l(&pointer, 1); /*Get Imsi*/
     pointer++; /*Spare half octet*/
 
-    ecm_send(emm->ecm, pointer, pointer-buffer);
+    ecm_send(emm->ecm, buffer, pointer-buffer);
 }

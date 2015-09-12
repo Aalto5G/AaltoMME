@@ -451,6 +451,8 @@ int nas_incrementNASCount(const NAS h, const NAS_Direction direction){
     if(!n->isValid)
         return 0;
 
+    nas_msg(NAS_INFO, 0, "Increment counter");
+
     n->nas_count[direction]++;
     if(n->nas_count[direction] > 0xffffff-5){
         return 0;
@@ -483,7 +485,7 @@ int nas_authenticateMsg(const NAS h,
        s == IntegrityProtectedAndCipheredWithNewEPSSecurityContext ){
         /*Check NAS SQN*/
         nas_sqn = buf[5];
-        if(n->nas_count[direction]&0xff != nas_sqn){
+        if((n->nas_count[direction]&0xff) != nas_sqn){
             return 2;
         }
         /*Calculate and validate MAC*/

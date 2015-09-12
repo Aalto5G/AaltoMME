@@ -207,9 +207,11 @@ static void generate_KeNB(const uint8_t *kasme, const uint32_t ulNASCount, uint8
     P0 = Uplink NAS COUNT,
     L0 = length of uplink NAS COUNT (i.e. 0x00 0x04)
      */
+	uint32_t count;
     uint8_t s[7];
     s[0]=0x11;
-    memcpy(s+1, &ulNASCount, 4);
+    count = htonl(ulNASCount-2);
+    memcpy(s+1, &count, 4);
     s[5]=0x00;
     s[6]=0x04;
 
@@ -218,8 +220,7 @@ static void generate_KeNB(const uint8_t *kasme, const uint32_t ulNASCount, uint8
 
 void emm_getKeNB(const EMMCtx emm, uint8_t *keNB){
     EMMCtx_t *self = (EMMCtx_t*)emm;
-    guint32 nasUlCount = nas_getCount(self->parser, NAS_UpLink);
-    generate_KeNB(self->kasme, nasUlCount, keNB);
+    generate_KeNB(self->kasme, self->nasUlCountForSC, keNB);
 }
 
 void emm_getUESecurityCapabilities(const EMMCtx emm, UESecurityCapabilities_t *cap){
@@ -251,11 +252,11 @@ void emm_internalSendESM(const EMMCtx emm, const gpointer msg, const gsize len, 
 		return;
 	}
 
-	newNASMsg_sec(self->parser, out, &oLen,
-	              EPSSessionManagementMessages,
+	newNASMsg_sec(self->parser, out, (uint32_t*)&oLen,
+	              EPSMobilityManagementMessages,
 	              IntegrityProtectedAndCiphered,
                   NAS_DownLink,
-                  msg, len);
+	              msg, len);
 
     ecm_send(self->ecm, out, oLen);
     nas_incrementNASCount(self->parser, NAS_DownLink);

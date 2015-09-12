@@ -513,9 +513,9 @@ void stateEMM_CommonProcedureInitiated(uint8_t *returnbuffer, uint32_t *bsize, G
             continueAuth->priority = signal->priority;
 
             save_signal(continueAuth);      /* Signal to continue with the authentication to S11*/
-            s6a_SynchAuthVector(SELF_ON_SIG->s6a, user, authFail->optionals[0].tlv_t4.v,
-                                (void(*)(gpointer)) sendFirstStoredSignal,
-                                (gpointer)PDATA->sessionHandler);
+            /* s6a_SynchAuthVector(SELF_ON_SIG->s6a, user, authFail->optionals[0].tlv_t4.v, */
+            /*                     (void(*)(gpointer)) sendFirstStoredSignal, */
+            /*                     (gpointer)PDATA->sessionHandler); */
 
         }
 

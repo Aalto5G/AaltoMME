@@ -365,7 +365,7 @@ void dec_PDNConnectivityRequest(PDNConnectivityRequest_t *msg, uint8_t *buffer, 
 		    return;
 	    opT = *buffer;
     }
-    if(opT&0xF0 == 0x0C0){
+    if((opT&0xF0) == 0x0C0){
 	    /*Device properties*/
 	    numOp++;
 	    buffer++;

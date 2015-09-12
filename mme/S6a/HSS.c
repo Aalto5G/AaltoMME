@@ -410,6 +410,8 @@ void HSS_syncAuthVec(EMMCtx emm, uint8_t * auts){
             generate_Kasme(ck, ik, emmCtx_getServingNetwork_TBCD(emm), newAuthVec->aUTN,
                            newAuthVec->kASME);
 
+            emmCtx_setNewAuthQuadruplet(emm, newAuthVec);
+
             /* Store Auth vector*/
             sprintf(query, insertAuthVector,
                     1,

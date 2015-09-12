@@ -73,6 +73,7 @@ typedef struct{
     //    guint32      nasUlCount;
     //    guint32      nasDlCount;
     gboolean     sci;          /**< Security Context indicator */
+    guint32      nasUlCountForSC;
     guint8       kasme[32];
     gsize        authQuadrsLen;
     GPtrArray    *authQuadrs;

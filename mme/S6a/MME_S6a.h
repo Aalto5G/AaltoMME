@@ -41,7 +41,7 @@ void s6a_free(gpointer s6a);
 void s6a_GetAuthInformation(gpointer s6a_h, EMMCtx emm,
                        void(*cb)(gpointer), gpointer args);
 
-void s6a_SynchAuthVector(gpointer s6a_h, struct user_ctx_t *user, uint8_t *auts,
+void s6a_SynchAuthVector(gpointer s6a_h,  EMMCtx emm, uint8_t *auts,
                          void(*cb)(gpointer), gpointer args);
 
 void s6a_UpdateLocation(gpointer s6a_h, EMMCtx emm,

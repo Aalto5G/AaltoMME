@@ -93,13 +93,13 @@ void s6a_GetAuthInformation(gpointer s6a_h, EMMCtx emm,
     cb(args);
 }
 
-void s6a_SynchAuthVector(gpointer s6a_h, struct user_ctx_t *user, uint8_t *auts,
+void s6a_SynchAuthVector(gpointer s6a_h,  EMMCtx emm, uint8_t *auts,
                          void(*cb)(gpointer), gpointer args){
 
     struct s6a_t *s6a = (struct s6a_t*) s6a_h;
 
-    HSS_syncAuthVec(user, auts);
-    generate_KeNB(user->sec_ctx.kASME, user->sec_ctx.ulNAScnt, user->sec_ctx.keNB);
+    HSS_syncAuthVec(emm, auts);
+    //generate_KeNB(user->sec_ctx.kASME, user->sec_ctx.ulNAScnt, user->sec_ctx.keNB);
     cb(args);
 }
 

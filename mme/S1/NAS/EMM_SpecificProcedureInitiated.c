@@ -52,7 +52,8 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
 		g_error("NAS Decyphering Error");
 	}
 
-	if(p == EPSSessionManagementMessages){
+	if(p == EPSSessionManagementMessages ||
+	   msg.header.protocolDiscriminator.v == EPSSessionManagementMessages){
 		esm_processMsg(emm->esm, &(msg.plain.eSM));
 		return;
 	}
