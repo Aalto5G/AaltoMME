@@ -177,9 +177,18 @@ void esm_bc_setS5S8uPGWfteid(ESM_BearerContext bc_h, gpointer fteid_h, gsize len
     memcpy(&(self->s5s8u_pgw), fteid, len);
 }
 
-guint32 esm_bc_getS1uSGWTEID(const ESM_BearerContext bc_h){
-	ESM_BearerContext_t *self = (ESM_BearerContext_t*)bc_h;
-	return self->s1u_sgw.teid;
+void esm_bc_getS1uSGWfteid(const ESM_BearerContext bc_h, gpointer fteid_h, gsize *len){
+	struct fteid_t* fteid = (struct fteid_t*) fteid_h;
+    ESM_BearerContext_t *self = (ESM_BearerContext_t*)bc_h;
+
+    *len = 5;
+    if(self->s1u_sgw.ipv4){
+	    *len += 4;
+    }
+    if(self->s1u_sgw.ipv6){
+	    *len += 16;
+    }
+    memcpy(fteid, &(self->s1u_sgw), *len);
 }
 
 void esm_bc_getS1ueNBfteid(const ESM_BearerContext bc_h, gpointer fteid_h, gsize *len){

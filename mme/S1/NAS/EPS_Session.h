@@ -47,4 +47,7 @@ void ePSsession_getPDNAddr(const EPS_Session s, TransportLayerAddress_t* addr);
 
 ESM_BearerContext ePSsession_getDefaultBearer(EPS_Session s);
 
+void ePSsession_UEContextReleaseReq(EPS_Session s, cause_choice_t choice, uint32_t cause);
+
+
 #endif /* EPS_SESSION_H*/

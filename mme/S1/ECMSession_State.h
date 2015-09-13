@@ -24,12 +24,12 @@
 #include <glib.h>
 #include "S1AP.h"
 
-typedef void (*ECM_event1)(gpointer);
+typedef void (*ECM_event1)(gpointer, uint32_t, uint32_t);
 typedef void (*ECM_processMsgEvent)(gpointer, S1AP_Message_t *, int);
 
 #define ECMSESSIONSTATE                                \
     ECM_processMsgEvent processMsg;      /*  */ \
-    ECM_event1          disconnect;
+    ECM_event1          release;
 
 
 typedef struct{

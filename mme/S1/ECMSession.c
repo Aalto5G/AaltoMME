@@ -140,6 +140,8 @@ void ecm_sendCtxtSUReq(ECMSession h, gpointer msg, size_t len, GList *bearers){
     EPS_Session session;
     ECMSession_t *self = (ECMSession_t *)h;
     guint32 teid;
+    struct fteid_t fteid;
+    gsize fteid_size=0;
 
     s1out = S1AP_newMsg();
     s1out->choice = initiating_message;
@@ -193,10 +195,11 @@ void ecm_sendCtxtSUReq(ECMSession h, gpointer msg, size_t len, GList *bearers){
     eRABitem->eRABlevelQoSParameters->allocationRetentionPriority->pre_emptionVulnerability = 0;
 
     /*eRABitem->eRABlevelQoSParameters->gbrQosInformation;*/
-    ePSsession_getPDNAddr(session, eRABitem->transportLayerAddress);
 
-    teid = esm_bc_getS1uSGWTEID(bearer);
-    memcpy(eRABitem->gTP_TEID.teid, &teid, sizeof(uint32_t));
+    esm_bc_getS1uSGWfteid(bearer, &fteid, &fteid_size);
+    memcpy(eRABitem->transportLayerAddress->addr, (uint8_t*)&(fteid.addr), fteid_size-5);
+    eRABitem->transportLayerAddress->len = (fteid_size - 5)*8;
+    memcpy(eRABitem->gTP_TEID.teid, &(fteid.teid), sizeof(uint32_t));
 
 
     /*UE Security Capabilities*/
@@ -212,7 +215,6 @@ void ecm_sendCtxtSUReq(ECMSession h, gpointer msg, size_t len, GList *bearers){
     s1Assoc_send(self->assoc, self->l_sid, s1out);
     s1out->freemsg(s1out);
 }
-
 
 const guint8 *ecmSession_getServingNetwork_TBCD(const ECMSession h){
     ECMSession_t *self = (ECMSession_t *)h;
@@ -263,3 +265,9 @@ void ecmSession_getGUMMEI(const ECMSession h, guint32* sn, guint16 *mmegi, guint
 	memcpy(mmegi, item->servedGroupIDs->item[0]->s, 2);
 	*mmec = item->servedMMECs->item[0]->s[0];
 }
+
+void ecm_sendUEContextReleaseCommand(const ECMSession h, cause_choice_t choice, uint32_t cause){
+	ECMSession_t *self = (ECMSession_t *)h;
+	self->state->release(self, choice, cause);
+}
+

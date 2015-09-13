@@ -57,10 +57,11 @@ static void ecm_processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
     }
 }
 
-static void disconnect(gpointer _ecm){
+static void release(gpointer _ecm, cause_choice_t choice, uint32_t cause){
+
 }
 
 void linkECMSessionIdle(ECMSession_State* s){
     s->processMsg = ecm_processMsg;
-    s->disconnect = disconnect;
+    s->release = release;
 }

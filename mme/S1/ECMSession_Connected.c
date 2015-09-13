@@ -28,6 +28,7 @@ static void processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
     ENB_UE_S1AP_ID_t *eNB_ID;
     Unconstrained_Octed_String_t *nASPDU;
     E_RABSetupListCtxtSURes_t *list;
+    Cause_t *c;
 
     if(r_sid != ecm->r_sid && ecm->r_sid_valid){
         log_msg(LOG_ERR, 0,
@@ -50,10 +51,8 @@ static void processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
     }else if(s1msg->pdu->procedureCode ==  id_UEContextRelease &&
              s1msg->choice == initiating_message){
 	    log_msg(LOG_WARNING, 0, "Received id_UEContextRelease");
-
     }else if(s1msg->pdu->procedureCode ==  id_InitialContextSetup &&
              s1msg->choice == successful_outcome){
-
 	    mme_id = (MME_UE_S1AP_ID_t*)s1ap_findIe(s1msg, id_MME_UE_S1AP_ID);
         eNB_ID = (ENB_UE_S1AP_ID_t*)s1ap_findIe(s1msg, id_eNB_UE_S1AP_ID);
         if (eNB_ID->eNB_id != ecm->eNBUEId || mme_id->mme_id != ecm->mmeUEId){
@@ -90,7 +89,9 @@ static void processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
 	    log_msg(LOG_WARNING, 0, "Received id_NASNonDeliveryIndication");
     }else if(s1msg->pdu->procedureCode == id_UEContextReleaseRequest &&
              s1msg->choice == initiating_message){
-        log_msg(LOG_WARNING, 0, "Received id_UEContextReleaseRequest");
+        log_msg(LOG_INFO, 0, "Received id_UEContextReleaseRequest");
+        c = (Cause_t*)s1ap_findIe(s1msg, id_Cause);
+        emm_UEContextReleaseReq(ecm->emm, c->choice, c->cause);
     }else if(s1msg->pdu->procedureCode == id_UECapabilityInfoIndication &&
              s1msg->choice == initiating_message){
 	    log_msg(LOG_WARNING, 0, "Received id_UECapabilityInfoIndication");
@@ -114,10 +115,51 @@ static void processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
     }
 }
 
-static void disconnect(gpointer _ecm){
+static void release(gpointer _ecm, cause_choice_t choice, uint32_t cause){
+	ECMSession_t *ecm = (ECMSession_t *)_ecm;
+
+	S1AP_Message_t *s1out;
+
+    MME_UE_S1AP_ID_t *mmeUEId;
+    ENB_UE_S1AP_ID_t *eNBUEId;
+    UE_S1AP_IDs_t *ue_ids;
+    Cause_t *c;
+
+    s1out = S1AP_newMsg();
+    s1out->choice = initiating_message;
+    s1out->pdu->procedureCode = id_UEContextRelease;
+    s1out->pdu->criticality = reject;
+
+    /* id-UE-S1AP-IDs */
+    ue_ids = s1ap_newIE(s1out, id_UE_S1AP_IDs, mandatory, reject);
+    ue_ids->choice = 0;
+    ue_ids->uE_S1AP_ID.uE_S1AP_ID_pair = new_UE_S1AP_ID_pair();
+    ue_ids->uE_S1AP_ID.uE_S1AP_ID_pair->eNB_UE_S1AP_ID->eNB_id = ecm->eNBUEId;
+    ue_ids->uE_S1AP_ID.uE_S1AP_ID_pair->mME_UE_S1AP_ID->mme_id = ecm->mmeUEId;
+
+    /* id-Cause */
+    c = s1ap_newIE(s1out, id_Cause, mandatory, ignore);
+    c->choice = choice;
+    switch(choice){
+    case CauseRadioNetwork:
+        c->cause.radioNetwork.cause.noext = cause;
+        break;
+    case CauseTransport:
+        break;
+    case CauseNas:
+        c->cause.nas.cause.noext = cause;
+        break;
+    case CauseProtocol:
+        break;
+    case CauseMisc:
+        break;
+    }
+    /*s1out->showmsg(s1out);*/
+    s1Assoc_send(ecm->assoc, ecm->l_sid, s1out);
+    s1out->freemsg(s1out);
 }
 
 void linkECMSessionConnected(ECMSession_State* s){
     s->processMsg = processMsg;
-    s->disconnect = disconnect;
+    s->release = release;
 }

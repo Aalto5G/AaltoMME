@@ -53,6 +53,8 @@ void esm_processMsg(gpointer esm_h, ESM_Message_t* msg);
 
 void esm_setE_RABSetupuListCtxtSURes(ESM esm, E_RABSetupListCtxtSURes_t* l);
 
+void esm_UEContextReleaseReq(ESM esm_h, cause_choice_t choice, uint32_t cause);
+
 
 
 #endif /* NAS_ESM_H */

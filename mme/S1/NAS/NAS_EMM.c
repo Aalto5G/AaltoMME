@@ -266,3 +266,13 @@ void emm_setE_RABSetupuListCtxtSURes(EMMCtx emm, E_RABSetupListCtxtSURes_t* l){
 	EMMCtx_t *self = (EMMCtx_t*)emm;
 	esm_setE_RABSetupuListCtxtSURes(self->esm, l);
 }
+
+void emm_UEContextReleaseReq(EMMCtx emm, cause_choice_t choice, uint32_t cause){
+	EMMCtx_t *self = (EMMCtx_t*)emm;
+	esm_UEContextReleaseReq(self->esm, choice, cause);
+}
+
+void emm_sendUEContextReleaseCommand(EMMCtx emm, cause_choice_t choice, uint32_t cause){
+	EMMCtx_t *self = (EMMCtx_t*)emm;
+	ecm_sendUEContextReleaseCommand(self->ecm, CauseRadioNetwork, CauseRadioNetwork_user_inactivity);
+}

@@ -44,4 +44,6 @@ void emm_sendESM(const EMMCtx emm, const gpointer msg, const gsize len, GError *
 
 void emm_internalSendESM(const EMMCtx emm, const gpointer msg, const gsize len, GError **e);
 
+void emm_sendUEContextReleaseCommand(EMMCtx emm, cause_choice_t choice, uint32_t cause);
+
 #endif /* NAS_EMM_PRIV_HFILE */

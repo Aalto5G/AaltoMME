@@ -72,5 +72,7 @@ void ecmSession_getTAIlist(const ECMSession h, NAS_tai_list_t *tail, gsize *len)
 
 void ecmSession_getGUMMEI(const ECMSession h, guint32* sn, guint16 *mmegi, guint8 *mmec);
 
+void ecm_sendUEContextReleaseCommand(const ECMSession h, cause_choice_t choice, uint32_t cause);
+
 
 #endif /* ECMSESSION_PRIV_HFILE */

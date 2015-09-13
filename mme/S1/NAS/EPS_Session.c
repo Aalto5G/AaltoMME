@@ -19,6 +19,7 @@
 #include <string.h>
 #include "EPS_Session_priv.h"
 #include "NAS_ESM_priv.h"
+#include "NAS_EMM_priv.h"
 #include "logmgr.h"
 #include "MME_S11.h"
 
@@ -283,4 +284,18 @@ void ePSsession_setE_RABSetupuListCtxtSURes(EPS_Session s, E_RABSetupListCtxtSUR
     S11_Attach_ModifyBearerReq(self->s11,
                                (void(*)(gpointer)) ePSsession_test,
                                (gpointer)self);
+}
+
+static void ePSsession_releaseForUserInactivity(EPS_Session s){
+	EPS_Session_t *self = (EPS_Session_t*)s;
+	emm_sendUEContextReleaseCommand(self->esm->emm,
+	                                CauseRadioNetwork,
+	                                CauseRadioNetwork_user_inactivity);
+}
+
+void ePSsession_UEContextReleaseReq(EPS_Session s, cause_choice_t choice, uint32_t cause){
+	EPS_Session_t *self = (EPS_Session_t*)s;
+	S11_ReleaseAccessBearers(self->s11,
+	                         ePSsession_releaseForUserInactivity,
+	                         self);
 }
