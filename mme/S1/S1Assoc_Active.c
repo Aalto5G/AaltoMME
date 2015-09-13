@@ -22,6 +22,9 @@
 #include "S1Assoc_FSMConfig.h"
 #include "ECMSession.h"
 
+static void process_eNBConfigurationTransfer(S1Assoc_t *assoc,  S1AP_Message_t *s1msg);
+
+
 static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid){
     S1Assoc_t *assoc = (S1Assoc_t *)_assoc;
     ECMSession ecm;
@@ -43,7 +46,8 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid){
             log_msg(LOG_WARNING, 0, "Received Error Indication");
         }else if(s1msg->pdu->procedureCode == id_eNBConfigurationTransfer &&
                  s1msg->choice == initiating_message){
-            log_msg(LOG_WARNING, 0, "Received eNB Configuration Transfer");
+            process_eNBConfigurationTransfer(assoc, s1msg);
+            log_msg(LOG_INFO, 0, "Received eNB Configuration Transfer");
         }else if(s1msg->pdu->procedureCode == id_ENBConfigurationUpdate &&
                  s1msg->choice == initiating_message){
             log_msg(LOG_WARNING, 0, "Received eNB Configuration Update");
@@ -63,11 +67,11 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid){
         }
     }else if(s1msg->pdu->procedureCode == id_initialUEMessage &&
              s1msg->choice == initiating_message){
-	    /* ************************************************** */
+        /* ************************************************** */
         /*         Setup of new UE associated signaling       */
         /* ************************************************** */
-	    ecm = ecmSession_init(assoc, mme_newLocalUEid(mme));
-	    ecmSession_processMsg(ecm, s1msg, r_sid);
+        ecm = ecmSession_init(assoc, mme_newLocalUEid(mme));
+        ecmSession_processMsg(ecm, s1msg, r_sid);
     }else{
         /* ************************************************** */
         /*               UE associated signaling              */
@@ -93,4 +97,17 @@ static void disconnect(gpointer _assoc){
 void linkS1AssocActive(S1Assoc_State* s){
     s->processMsg = processMsg;
     s->disconnect = disconnect;
+}
+
+static void process_eNBConfigurationTransfer(S1Assoc_t *assoc,  S1AP_Message_t *s1msg){
+    struct mme_t * mme = s1_getMME(assoc->s1);
+    Global_ENB_ID_t *global_eNB_ID;
+/*     SONConfigurationTransfer_t  */
+
+
+/*     global_eNB_ID = s1ap_findIe(s1msg, id_SONConfigurationTransferECT);   */
+
+/*     global_eNB_ID = s1ap_findIe(s1msg, id_Global_ENB_ID); */
+
+/*  mme_lookupS1Assoc(mme,); */
 }

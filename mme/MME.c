@@ -529,6 +529,12 @@ void mme_deregisterS1Assoc(struct mme_t *self, gpointer assoc){
     }
 }
 
+
+void mme_lookupS1Assoc(struct mme_t *self, gconstpointer geNBid, gpointer *assoc){
+	*assoc = g_hash_table_lookup(self->s1_by_GeNBid, geNBid);
+}
+
+
 void mme_registerECMSession(struct mme_t *self, gpointer ecm){
     g_hash_table_insert(self->ecm_sessions,
                         ecmSession_getMMEUEID_p(ecm),

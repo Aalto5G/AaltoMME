@@ -4071,6 +4071,11 @@ TargeteNB_ID_t *new_TargeteNB_ID(){
     return self;
 }
 
+/* ********************** E_SourceeNB_ID ********************* */
+
+SourceeNB_ID_t *new_SourceeNB_ID(){
+	return (SourceeNB_ID_t *)new_TargeteNB_ID();
+}
 
 /* ***************************** LAI *************************** */
 /** @brief LAI  Destructor

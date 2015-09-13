@@ -326,6 +326,8 @@ void mme_registerS1Assoc(struct mme_t *self, gpointer assoc);
 
 void mme_deregisterS1Assoc(struct mme_t *self, gpointer assoc);
 
+void mme_lookupS1Assoc(struct mme_t *self, gconstpointer geNBid, gpointer *assoc);
+
 gpointer mme_getS6a(struct mme_t *self);
 
 gpointer mme_getS11(struct mme_t *self);

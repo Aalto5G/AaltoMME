@@ -1378,7 +1378,7 @@ typedef struct E_RABToBeSetupListCtxtSUReq_c{
     void                                (*freeIE)(void *);
     void                                (*showIE)(void *);
     void                                (*additem)(struct E_RABToBeSetupListCtxtSUReq_c*, ProtocolIE_SingleContainer_t* ie);
-	void                                *(*newItem)(struct E_RABToBeSetupListCtxtSUReq_c*);
+    void                                *(*newItem)(struct E_RABToBeSetupListCtxtSUReq_c*);
 
     uint8_t                             size;               /*<Number of items*/
     ProtocolIE_SingleContainer_t        **item;             /*<Item Array */
@@ -1947,6 +1947,26 @@ typedef struct TargeteNB_ID_c {
 TargeteNB_ID_t *new_TargeteNB_ID();
 
 
+/**@brief SourceeNB-ID
+ * ASN.1
+ * SourceeNB-ID ::= SEQUENCE {
+ *     global-ENB-ID   Global-ENB-ID,
+ *     selected-TAI    TAI,
+ *     iE-Extensions   ProtocolExtensionContainer { {TargeteNB-ID-ExtIEs} } OPTIONAL,
+ *     ...
+ * }
+ * SourceeNB-ID-ExtIEs S1AP-PROTOCOL-EXTENSION ::= {
+ *     ...
+ * }
+ */
+typedef TargeteNB_ID_t SourceeNB_ID_t;
+
+/** @brief Constructor of SourceeNB_ID type
+ *  @return SourceeNB_ID_t allocated and initialized structure
+ * */
+SourceeNB_ID_t *new_SourceeNB_ID();
+
+
 /**@brief LAC
  *
  * ASN.1
@@ -2298,5 +2318,33 @@ typedef struct E_RABDataForwardingItem_c{
  *  @return E_RABAdmittedItem_t allocated and initialized structure
  * */
 E_RABDataForwardingItem_t *new_E_RABDataForwardingItem();
+
+
+
+/**@brief  SONConfigurationTransfer
+ *
+ * ASN.1
+ * SONConfigurationTransfer ::= SEQUENCE {
+ *     targeteNB-ID   TargeteNB-ID,
+ *     sourceeNB-ID   SourceeNB-ID,
+ *     sONInformation SONInformation,
+ *     iE-Extensions  ProtocolExtensionContainer { { SONConfigurationTransfer-ExtIEs} }        OPTIONAL,
+ *     ...
+ * }
+ * */
+typedef struct SONConfigurationTransfer_c{
+    void                            (*freeIE)(void *);
+    void                            (*showIE)(void *);
+    uint8_t                         ext;    /*< Extension flag*/
+    uint8_t                         opt;
+    TargeteNB_ID_t                  *targeteNB_ID;
+    SourceeNB_ID_t                  *sourceeNB_ID;
+    ProtocolExtensionContainer_t    *iEext;
+}SONConfigurationTransfer_t;
+
+/** @brief Constructor of E-RABAdmittedItem type
+ *  @return E_RABAdmittedItem_t allocated and initialized structure
+ * */
+SONConfigurationTransfer_t *new_SONConfigurationTransfer();
 
 #endif /* S1AP_IE_H_ */
