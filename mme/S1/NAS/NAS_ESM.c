@@ -65,6 +65,7 @@ void esm_processMsg(gpointer esm_h, ESM_Message_t* msg){
 	EPS_Session s;
 	gboolean infoTxRequired;
 	guint8 *pointer, buf[100];
+	GList *l;
 
 	g_assert((ProtocolDiscriminator_t)msg->protocolDiscriminator.v
 	         == EPSSessionManagementMessages);
@@ -99,18 +100,7 @@ void esm_processMsg(gpointer esm_h, ESM_Message_t* msg){
 		                    bearer);
 		g_hash_table_add(self->sessions, s);
 		ePSsession_parsePDNConnectivityRequest(s, msg, &infoTxRequired);
-		if(!infoTxRequired){
-			ePSsession_activateDefault(s);
-		}else{
-			pointer = buf;
-			newNASMsg_ESM(&pointer,
-			              EPSSessionManagementMessages,
-			              0);
-			encaps_ESM(&pointer,
-			           msg->procedureTransactionIdentity,
-			           ESMInformationRequest);
-			emm_sendESM(self->emm, buf, pointer-buf, NULL);
-		}
+		ePSsession_activateDefault(s, infoTxRequired);
 	case PDNDisconnectRequest:
 	case BearerResourceAllocationRequest:
 	case BearerResourceModificationRequest:
@@ -118,9 +108,8 @@ void esm_processMsg(gpointer esm_h, ESM_Message_t* msg){
 	/* Miscelaneous*/
 	case ESMInformationResponse:
 		log_msg(LOG_ERR, 0, "Received ESMInformationResponse");
-		GList *l;
 		l = g_hash_table_get_values (self->sessions);
-		ePSsession_activateDefault(l->data);
+		ePSsession_activateDefault(l->data, FALSE);
 		/* g_hash_table_foreach (GHashTable *hash_table, */
 		/*                       GHFunc func, */
 		/*                       gpointer user_data); */
@@ -138,4 +127,11 @@ uint32_t esm_getDNSsrv(ESM esm_h){
 	ECMSession_t *ecm = (ECMSession_t*)emm->ecm;
 	struct mme_t *mme = s1_getMME(s1Assoc_getS1(ecm->assoc));
 	return mme->uE_DNS;
+}
+
+void esm_setE_RABSetupuListCtxtSURes(ESM esm_h, E_RABSetupListCtxtSURes_t* l){
+	GList *ls;
+	ESM_t *self = (ESM_t*)esm_h;
+	ls = g_hash_table_get_values (self->sessions);
+	ePSsession_setE_RABSetupuListCtxtSURes(ls->data, l);
 }

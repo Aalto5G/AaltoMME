@@ -59,6 +59,8 @@ void emm_getUESecurityCapabilities(const EMMCtx emm, UESecurityCapabilities_t *c
 
 void emm_getUEAMBR(const EMMCtx emm, UEAggregateMaximumBitrate_t *ambr);
 
+void emm_setE_RABSetupuListCtxtSURes(EMMCtx emm, E_RABSetupListCtxtSURes_t* l);
+
 
 
 #endif /* NAS_EMM_H */

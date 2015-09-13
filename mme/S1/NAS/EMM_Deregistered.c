@@ -123,6 +123,7 @@ void processAttach(gpointer emm_h,  GenericNASMsg_t* msg, guint8 *ksi_msg){
 
     attachMsg = (AttachRequest_t*)&(msg->plain.eMM);
     emm->attachStarted = TRUE;
+    emm->attachType = attachMsg->ePSAttachType.v;
     *ksi_msg = attachMsg->nASKeySetId.v & 0x07;
 
     esmRaw = g_byte_array_new();

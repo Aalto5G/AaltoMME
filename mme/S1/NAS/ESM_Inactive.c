@@ -23,7 +23,10 @@ static void processMsg(gpointer self){
 }
 
 static void activateDefault(gpointer self){
-	esm_DefaultEPSBearerContextActivation(self);
+	/* ESM_BearerContext_t bearer; */
+	/* self->s11 = S11_newUserAttach(esm_getS11iface(self->esm), bearer->esm->emm, self, */
+	/*                               esm_sendActivateDefaultEPSBearerCtxtReq, self); */
+	//esm_DefaultEPSBearerContextActivation(self);
 	esmChangeState(self, ActivePending);
 	/*esm_send(self);*/
 }

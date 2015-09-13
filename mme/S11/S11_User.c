@@ -362,7 +362,7 @@ void sendModifyBearerReq(gpointer u){
     struct fteid_t  fteid;
     union gtpie_member ie[13], ie_bearer_ctx[3];
     int hlen, a;
-    uint32_t fteid_size;
+    gsize fteid_size;
     ESM_BearerContext bearer;
 
 
@@ -393,16 +393,9 @@ void sendModifyBearerReq(gpointer u){
         ie_bearer_ctx[0].tliv.t=GTPV2C_IE_EBI;
         ie_bearer_ctx[0].tliv.v[0]=esm_bc_getEBI(bearer);
         /* fteid S1-U eNB*/
-        //memcpy(&fteid, &(self->user->ebearer[0].s1u_eNB), sizeof(struct fteid_t));
+        esm_bc_getS1ueNBfteid(bearer, &fteid, &fteid_size);
         ie_bearer_ctx[1].tliv.i=0;
         ie_bearer_ctx[1].tliv.t=GTPV2C_IE_FTEID;
-        if(fteid.ipv4 == 1 && fteid.ipv6 == 0){
-            fteid_size = FTEID_IP4_SIZE;
-        }else if (fteid.ipv4 == 0 && fteid.ipv6 == 1){
-            fteid_size = FTEID_IP6_SIZE;
-        }else{
-            fteid_size = FTEID_IP46_SIZE;
-        }
         ie_bearer_ctx[1].tliv.l=hton16(fteid_size);
         memcpy(ie_bearer_ctx[1].tliv.v, &fteid, fteid_size);
     gtp2ie_encaps_group(GTPV2C_IE_BEARER_CONTEXT, 0, &ie[1], ie_bearer_ctx, 2);

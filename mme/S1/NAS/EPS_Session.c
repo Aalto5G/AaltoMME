@@ -31,6 +31,7 @@ EPS_Session ePSsession_init(ESM esm, Subscription _subs, ESM_BearerContext b){
                                            g_int_equal,
                                            NULL,
                                            esm_bc_free);
+    self->current_pti = 0;
     return self;
 }
 
@@ -56,6 +57,7 @@ void ePSsession_parsePDNConnectivityRequest(EPS_Session s, ESM_Message_t *msg, g
 	PDNConnectivityRequest_t *pdnReq = (PDNConnectivityRequest_t*)msg;
 
 	*infoTxRequired = FALSE;
+	self->current_pti = msg->procedureTransactionIdentity;
 	/*Optionals*/
 	if((pdnReq->optionals[numOp].iei&0xF0) == 0xD0){
         /*ESM information transfer flag*/
@@ -78,7 +80,7 @@ void ePSsession_parsePDNConnectivityRequest(EPS_Session s, ESM_Message_t *msg, g
     }
 }
 
-void esm_test(EPS_Session s){
+void esm_sendActivateDefaultEPSBearerCtxtReq(EPS_Session s){
 	EPS_Session_t *self = (EPS_Session_t*)s;
 
 	guint8 buffer[150], *pointer, apn[150], pco[30];
@@ -89,7 +91,6 @@ void esm_test(EPS_Session s){
 
 	guint32 dns;
 
-
 	memset(buffer, 0, 150);
 	pointer = buffer;
 
@@ -97,7 +98,7 @@ void esm_test(EPS_Session s){
 	newNASMsg_ESM(&pointer,
 	              EPSSessionManagementMessages,
 	              esm_bc_getEBI(self->defaultBearer));
-    encaps_ESM(&pointer, 1 ,ActivateDefaultEPSBearerContextRequest);
+    encaps_ESM(&pointer, self->current_pti, ActivateDefaultEPSBearerContextRequest);
 
     /* /\* EPS QoS *\/ */
     subs_cpyQoS_GTP(self->subs, &qos);
@@ -162,11 +163,22 @@ void esm_test(EPS_Session s){
                      g_list_append(NULL, self));
 }
 
-void ePSsession_activateDefault(EPS_Session s){
+void ePSsession_activateDefault(EPS_Session s, gboolean infoTxRequired){
 	EPS_Session_t *self = (EPS_Session_t*)s;
-
-	self->s11 = S11_newUserAttach(esm_getS11iface(self->esm), self->esm->emm, self,
-	                              esm_test, self);
+	guint8 *pointer, buf[100];
+	if(!infoTxRequired){
+		self->s11 = S11_newUserAttach(esm_getS11iface(self->esm), self->esm->emm, self,
+		                               esm_sendActivateDefaultEPSBearerCtxtReq, self);
+	}else{
+		pointer = buf;
+		newNASMsg_ESM(&pointer,
+		              EPSSessionManagementMessages,
+		              0);
+		encaps_ESM(&pointer,
+		           self->current_pti,
+		           ESMInformationRequest);
+		emm_sendESM(self->esm->emm, buf, pointer-buf, NULL);
+	}
 }
 
 gboolean ePSsession_getPCO(const EPS_Session s, gpointer pco){
@@ -239,4 +251,36 @@ void ePSsession_getPDNAddr(const EPS_Session s, TransportLayerAddress_t* addr){
 		/* strncpy(s, "Unknown AF", maxlen); */
 		g_error("PDN Addr not valid in EPS Session");
     }
+}
+
+void ePSsession_test(EPS_Session s){
+	log_msg(LOG_ERR, 0, "Attach Done");
+}
+
+void ePSsession_setE_RABSetupuListCtxtSURes(EPS_Session s, E_RABSetupListCtxtSURes_t* l){
+	ESM_BearerContext bearer;
+	E_RABSetupItemCtxtSURes_t *item;
+	struct fteid_t fteid;
+	EPS_Session_t *self = (EPS_Session_t*)s;
+
+	bearer = ePSsession_getDefaultBearer(self);
+
+	item = l->item[0]->value;
+	if (esm_bc_getEBI(bearer) != item->eRAB_ID.id){
+		return;
+    }
+
+	memcpy(&(fteid.teid), &(item->gTP_TEID.teid), 4);
+    if (item->transportLayerAddress->len == 32){
+	    fteid.ipv4=1;
+        memcpy(&(fteid.addr.addrv4), &(item->transportLayerAddress->addr), 4);
+    }else{
+        log_msg(LOG_ERR, 0, "Only IPv4 implemented, len %u, %x", item->transportLayerAddress->len);
+    }
+    fteid.iface = hton8(S1U_eNB);
+    esm_bc_setS1ueNBfteid(bearer, &fteid);
+
+    S11_Attach_ModifyBearerReq(self->s11,
+                               (void(*)(gpointer)) ePSsession_test,
+                               (gpointer)self);
 }

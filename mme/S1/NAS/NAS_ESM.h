@@ -51,5 +51,8 @@ void esm_free(ESM esm_h);
 
 void esm_processMsg(gpointer esm_h, ESM_Message_t* msg);
 
+void esm_setE_RABSetupuListCtxtSURes(ESM esm, E_RABSetupListCtxtSURes_t* l);
+
+
 
 #endif /* NAS_ESM_H */

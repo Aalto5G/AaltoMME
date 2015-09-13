@@ -27,6 +27,7 @@ static void processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
     MME_UE_S1AP_ID_t *mme_id;
     ENB_UE_S1AP_ID_t *eNB_ID;
     Unconstrained_Octed_String_t *nASPDU;
+    E_RABSetupListCtxtSURes_t *list;
 
     if(r_sid != ecm->r_sid && ecm->r_sid_valid){
         log_msg(LOG_ERR, 0,
@@ -52,7 +53,20 @@ static void processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
 
     }else if(s1msg->pdu->procedureCode ==  id_InitialContextSetup &&
              s1msg->choice == successful_outcome){
-	    log_msg(LOG_WARNING, 0, "Received InitialContextSetupResponse");
+
+	    mme_id = (MME_UE_S1AP_ID_t*)s1ap_findIe(s1msg, id_MME_UE_S1AP_ID);
+        eNB_ID = (ENB_UE_S1AP_ID_t*)s1ap_findIe(s1msg, id_eNB_UE_S1AP_ID);
+        if (eNB_ID->eNB_id != ecm->eNBUEId || mme_id->mme_id != ecm->mmeUEId){
+	        log_msg(LOG_WARNING, 0, "Received InitialContextSetupResponse"
+	                " with incorrect IDs");
+	        return;
+        }
+        log_msg(LOG_DEBUG, 0, "Received InitialContextSetupResponse");
+        list = s1ap_findIe(s1msg, id_E_RABSetupListCtxtSURes);
+        emm_setE_RABSetupuListCtxtSURes(ecm->emm, list);
+        /* S11_Attach_ModifyBearerReq(PDATA->user_ctx->s11, */
+        /*                            (void(*)(gpointer)) sendFirstStoredSignal, */
+        /*                            (gpointer)PDATA->sessionHandler); */
     }else if(s1msg->pdu->procedureCode ==  id_InitialContextSetup &&
              s1msg->choice == unsuccessful_outcome){
 	    log_msg(LOG_WARNING, 0, "Received InitialContextSetupFailure");

@@ -41,7 +41,7 @@ void ePSsession_free(EPS_Session s);
 
 void ePSsession_parsePDNConnectivityRequest(EPS_Session s, ESM_Message_t *msg, gboolean *infoTxRequired);
 
-void ePSsession_activateDefault(EPS_Session s);
+void ePSsession_activateDefault(EPS_Session s, gboolean infoTxRequired);
 
 void ePSsession_getPDNAddr(const EPS_Session s, TransportLayerAddress_t* addr);
 

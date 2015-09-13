@@ -55,6 +55,7 @@ typedef struct{
     gpointer     s11;
 
     gboolean     attachStarted;
+    guint8       attachType;
     GPtrArray    *pendingESMmsg;
 
     /* **** Start of MM context **** */

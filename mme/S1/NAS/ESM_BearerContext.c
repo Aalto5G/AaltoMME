@@ -25,6 +25,7 @@ typedef struct{
 	gpointer       esm;
 	ESM_State      *state;
 	struct fteid_t s1u_sgw;
+	struct fteid_t s1u_enb;
 	struct fteid_t s5s8u_pgw; 
 
 	uint8_t        oMsg[500];
@@ -61,18 +62,30 @@ void esm_bc_setState(ESM_BearerContext bc, ESM_State *s){
 }
 
 void esm_bc_processMsg(ESM_BearerContext self, const ESM_Message_t * msg){
-	
+	switch(msg->messageType){
+	/*Network Initiated*/
+	case ActivateDefaultEPSBearerContextAccept:
+	case ActivateDefaultEPSBearerContextReject:
+	case ActivateDedicatedEPSBearerContextAccept:
+	case ActivateDedicatedEPSBearerContextReject:
+	case ModifyEPSBearerContextAccept:
+	case ModifyEPSBearerContextReject:
+	case DeactivateEPSBearerContextAccept:
+		break;
+	default:
+		break;
+	}
 }
 
 void esm_activateDefault(ESM_BearerContext bc_h){
 	ESM_BearerContext_t *self = (ESM_BearerContext_t*)bc_h;
 }
 
-void esm_DefaultEPSBearerContextActivation(gpointer bc_h){
-	ESM_BearerContext_t *self = (ESM_BearerContext_t*)bc_h;
+/* void esm_DefaultEPSBearerContextActivation(gpointer bc_h){ */
+/* 	ESM_BearerContext_t *self = (ESM_BearerContext_t*)bc_h; */
 
-	uint8_t *pointer, aPN[100],pco[14];
-    uint32_t len;
+/* 	uint8_t *pointer, aPN[100],pco[14]; */
+/*     uint32_t len; */
 
     /* /\* Forge Activate Default Bearer Context Req*\/ */
     /* pointer = self->oMsg; */
@@ -123,8 +136,8 @@ void esm_DefaultEPSBearerContextActivation(gpointer bc_h){
     /*     *(pointer-15) = 14; */
     /*     } */
     /* } */
-    self->oLen = pointer-(uint8_t*) self->oMsg;
-}
+/*     self->oLen = pointer-(uint8_t*) self->oMsg; */
+/* } */
 
 void esm_bc_setS1uSGWfteid(ESM_BearerContext bc_h, gpointer fteid_h, gsize len){
     struct fteid_t* fteid = (struct fteid_t*) fteid_h;
@@ -134,6 +147,24 @@ void esm_bc_setS1uSGWfteid(ESM_BearerContext bc_h, gpointer fteid_h, gsize len){
         g_error("Unexpected interface type, S1U_SGW expected");
 
     memcpy(&(self->s1u_sgw), fteid, len);
+}
+
+
+void esm_bc_setS1ueNBfteid(ESM_BearerContext bc_h, gpointer fteid_h){
+    struct fteid_t* fteid = (struct fteid_t*) fteid_h;
+    ESM_BearerContext_t *self = (ESM_BearerContext_t*)bc_h;
+    gsize len;
+    if(fteid->iface !=  S1U_eNB)
+        g_error("Unexpected interface type, S1U_eNB expected");
+    
+    len = 5;
+    if(fteid->ipv4){
+	    len += 4;
+    }
+    if(fteid->ipv6){
+	    len += 16;
+    }
+    memcpy(&(self->s1u_enb), fteid, len);
 }
 
 void esm_bc_setS5S8uPGWfteid(ESM_BearerContext bc_h, gpointer fteid_h, gsize len){
@@ -149,4 +180,17 @@ void esm_bc_setS5S8uPGWfteid(ESM_BearerContext bc_h, gpointer fteid_h, gsize len
 guint32 esm_bc_getS1uSGWTEID(const ESM_BearerContext bc_h){
 	ESM_BearerContext_t *self = (ESM_BearerContext_t*)bc_h;
 	return self->s1u_sgw.teid;
+}
+
+void esm_bc_getS1ueNBfteid(const ESM_BearerContext bc_h, gpointer fteid_h, gsize *len){
+    struct fteid_t* fteid = (struct fteid_t*) fteid_h;
+    ESM_BearerContext_t *self = (ESM_BearerContext_t*)bc_h;
+    *len = 5;
+    if(self->s1u_enb.ipv4){
+	    *len += 4;
+    }
+    if(self->s1u_enb.ipv6){
+	    *len += 16;
+    }
+    memcpy(fteid, &(self->s1u_enb), *len);
 }

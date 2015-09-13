@@ -308,7 +308,7 @@ int newNASMsg_sec(const NAS h,
     }
 
     /* NAS SQN*/
-    buf[0] = (uint8_t) (n->nas_count[direction] &0xff);
+    buf[0] = count[3];
 
     /* Calculate MAC*/
     eia_cb[n->i](n->ikey, count, 0, direction, buf, (pLen +1)*8, mac);

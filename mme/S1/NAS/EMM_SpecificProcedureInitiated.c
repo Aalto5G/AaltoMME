@@ -22,92 +22,105 @@
 #include "NAS_EMM_priv.h"
 #include <string.h>
 
+static void processAttachComplete(EMMCtx_t *emm, GenericNASMsg_t *msg);
+
 static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
     log_msg(LOG_ERR, 0, "Not Implemented");
 }
 
 static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
-	EMMCtx_t *emm = (EMMCtx_t*)emm_h;
-	GenericNASMsg_t msg;
-	SecurityHeaderType_t s;
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    GenericNASMsg_t msg;
+    SecurityHeaderType_t s;
     ProtocolDiscriminator_t p;
     gboolean isAuth = FALSE, res;
-	nas_getHeader(buf, len, &s, &p);
-	if(emm->sci){
-		res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
-		if(res==2){
-			log_msg(LOG_WARNING, 0, "Wrong SQN Count");
-			return;
-		}else if(res==0){
-			g_error("NAS Authentication Error");
-		}
-	}
-	if(!isAuth){
-		log_msg(LOG_INFO, 0, "Received Message with wrong MAC");
-		return;
-	}
-	nas_incrementNASCount(emm->parser, NAS_UpLink);
+    nas_getHeader(buf, len, &s, &p);
+    if(emm->sci){
+        res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
+        if(res==2){
+            log_msg(LOG_WARNING, 0, "Wrong SQN Count");
+            return;
+        }else if(res==0){
+            g_error("NAS Authentication Error");
+        }
+    }
+    if(!isAuth){
+        log_msg(LOG_INFO, 0, "Received Message with wrong MAC");
+        return;
+    }
+    nas_incrementNASCount(emm->parser, NAS_UpLink);
 
-	if(!dec_secNAS(emm->parser, &msg, NAS_UpLink, buf, len)){
-		g_error("NAS Decyphering Error");
-	}
+    if(!dec_secNAS(emm->parser, &msg, NAS_UpLink, buf, len)){
+        g_error("NAS Decyphering Error");
+    }
 
-	if(p == EPSSessionManagementMessages ||
-	   msg.header.protocolDiscriminator.v == EPSSessionManagementMessages){
-		esm_processMsg(emm->esm, &(msg.plain.eSM));
-		return;
-	}
+    if(p == EPSSessionManagementMessages ||
+       msg.header.protocolDiscriminator.v == EPSSessionManagementMessages){
+        esm_processMsg(emm->esm, &(msg.plain.eSM));
+        return;
+    }
+
+    switch(msg.plain.eMM.messageType){
+    case AttachComplete:
+        log_msg(LOG_DEBUG, 0, "Received AttachComplete");
+        processAttachComplete(emm, &msg);
+        break;
+    default:
+        log_msg(LOG_WARNING, 0,
+                "NAS Message type (%u) not recognized in this context",
+                msg.plain.eMM.messageType);
+    }
+
 }
 
 static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GList *bearers){
-	EMMCtx_t *emm = (EMMCtx_t*)emm_h;
-	guint8 *pointer, out[256], plain[250], count, t3412, guti_b[11];
-	guti_t guti;
-	guint32 len;
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    guint8 *pointer, out[256], plain[250], count, t3412, guti_b[11];
+    guti_t guti;
+    guint32 len;
     gsize tlen;
-	NAS_tai_list_t tAIl;
+    NAS_tai_list_t tAIl;
 
-	memset(out, 0, 156);
-	memset(plain, 0, 150);
+    memset(out, 0, 156);
+    memset(plain, 0, 150);
     pointer = plain;
 
-	if (emm->attachStarted == TRUE){
-		emm->attachStarted = FALSE;
-		/* Build Attach Accept*/
-		newNASMsg_EMM(&pointer, EPSMobilityManagementMessages, PlainNAS);
+    if (emm->attachStarted == TRUE){
+        emm->attachStarted = FALSE;
+        /* Build Attach Accept*/
+        newNASMsg_EMM(&pointer, EPSMobilityManagementMessages, PlainNAS);
 
-		encaps_EMM(&pointer, AttachAccept);
+        encaps_EMM(&pointer, AttachAccept);
 
-		/* EPS attach result */
-		nasIe_v_t1_l(&pointer, 1); /* EPS only */
-		pointer++; /*Spare half octet*/
-		/* T3412 value */
-		t3412 = 0x23;
-		nasIe_v_t3(&pointer, &t3412, 1); /* EPS only */
-		/* TAI list */
-		ecmSession_getTAIlist(emm->ecm, &tAIl, &tlen);
-		nasIe_lv_t4(&pointer, (uint8_t*)&tAIl, tlen);
-		/* ESM message container */
-		nasIe_lv_t6(&pointer, esm_msg, msgLen);
+        /* EPS attach result.*/
+        nasIe_v_t1_l(&pointer,  emm->attachType);
+        pointer++; /*Spare half octet*/
+        /* T3412 value */
+        t3412 = 0x23;
+        nasIe_v_t3(&pointer, &t3412, 1); /* EPS only */
+        /* TAI list */
+        ecmSession_getTAIlist(emm->ecm, &tAIl, &tlen);
+        nasIe_lv_t4(&pointer, (uint8_t*)&tAIl, tlen);
+        /* ESM message container */
+        nasIe_lv_t6(&pointer, esm_msg, msgLen);
 
-		/* GUTI */
-		emmCtx_newGUTI(emm, &guti);
-		guti_b[0]=0xF6;   /*1111 0 110 - spare, odd/even , GUTI id*/
-		memcpy(guti_b+1, &guti, 10);
-		nasIe_tlv_t4(&pointer, 0x50, guti_b, 11);
+        /* GUTI */
+        emmCtx_newGUTI(emm, &guti);
+        guti_b[0]=0xF6;   /*1111 0 110 - spare, odd/even , GUTI id*/
+        memcpy(guti_b+1, &guti, 10);
+        nasIe_tlv_t4(&pointer, 0x50, guti_b, 11);
 
-		
-		newNASMsg_sec(emm->parser, out, &len,
-		              EPSMobilityManagementMessages,
-		              IntegrityProtectedAndCiphered,
-		              NAS_DownLink,
-		              plain, pointer-plain);
-		nas_incrementNASCount(emm->parser, NAS_DownLink);
-	}else{
-		return;
-	}
-	ecm_sendCtxtSUReq(emm->ecm, out, len, bearers);
-	emmChangeState(emm, EMM_Registered);
+
+        newNASMsg_sec(emm->parser, out, &len,
+                      EPSMobilityManagementMessages,
+                      IntegrityProtectedAndCiphered,
+                      NAS_DownLink,
+                      plain, pointer-plain);
+        nas_incrementNASCount(emm->parser, NAS_DownLink);
+    }else{
+        return;
+    }
+    ecm_sendCtxtSUReq(emm->ecm, out, len, bearers);
 }
 
 void linkEMMSpecificProcedureInitiated(EMM_State* s){
@@ -118,4 +131,14 @@ void linkEMMSpecificProcedureInitiated(EMM_State* s){
     s->sendESM = emm_internalSendESM;
 }
 
+static void processAttachComplete(EMMCtx_t *emm, GenericNASMsg_t *msg){
+    GenericNASMsg_t esm_msg;
+    AttachComplete_t *complete;
 
+    complete = (AttachComplete_t*)&(msg->plain.eMM);
+
+    dec_NAS(&esm_msg, complete->eSM_MessageContainer.v, complete->eSM_MessageContainer.l);
+    emm->attachStarted = FALSE;
+    emmChangeState(emm, EMM_Registered);
+    esm_processMsg(emm->esm, &(esm_msg.plain.eSM));
+}

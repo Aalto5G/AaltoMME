@@ -47,7 +47,8 @@ typedef struct{
 
     GHashTable             *bearers;
 
-    uint8_t                pco[0xff+2];   /* TLV Protocol Configuration Options*/
+    guint8                 pco[0xff+2];   /* TLV Protocol Configuration Options*/
+    guint32                current_pti;
 
 }EPS_Session_t;
 

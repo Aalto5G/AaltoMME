@@ -210,7 +210,7 @@ static void generate_KeNB(const uint8_t *kasme, const uint32_t ulNASCount, uint8
 	uint32_t count;
     uint8_t s[7];
     s[0]=0x11;
-    count = htonl(ulNASCount-2);
+    count = htonl(ulNASCount);
     memcpy(s+1, &count, 4);
     s[5]=0x00;
     s[6]=0x04;
@@ -260,4 +260,9 @@ void emm_internalSendESM(const EMMCtx emm, const gpointer msg, const gsize len, 
 
     ecm_send(self->ecm, out, oLen);
     nas_incrementNASCount(self->parser, NAS_DownLink);
+}
+
+void emm_setE_RABSetupuListCtxtSURes(EMMCtx emm, E_RABSetupListCtxtSURes_t* l){
+	EMMCtx_t *self = (EMMCtx_t*)emm;
+	esm_setE_RABSetupuListCtxtSURes(self->esm, l);
 }

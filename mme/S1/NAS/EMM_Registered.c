@@ -25,10 +25,39 @@ static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
 }
 
 
-static void emm_processSecMsg(gpointer emm_h, gpointer buff, gsize len){
+static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
 	EMMCtx_t *emm = (EMMCtx_t*)emm_h;
 
-	log_msg(LOG_ERR, 0, "Received unexpected NAS message with security header");
+	GenericNASMsg_t msg;
+	SecurityHeaderType_t s;
+    ProtocolDiscriminator_t p;
+    gboolean isAuth = FALSE, res;
+	nas_getHeader(buf, len, &s, &p);
+	if(emm->sci){
+		res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
+		if(res==2){
+			log_msg(LOG_WARNING, 0, "Wrong SQN Count");
+			return;
+		}else if(res==0){
+			g_error("NAS Authentication Error");
+		}
+	}
+	if(!isAuth){
+		log_msg(LOG_INFO, 0, "Received Message with wrong MAC");
+		return;
+	}
+	nas_incrementNASCount(emm->parser, NAS_UpLink);
+
+    switch(msg.plain.eMM.messageType){
+    /* case AttachComplete: */
+	/*     log_msg(LOG_DEBUG, 0, "Received AttachComplete"); */
+	/*     processAttachComplete(emm, &msg); */
+	/*     break; */
+    default:
+        log_msg(LOG_WARNING, 0,
+                "NAS Message type (%u) not recognized in this context",
+                msg.plain.eMM.messageType);
+    }
 
 }
 
