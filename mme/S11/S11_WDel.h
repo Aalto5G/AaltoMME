@@ -20,7 +20,7 @@
 #include "S11_State.h"
 
 typedef struct{
-	S11STATE
+	S11STATE;
 }S11_WDel;
 
 void linkWDel(S11_State* s);

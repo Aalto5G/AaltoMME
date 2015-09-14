@@ -20,7 +20,7 @@
 #include "S11_State.h"
 
 typedef struct{
-	S11STATE
+	S11STATE;
 }S11_Ctx;
 
 void linkCtx(S11_State* s);

@@ -91,7 +91,7 @@ static void processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
              s1msg->choice == initiating_message){
         log_msg(LOG_INFO, 0, "Received id_UEContextReleaseRequest");
         c = (Cause_t*)s1ap_findIe(s1msg, id_Cause);
-        emm_UEContextReleaseReq(ecm->emm, c->choice, c->cause);
+        emm_UEContextReleaseReq(ecm->emm, c->choice, c->cause.radioNetwork.cause.noext);
     }else if(s1msg->pdu->procedureCode == id_UECapabilityInfoIndication &&
              s1msg->choice == initiating_message){
 	    log_msg(LOG_WARNING, 0, "Received id_UECapabilityInfoIndication");

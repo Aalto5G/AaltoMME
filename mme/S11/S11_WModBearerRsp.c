@@ -38,6 +38,14 @@ static void processMsg(gpointer self){
 		s11changeState(self, ctx);
 		returnControl(self);
         break;
+	case GTP2_RELEASE_ACCESS_BEARERS_RSP:
+		if(!accepted(self)){
+			log_msg(LOG_WARNING, 0, "Releas Access Bearer rejected "
+			        "Cause %d", cause(self));
+		}
+		s11changeState(self, ulCtx);
+		returnControl(self);
+		break;
 	default:
 		log_msg(LOG_DEBUG, 0, "Msg for this state not Implemented");
 		break;
@@ -56,10 +64,14 @@ static void modBearer(gpointer self){
 	log_msg(LOG_ERR, 0, "Not Implemented");
 }
 
+static void releaseAccess(gpointer self){
+	log_msg(LOG_ERR, 0, "Not Implemented");
+}
 
 void linkWModBearerRsp(S11_State* s){
 	s->processMsg = processMsg;
 	s->attach = attach;
 	s->detach =  detach;
 	s->modBearer = modBearer;
+	s->releaseAccess = releaseAccess;
 }

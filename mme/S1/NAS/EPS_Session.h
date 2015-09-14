@@ -49,5 +49,7 @@ ESM_BearerContext ePSsession_getDefaultBearer(EPS_Session s);
 
 void ePSsession_UEContextReleaseReq(EPS_Session s, cause_choice_t choice, uint32_t cause);
 
+void ePSsession_detach(EPS_Session s, void(*cb)(gpointer), gpointer args);
+
 
 #endif /* EPS_SESSION_H*/

@@ -30,6 +30,7 @@ typedef void (*S11_event)(gpointer);
 	S11_event attach;	    /*  */ \
 	S11_event detach;	    /*  */ \
 	S11_event modBearer;	/* Modify Bearer */ \
+	S11_event releaseAccess
 
 typedef struct{
 	S11STATE;

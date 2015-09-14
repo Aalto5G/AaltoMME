@@ -36,11 +36,16 @@ static void modBearer(gpointer self){
 	log_msg(LOG_ERR, 0, "Not Implemented");
 }
 
+static void releaseAccess(gpointer self){
+	log_msg(LOG_ERR, 0, "Not Implemented");
+}
+
 
 void linkNoCtx(S11_State* s){
 	s->processMsg = processMsg;
 	s->attach = attach;
 	s->detach =  detach;
 	s->modBearer = modBearer;
+	s->releaseAccess = releaseAccess;
 }
 

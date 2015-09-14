@@ -1151,42 +1151,28 @@ gpointer S11_newUserAttach(gpointer s11_h, EMMCtx emm, EPS_Session s,
     /* New MME TEID for the new user*/
     gpointer u = s11_newSession(self, emm, s);
 
-    /* u->state = STATE_attach; */
-    /* u->state(u, S11_attach); */
     attach(u, cb, args);
-
-    //cb(args);
     return u;
 }
 
 
 void S11_Attach_ModifyBearerReq(gpointer s11_user, void(*cb)(gpointer), gpointer args){
     log_msg(LOG_DEBUG, 0, "enter");
-
-    /* u->state = STATE_attach; */
-    /* u->state(u, S11_ModifyBearer); */
     modBearer(s11_user, cb, args);
-
-    //cb(args);
 }
 
 void S11_dettach(gpointer s11_user, void(*cb)(gpointer), gpointer args){
     log_msg(LOG_DEBUG, 0, "enter");
-
-    /* u->state = STATE_Delete_User_Session; */
-    /* u->state(u, S11_detach); */
     detach(s11_user, cb, args);
-
-    //cb(args);
 }
 
 void S11_ReleaseAccessBearers(gpointer s11_user, void(*cb)(gpointer), gpointer args){
-	log_msg(LOG_ERR, 0, "not Implemented");
+	log_msg(LOG_DEBUG, 0, "enter");
+	/* For Future use, requires S-GW compatibility*/
+	/* releaseAccess(s11_user, cb, args); */
 
-    /* u->state = STATE_ReleaseAccessBearers; */
-    /* u->state(u, S11_releaseAccessBearers); */
-
-    cb(args);
+	/* HACK*/
+	detach(s11_user, cb, args);
 }
 
 /* void S11_CreateIndirectDataForwardingTunnel(gpointer s11_user, void(*cb)(gpointer), gpointer args){ */

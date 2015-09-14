@@ -110,20 +110,6 @@ void ecm_send(ECMSession h, gpointer msg, size_t len){
     s1out->freemsg(s1out);
 }
 
-/* void ecm_buildE_RABToBeSetupItemCtxtSUReq(gpointer bearer, gpointer user_data){ */
-/* 	E_RABToBeSetupItemCtxtSUReq_t *eRABitem; */
-/* 	gpointer *data =  (gpointer *)user_data; */
-/* 	ECMSession_t *self = (ECMSession_t *)data[0]; */
-/* 	E_RABToBeSetupListCtxtSUReq_t *list = (E_RABToBeSetupListCtxtSUReq_t *)data[1]; */
-
-/* 	eRABitem = list->newItem(list); */
-/*     eRABitem->eRABlevelQoSParameters = new_E_RABLevelQoSParameters(); */
-/*     eRABitem->transportLayerAddress = new_TransportLayerAddress(); */
-/*     eRABitem->eRABlevelQoSParameters->allocationRetentionPriority = new_AllocationAndRetentionPriority(); */
-/*     eRABitem->nAS_PDU = new_Unconstrained_Octed_String(); */
-
-/* } */
-
 void ecm_sendCtxtSUReq(ECMSession h, gpointer msg, size_t len, GList *bearers){
 	S1AP_Message_t *s1out;
 
@@ -266,8 +252,41 @@ void ecmSession_getGUMMEI(const ECMSession h, guint32* sn, guint16 *mmegi, guint
 	*mmec = item->servedMMECs->item[0]->s[0];
 }
 
+void ecmSession_newGUTI(ECMSession h, guti_t * guti){
+	ECMSession_t *self = (ECMSession_t *)h;
+	guint32 sn, r;
+	guint16 mmegi;
+	guint8 mmec;
+	guint64 n;
+	struct mme_t *mme = s1_getMME(s1Assoc_getS1(self->assoc));
+
+	ecmSession_getGUMMEI(self, &sn, &mmegi, &mmec);
+	guti->tbcd_plmn = sn;
+	guti->mmegi = mmegi;
+	guti->mmec = mmec;
+
+	/* M-TMSI IMSI hash salted with random number*/
+	srand(time(NULL));
+	r = rand();
+	n =  emmCtx_getIMSI(self->emm) ^ ((guint64)r & ((guint64)r)<<32);
+	guti->mtmsi = g_int64_hash(&n);
+
+	mme_registerECMSession(mme, self);
+}
+
 void ecm_sendUEContextReleaseCommand(const ECMSession h, cause_choice_t choice, uint32_t cause){
 	ECMSession_t *self = (ECMSession_t *)h;
 	self->state->release(self, choice, cause);
+
+	if(choice == CauseNas && cause == CauseNas_detach){
+		s1Assoc_deregisterECMSession(self->assoc, self);
+		self->assoc = NULL;
+	}
 }
 
+
+const guint32 *ecmSession_getM_TMSI_p(const ECMSession h){
+	ECMSession_t *self = (ECMSession_t *)h;
+	const guti_t *guti = emmCtx_getGUTI(self->emm);
+	return &(guti->mtmsi);
+}

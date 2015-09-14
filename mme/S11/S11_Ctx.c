@@ -38,10 +38,17 @@ static void modBearer(gpointer self){
 	s11changeState(self, wModBearerRsp);
 }
 
+static void releaseAccess(gpointer self){
+	log_msg(LOG_ERR, 0, "Not Implemented");
+	sendReleaseAccessBearersReq(self);
+	s11changeState(self, wModBearerRsp);
+}
+
 
 void linkCtx(S11_State* s){
 	s->processMsg = processMsg;
 	s->attach = attach;
 	s->detach =  detach;
 	s->modBearer = modBearer;
+	s->releaseAccess = releaseAccess;
 }

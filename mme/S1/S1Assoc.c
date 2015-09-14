@@ -191,7 +191,6 @@ void s1Assoc_registerECMSession(S1Assoc h, gpointer  ecm){
     struct mme_t * mme = s1_getMME(self->s1);
 
     g_hash_table_insert(self->ecm_sessions, ecmSession_getMMEUEID_p(ecm), ecm);
-    mme_registerECMSession(mme, ecm);
 }
 
 void s1Assoc_deregisterECMSession(S1Assoc h, gpointer ecm){

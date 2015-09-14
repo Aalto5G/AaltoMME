@@ -55,10 +55,15 @@ static void modBearer(gpointer self){
 
 }
 
+static void releaseAccess(gpointer self){
+	log_msg(LOG_ERR, 0, "Not Implemented");
+}
+
 
 void linkWDel(S11_State* s){
     s->processMsg = processMsg;
     s->attach = attach;
     s->detach =  detach;
     s->modBearer = modBearer;
+    s->releaseAccess = releaseAccess;
 }

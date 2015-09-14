@@ -24,8 +24,8 @@
 #include <stdlib.h>
 
 void freeESMmsg(gpointer msg){
-	GByteArray *array = (GByteArray *)msg;
-	g_byte_array_free(array, TRUE);
+    GByteArray *array = (GByteArray *)msg;
+    g_byte_array_free(array, TRUE);
 }
 
 EMMCtx emmCtx_init(){
@@ -95,33 +95,25 @@ const guint8 *emmCtx_getServingNetwork_TBCD(const EMMCtx emm){
 }
 
 Subscription emmCtx_getSubscription(const EMMCtx emm){
-	EMMCtx_t *self = (EMMCtx_t*)emm;
-	return self->subs;
+    EMMCtx_t *self = (EMMCtx_t*)emm;
+    return self->subs;
 }
 
 void emmCtx_setMSISDN(EMMCtx emm, guint64 msisdn){
-	EMMCtx_t *self = (EMMCtx_t*)emm;
-	self->msisdn = msisdn;
+    EMMCtx_t *self = (EMMCtx_t*)emm;
+    self->msisdn = msisdn;
 }
 
 void emmCtx_newGUTI(EMMCtx emm, guti_t *guti){
-	EMMCtx_t *self = (EMMCtx_t*)emm;
-	guint32 sn, r;
-	guint16 mmegi;
-	guint8 mmec;
-	guint64 n;
+    EMMCtx_t *self = (EMMCtx_t*)emm;
 
-	ecmSession_getGUMMEI(self->ecm, &sn, &mmegi, &mmec);
-	self->guti.tbcd_plmn = sn;
-	self->guti.mmegi = mmegi;
-	self->guti.mmec = mmec;
+    ecmSession_newGUTI(self->ecm, &(self->guti));
 
-	/* M-TMSI IMSI hash salted with random number*/
-	srand(time(NULL));
-	r = rand();
-	n = self->imsi ^ ((guint64)r & ((guint64)r)<<32);
-	self->guti.mtmsi = g_int64_hash(&n);
+    if(guti!=NULL)
+        memcpy(guti, &(self->guti), 10);
+}
 
-	if(guti!=NULL)
-		memcpy(guti, &(self->guti), 10);
+const guti_t * emmCtx_getGUTI(const EMMCtx emm){
+    EMMCtx_t *self = (EMMCtx_t*)emm;
+    return  &(self->guti);
 }

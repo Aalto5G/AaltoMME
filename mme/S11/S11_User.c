@@ -139,6 +139,13 @@ void modBearer(gpointer session, void(*cb)(gpointer), gpointer args){
     self->state->modBearer(self);
 }
 
+void releaseAccess(gpointer session, void(*cb)(gpointer), gpointer args){
+	S11_user_t *self = (S11_user_t*)session;
+    self->cb = cb;
+    self->args = args;
+    self->state->releaseAccess(self);
+}
+
 
 gboolean s11u_hasPendingResp(gpointer self){
     return TRUE;
@@ -422,6 +429,19 @@ void sendDeleteSessionReq(gpointer u){
     ie[0].tliv.v[0]=0x05; /*EBI = 5,  EBI > 4, see 3GPP TS 24.007 11.2.3.1.5  EPS bearer identity */
 
     gtp2ie_encaps(ie, 1, &(self->oMsg), &(self->oMsglen));
+
+    s11_send(self);
+}
+
+void sendReleaseAccessBearersReq(gpointer u){
+    S11_user_t *self = (S11_user_t*)u;
+
+    union gtpie_member ie[13];
+
+    /*  Send Release Access Bearers Request to SGW*/
+    /******************************************************************************/
+
+    self->oMsglen = get_default_gtp(2, GTP2_RELEASE_ACCESS_BEARERS_REQ, &(self->oMsg));
 
     s11_send(self);
 }

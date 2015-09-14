@@ -133,4 +133,6 @@ Subscription emmCtx_getSubscription(const EMMCtx emm);
 
 void emmCtx_newGUTI(EMMCtx emm, guti_t *guti);
 
+const guti_t * emmCtx_getGUTI(const EMMCtx emm);
+
 #endif /* EMM_CTX_H*/

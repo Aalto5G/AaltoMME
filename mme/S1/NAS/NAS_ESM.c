@@ -142,3 +142,11 @@ void esm_UEContextReleaseReq(ESM esm_h, cause_choice_t choice, uint32_t cause){
 	ls = g_hash_table_get_values (self->sessions);
 	ePSsession_UEContextReleaseReq(ls->data, choice, cause);
 }
+
+void esm_detach(ESM esm_h, void(*cb)(gpointer), gpointer args){
+	ESM_t *self = (ESM_t*)esm_h;
+	GList *ls;
+	ls = g_hash_table_get_values (self->sessions);
+	ePSsession_detach(ls->data, cb, args);
+
+}

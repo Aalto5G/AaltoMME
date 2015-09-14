@@ -537,12 +537,12 @@ void mme_lookupS1Assoc(struct mme_t *self, gconstpointer geNBid, gpointer *assoc
 
 void mme_registerECMSession(struct mme_t *self, gpointer ecm){
     g_hash_table_insert(self->ecm_sessions,
-                        ecmSession_getMMEUEID_p(ecm),
+                        ecmSession_getM_TMSI_p(ecm),
                         ecm);
 }
 
 void mme_deregisterECMSession(struct mme_t *self, gpointer ecm){
-    if(g_hash_table_remove(self->ecm_sessions, ecmSession_getMMEUEID_p(ecm)) != TRUE){
+	if(g_hash_table_remove(self->ecm_sessions, ecmSession_getM_TMSI_p(ecm)) != TRUE){
         log_msg(LOG_ERR, 0, "Unable to find ECM session");
     }
 }
