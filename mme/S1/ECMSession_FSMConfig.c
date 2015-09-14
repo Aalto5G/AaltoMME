@@ -20,6 +20,8 @@
 #include "ECMSession_Idle.h"
 #include "ECMSession_Connected.h"
 
+#include "EMM_FSMConfig.h"
+
 #include "logmgr.h"
 
 ECMSession_State *ecm_states;
@@ -27,11 +29,14 @@ ECMSession_State *ecm_states;
 void ecm_ConfigureFSM(){
     ecm_states = g_new(ECMSession_State, 2);
 
+    emmConfigureFSM();
+
     linkECMSessionIdle(&ecm_states[0]);
     linkECMSessionConnected(&ecm_states[1]);
 }
 
 void ecm_DestroyFSM(){
+	emmDestroyFSM();
     g_free(ecm_states);
 }
 

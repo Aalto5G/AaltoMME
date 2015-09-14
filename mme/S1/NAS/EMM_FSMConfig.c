@@ -23,6 +23,8 @@
 #include "EMM_CommonProcedureInitiated.h"
 #include "EMM_DeregisteredInitiated.h"
 
+#include "ESM_FSMConfig.h"
+
 #include "logmgr.h"
 
 EMM_State *emm_states;
@@ -36,6 +38,8 @@ const char *EMMStateName[] = {"Deregistered",
 void emmConfigureFSM(){
     emm_states = g_new(EMM_State, 5);
 
+    esmConfigureFSM();
+
     linkEMMDeregistered(&emm_states[0]);
     linkEMMRegistered(&emm_states[1]);
     linkEMMSpecificProcedureInitiated(&emm_states[2]);
@@ -44,12 +48,13 @@ void emmConfigureFSM(){
 }
 
 void emmDestroyFSM(){
+	esmDestroyFSM();
     g_free(emm_states);
 }
 
 
 void emmChangeState(gpointer ctx, EMMState s){
-	log_msg(LOG_DEBUG, 0, "Change to EMM %s", EMMStateName[s]);
+    log_msg(LOG_DEBUG, 0, "Change to EMM %s", EMMStateName[s]);
     emm_setState(ctx, &(emm_states[s]));
 }
 

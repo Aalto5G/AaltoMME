@@ -48,6 +48,8 @@ typedef struct{
     SupportedTAs_t      *suportedTAs;
     CSG_IdList_t        *cGS_IdList;
     GHashTable          *ecm_sessions;  /**< ECM sessions allocated in this association*/
+    void                (*cb)(gpointer);
+    gpointer            args;
 }S1Assoc_t;
 
 

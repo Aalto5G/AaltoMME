@@ -41,17 +41,18 @@ S1Assoc s1Assoc_init(S1 s1){
     self->ecm_sessions = g_hash_table_new_full(g_int_hash,
                                                g_int_equal,
                                                NULL,
-                                               NULL);
+                                               (GDestroyNotify)ecmSession_free);
     s1ChangeState(self, NotConfigured);
     return self;
 }
 
-void s1Assoc_free(gpointer h){
-    S1Assoc_t *self = (S1Assoc_t *)h;
-    log_msg(LOG_DEBUG, 0, "Enter");
-    self->state->disconnect(self);
+static void s1Assoc_free_cb(gpointer h){
+	S1Assoc_t *self = (S1Assoc_t *)h;
 
-    g_hash_table_destroy(self->ecm_sessions);
+	struct mme_t * mme = s1_getMME(self->s1);
+	mme_deregisterS1Assoc(mme, self);
+
+	g_hash_table_destroy(self->ecm_sessions);
     close(self->fd);
 
     g_string_free(self->eNBname, TRUE);
@@ -69,6 +70,12 @@ void s1Assoc_free(gpointer h){
     }
 
     g_free(self);
+}
+
+void s1Assoc_free(gpointer h){
+    S1Assoc_t *self = (S1Assoc_t *)h;
+    log_msg(LOG_DEBUG, 0, "Enter");
+    self->state->disconnect(self, s1Assoc_free_cb, h);
 }
 
 /** S1 Accept function callback*/
@@ -195,7 +202,7 @@ void s1Assoc_registerECMSession(S1Assoc h, gpointer  ecm){
 
 void s1Assoc_deregisterECMSession(S1Assoc h, gpointer ecm){
     S1Assoc_t *self = (S1Assoc_t *)h;
-    if(!g_hash_table_remove(self->ecm_sessions, ecm)){
+    if(!g_hash_table_remove(self->ecm_sessions, ecmSession_getMMEUEID_p(ecm))){
         log_msg(LOG_ERR,  0, "ECM session not found in S1 Association");
     }
 }

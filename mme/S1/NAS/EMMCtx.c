@@ -42,6 +42,8 @@ EMMCtx emmCtx_init(){
     self->ksi = 7;
     self->next_ksi = 1;
 
+    log_msg(LOG_INFO, 0, "After INIT (M-TMSI %x)",
+            ntohl(self->guti.mtmsi));
     return self;
 }
 
@@ -107,13 +109,46 @@ void emmCtx_setMSISDN(EMMCtx emm, guint64 msisdn){
 void emmCtx_newGUTI(EMMCtx emm, guti_t *guti){
     EMMCtx_t *self = (EMMCtx_t*)emm;
 
-    ecmSession_newGUTI(self->ecm, &(self->guti));
+    if(self->guti.mtmsi==0){
+	    ecmSession_newGUTI(self->ecm, &(self->guti));
+    }  
 
     if(guti!=NULL)
-        memcpy(guti, &(self->guti), 10);
+	    memcpy(guti, &(self->guti), sizeof(guti_t));
 }
 
 const guti_t * emmCtx_getGUTI(const EMMCtx emm){
     EMMCtx_t *self = (EMMCtx_t*)emm;
     return  &(self->guti);
+}
+
+guint32 *emmCtx_getM_TMSI_p(const EMMCtx emm){
+    EMMCtx_t *self = (EMMCtx_t*)emm;
+    return &(self->guti.mtmsi);
+}
+
+void emmCtx_replaceEMM(EMMCtx_t **emm, EMMCtx_t *old_emm){
+	EMMCtx_t *temp = *emm;
+	GPtrArray *tmp;
+	*emm = old_emm;
+	
+	old_emm->attachStarted = temp->attachStarted;
+	old_emm->attachType =  temp->attachType;
+
+	tmp = old_emm->pendingESMmsg;
+	old_emm->pendingESMmsg = temp->pendingESMmsg;
+	temp->pendingESMmsg = tmp;
+	
+	old_emm->ueCapabilitiesLen = temp->ueCapabilitiesLen;
+	memcpy(old_emm->ueCapabilities,
+	       temp->ueCapabilities,
+	       temp->ueCapabilitiesLen);
+
+	old_emm->state = temp->state;
+	old_emm->ecm = temp->ecm;
+	ecmSession_setEMM(temp->ecm, old_emm);
+
+	old_emm->next_ksi = temp->next_ksi;
+
+	emm_free(temp);
 }

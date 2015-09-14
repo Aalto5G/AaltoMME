@@ -52,9 +52,13 @@ ECMSession ecmSession_init(S1Assoc s1, guint32 l_id){
 
 void ecmSession_free(ECMSession h){
     ECMSession_t *self = (ECMSession_t *)h;
-    s1Assoc_deregisterECMSession(self->assoc, self);
-    emm_free(self->emm);
+    emm_deregister(self->emm);
     g_free(self);
+}
+
+void ecmSession_setEMM(ECMSession h, gpointer emm){
+	ECMSession_t *self = (ECMSession_t *)h;
+	self->emm = emm;
 }
 
 void ecmSession_processMsg(ECMSession h, S1AP_Message_t *s1msg, int r_sid){
@@ -252,7 +256,7 @@ void ecmSession_getGUMMEI(const ECMSession h, guint32* sn, guint16 *mmegi, guint
 	*mmec = item->servedMMECs->item[0]->s[0];
 }
 
-void ecmSession_newGUTI(ECMSession h, guti_t * guti){
+void ecmSession_newGUTI(ECMSession h, guti_t *guti){
 	ECMSession_t *self = (ECMSession_t *)h;
 	guint32 sn, r;
 	guint16 mmegi;
@@ -271,17 +275,12 @@ void ecmSession_newGUTI(ECMSession h, guti_t * guti){
 	n =  emmCtx_getIMSI(self->emm) ^ ((guint64)r & ((guint64)r)<<32);
 	guti->mtmsi = g_int64_hash(&n);
 
-	mme_registerECMSession(mme, self);
+	mme_registerEMMSession(mme, self->emm);
 }
 
 void ecm_sendUEContextReleaseCommand(const ECMSession h, cause_choice_t choice, uint32_t cause){
 	ECMSession_t *self = (ECMSession_t *)h;
 	self->state->release(self, choice, cause);
-
-	if(choice == CauseNas && cause == CauseNas_detach){
-		s1Assoc_deregisterECMSession(self->assoc, self);
-		self->assoc = NULL;
-	}
 }
 
 

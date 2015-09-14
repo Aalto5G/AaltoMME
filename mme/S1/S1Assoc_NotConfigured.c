@@ -61,8 +61,8 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid){
     s1ChangeState(assoc, Active);
 }
 
-static void disconnect(gpointer _assoc){
-    /*Do nothing*/
+static void disconnect(gpointer _assoc, void (*cb)(gpointer), gpointer args){
+	cb(args);
     return;
 }
 

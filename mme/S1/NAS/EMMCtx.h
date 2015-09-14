@@ -48,6 +48,7 @@ typedef struct{
     guint64      imsi;
     guint64      msisdn;
     guint64      imeisv;
+    guti_t       last_guti;
     guti_t       guti;
 
     Subscription subs;
@@ -134,5 +135,10 @@ Subscription emmCtx_getSubscription(const EMMCtx emm);
 void emmCtx_newGUTI(EMMCtx emm, guti_t *guti);
 
 const guti_t * emmCtx_getGUTI(const EMMCtx emm);
+
+guint32 *emmCtx_getM_TMSI_p(const EMMCtx emm);
+
+void emmCtx_replaceEMM(EMMCtx_t **emm, EMMCtx_t *old_emm);
+
 
 #endif /* EMM_CTX_H*/

@@ -38,6 +38,7 @@
 #include "MMEutils.h"
 #include "S1Assoc.h"
 #include "ECMSession.h"
+#include "NAS_EMM.h"
 
 int mme_run_flag=0;
 
@@ -178,19 +179,11 @@ int mme_close_ifaces(struct mme_t *self){
     struct EndpointStruct_t *ep;
     int i=0;
 
+    sdnCtrl_free(self->sdnCtrl);
     s6a_free(self->s6a);
-
     servcommand_stop(self->cmd);
-
     s11_free(self->s11);
-
     s1_free(self->s1);
-
-    if( self->ctrl.portState != closed){
-        close(self->ctrl.fd);
-        self->ctrl.portState = closed;
-    }
-
     return 0;
 }
 
@@ -261,18 +254,20 @@ int mme_run(struct mme_t *self){
                                               g_free,
                                               (GDestroyNotify) event_free);
 
-    self->s1_by_GeNBid = g_hash_table_new_full( (GHashFunc)  globaleNBID_Hash,
-                                                (GEqualFunc) globaleNBID_Equal,
-                                                NULL,
-                                                NULL);
     self->s1_localIDs = g_hash_table_new_full(g_int_hash,
                                               g_int_equal,
                                               g_free,
                                               NULL);
-    self->ecm_sessions = g_hash_table_new_full(g_int_hash,
+
+    self->emm_sessions = g_hash_table_new_full(g_int_hash,
                                                g_int_equal,
                                                NULL,
-                                               (GDestroyNotify) ecmSession_free);
+                                               (GDestroyNotify) emm_free);
+
+    self->s1_by_GeNBid = g_hash_table_new_full( (GHashFunc)  globaleNBID_Hash,
+                                                (GEqualFunc) globaleNBID_Equal,
+                                                NULL,
+                                                NULL);
 
     /*Create event base structure*/
     self->evbase = event_base_new();
@@ -285,9 +280,6 @@ int mme_run(struct mme_t *self){
 
     mme_init_ifaces(self);
 
-    //mme_registerRead(self, self->command.fd, cmd_accept, self);
-    //mme_registerRead(self, self->s1.fd, s1_accept_new_eNB, self);
-
     /*Create event for processing SIGINT*/
     kill_event = evsignal_new(self->evbase, SIGINT, kill_handler, self);
     event_add(kill_event, NULL);
@@ -296,24 +288,16 @@ int mme_run(struct mme_t *self){
     /* Loop blocking*/
     engine_main(self);
 
-
-    /*Dealocation */
-    //engine_process_stop(self->command.handler);
-    //engine_process_stop(self->s11.handler);
-    engine_process_stop(self->ctrl.handler);
-
-    mme_deregisterRead(self, self->ctrl.fd);
-    /* mme_deregisterRead(self, self->s1.fd); */
-    //mme_deregisterRead(self, self->command.fd);
-
     mme_close_ifaces(self);
 
     event_free(kill_event);
     event_base_free(self->evbase);
 
-    g_hash_table_destroy(self->s1_localIDs);
-
     g_hash_table_destroy(self->s1_by_GeNBid);
+
+    g_hash_table_destroy(self->emm_sessions);
+
+    g_hash_table_destroy(self->s1_localIDs);
 
     g_hash_table_destroy(self->ev_readers);
 
@@ -535,20 +519,24 @@ void mme_lookupS1Assoc(struct mme_t *self, gconstpointer geNBid, gpointer *assoc
 }
 
 
-void mme_registerECMSession(struct mme_t *self, gpointer ecm){
-    g_hash_table_insert(self->ecm_sessions,
-                        ecmSession_getM_TMSI_p(ecm),
-                        ecm);
+void mme_registerEMMSession(struct mme_t *self, gpointer emm){
+    g_hash_table_insert(self->emm_sessions,
+                        emm_getM_TMSI_p(emm),
+                        emm);
 }
 
-void mme_deregisterECMSession(struct mme_t *self, gpointer ecm){
-	if(g_hash_table_remove(self->ecm_sessions, ecmSession_getM_TMSI_p(ecm)) != TRUE){
+void mme_deregisterEMMSession(struct mme_t *self, gpointer emm){
+	if(g_hash_table_remove(self->emm_sessions, emm_getM_TMSI_p(emm)) != TRUE){
         log_msg(LOG_ERR, 0, "Unable to find ECM session");
     }
 }
 
+void mme_lookupEMMSession(struct mme_t *self, const guint32 m_tmsi, gpointer *emm){
+	*emm = g_hash_table_lookup(self->emm_sessions, &m_tmsi);
+}
+
 GList *mme_getS1Assocs(struct mme_t *self){
-    return g_hash_table_get_values(self->s1_by_GeNBid);
+	return g_hash_table_get_values(self->s1_by_GeNBid);
 }
 
 gpointer mme_getS6a(struct mme_t *self){

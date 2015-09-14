@@ -93,6 +93,11 @@ static void emm_detach(EMMCtx_t *emm){
     /*TODO, move EMM context to MME structure*/
 }
 
+static void emm_detach_switchoff(EMMCtx_t *emm){
+    emmChangeState(emm, EMM_Deregistered);
+    ecm_sendUEContextReleaseCommand(emm->ecm, CauseNas, CauseNas_detach);
+}
+
 static void processDetachReq(EMMCtx_t *emm, GenericNASMsg_t *msg){
     uint64_t mobid=0ULL;
     guti_t  *guti;
@@ -100,7 +105,10 @@ static void processDetachReq(EMMCtx_t *emm, GenericNASMsg_t *msg){
     DetachRequestUEOrig_t *detachMsg = (DetachRequestUEOrig_t*)&(msg->plain.eMM);
 
     /*ePSAttachType*/
-    /*detachMsg->detachType.v;*/
+    gboolean switchoff;
+    guint8 detachType;
+    detachType = detachMsg->detachType.v&0x07;
+    switchoff = (gboolean)(detachMsg->detachType.v&0x08)>>3;
 
     /*nASKeySetId*/
     /*if(detachMsg->nASKeySetId.v != PDATA->user_ctx->ksi.id){
@@ -121,13 +129,16 @@ static void processDetachReq(EMMCtx_t *emm, GenericNASMsg_t *msg){
             log_msg(LOG_ERR, 0, "received IMSI doesn't match.");
             return;
         }
-    }else if(((ePSMobileId_header_t*)detachMsg->ePSMobileId.v)->type == 1 ){    /*GUTI*/
+    }else if(((ePSMobileId_header_t*)detachMsg->ePSMobileId.v)->type == 6 ){    /*GUTI*/
         guti = (guti_t  *)(detachMsg->ePSMobileId.v+1);
         if(memcmp(guti, &(emm->guti), 10)!=0){
             log_msg(LOG_ERR, 0, "GUTI incorrect. GUTI reallocation not implemented yet.");
             return;
         }
     }
-
-    esm_detach(emm->esm, emm_detach, emm);
+    if(switchoff){
+	    esm_detach(emm->esm, emm_detach_switchoff, emm);
+    }else{
+	    esm_detach(emm->esm, emm_detach, emm);
+    }
 }

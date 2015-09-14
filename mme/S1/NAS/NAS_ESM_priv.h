@@ -26,6 +26,8 @@ typedef struct{
 	GHashTable* bearers;
 	GHashTable* sessions;
 	uint8_t     next_ebi;
+	void        (*cb)(gpointer);
+    gpointer    args;
 }ESM_t;
 
 /* API to EPS session and bearers */

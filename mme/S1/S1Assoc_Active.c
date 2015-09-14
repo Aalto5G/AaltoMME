@@ -21,6 +21,7 @@
 #include "S1Assoc_priv.h"
 #include "S1Assoc_FSMConfig.h"
 #include "ECMSession.h"
+#include "MME_S1.h"
 
 static void process_eNBConfigurationTransfer(S1Assoc_t *assoc,  S1AP_Message_t *s1msg);
 
@@ -88,10 +89,44 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid){
     }
 }
 
-static void disconnect(gpointer _assoc){
+static sendReset(gpointer _assoc){
+	S1AP_Message_t *s1msg;
+    S1AP_PROTOCOL_IES_t* ie;
+    Cause_t *c;
+    /* ResetType_t *t; */
     S1Assoc_t *assoc = (S1Assoc_t *)_assoc;
     struct mme_t * mme = s1_getMME(assoc->s1);
-    mme_deregisterS1Assoc(mme, assoc);
+
+    /* Forge response*/
+    s1msg = S1AP_newMsg();
+    s1msg->choice = successful_outcome;
+    s1msg->pdu->procedureCode = id_Reset;
+    s1msg->pdu->criticality = reject;
+
+    /* c = s1ap_newIE(s1out, id_Cause, mandatory, ignore); */
+
+    /* t = s1ap_newIE(s1out, id_ResetType, mandatory, ignore); */
+
+    /* Send Response*/
+    s1Assoc_sendNonUE(assoc, s1msg);
+
+    /*s1msg->showmsg(s1msg);*/
+
+    /* This function doesn't deallocate the IE stored on the mme structure,
+     * because the freeValue callback attribute of the ProtocolIE structure is NULL */
+    s1msg->freemsg(s1msg);
+
+}
+
+static void disconnect(gpointer _assoc, void (*cb)(gpointer), gpointer args){
+    S1Assoc_t *assoc = (S1Assoc_t *)_assoc;
+    assoc->cb = cb;
+    assoc->args = args;
+    /* Use this instead of hack*/
+    //sendReset(assoc);
+    
+    /* HACK*/
+    cb(args);
 }
 
 void linkS1AssocActive(S1Assoc_State* s){

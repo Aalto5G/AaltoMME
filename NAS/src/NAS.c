@@ -299,6 +299,7 @@ int newNASMsg_sec(const NAS h,
     /* Cypher Message*/
     if(s == IntegrityProtectedAndCiphered ||
        s == IntegrityProtectedAndCipheredWithNewEPSSecurityContext){
+	    /* out+6 instead of buf+1 ?*/
         eea_cyph_cb[n->e](n->ekey, count, 0, direction, buf+1, &cLen, plain, pLen);
         if(pLen != cLen){
             return 0;
@@ -315,7 +316,7 @@ int newNASMsg_sec(const NAS h,
 
     /* Encode new Message with Security header*/
     newNASMsg_EMM(&pointer, p, s);
-    /* Add message autherntication code*/
+    /* Add message authentication code*/
     nasIe_v_t3(&pointer, mac, 4);
     /* Add sequence number and cyphered message */
     nasIe_v_t3(&pointer, buf, pLen + 1);

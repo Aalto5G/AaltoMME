@@ -20,7 +20,7 @@
 #include "NAS.h"
 #include "logmgr.h"
 #include "ESM_BearerContext.h"
-#include "EPS_Session.h"
+#include "EPS_Session_priv.h"
 #include "ECMSession_priv.h"
 #include "MME_S1_priv.h"
 #include "S1Assoc_priv.h"
@@ -92,8 +92,8 @@ void esm_processMsg(gpointer esm_h, ESM_Message_t* msg){
 	case PDNConnectivityRequest:
 		log_msg(LOG_DEBUG, 0, "Received PDNConnectivityRequest");
 		bearer = esm_bc_init(self->emm, self->next_ebi);
-		self->next_ebi++;
 		g_hash_table_insert(self->bearers, esm_bc_getEBIp(bearer), bearer);
+		self->next_ebi++;
 
 		s = ePSsession_init(self,
 		                    emmCtx_getSubscription(self->emm),
@@ -143,10 +143,22 @@ void esm_UEContextReleaseReq(ESM esm_h, cause_choice_t choice, uint32_t cause){
 	ePSsession_UEContextReleaseReq(ls->data, choice, cause);
 }
 
+void esm_releaseEPSSession(EPS_Session s){
+	EPS_Session_t *session = (EPS_Session_t*)s;
+	ESM_t *esm = (ESM_t*)session->esm;
+	ESM_BearerContext bearer = ePSsession_getDefaultBearer(session);
+	g_hash_table_remove(esm->sessions, session);
+	g_hash_table_remove(esm->bearers, esm_bc_getEBIp(bearer));
+
+	esm->next_ebi = 5;
+	esm->cb(esm->args);
+}
+
 void esm_detach(ESM esm_h, void(*cb)(gpointer), gpointer args){
 	ESM_t *self = (ESM_t*)esm_h;
 	GList *ls;
-	ls = g_hash_table_get_values (self->sessions);
-	ePSsession_detach(ls->data, cb, args);
-
+	ls = g_hash_table_get_values(self->sessions);
+	self->cb = cb;
+    self->args = args;
+	ePSsession_detach(ls->data, esm_releaseEPSSession, ls->data);
 }

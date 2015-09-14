@@ -62,9 +62,8 @@ void emm_getUEAMBR(const EMMCtx emm, UEAggregateMaximumBitrate_t *ambr);
 void emm_setE_RABSetupuListCtxtSURes(EMMCtx emm, E_RABSetupListCtxtSURes_t* l);
 
 void emm_UEContextReleaseReq(EMMCtx emm, cause_choice_t choice, uint32_t cause);
-	    
 
-
+guint32 *emm_getM_TMSI_p(EMMCtx emm);
 
 
 #endif /* NAS_EMM_H */

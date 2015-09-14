@@ -74,5 +74,7 @@ void ecmSession_getGUMMEI(const ECMSession h, guint32* sn, guint16 *mmegi, guint
 
 void ecm_sendUEContextReleaseCommand(const ECMSession h, cause_choice_t choice, uint32_t cause);
 
+void ecmSession_setEMM(ECMSession h, gpointer emm);
+
 
 #endif /* ECMSESSION_PRIV_HFILE */

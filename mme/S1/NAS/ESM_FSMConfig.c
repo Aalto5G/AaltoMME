@@ -29,7 +29,7 @@ ESM_State *states;
 
 void esmConfigureFSM(){
 	states = g_new(ESM_State, 5);
-	
+
 	linkESMInactive(&states[0]);
 	linkESMActivePending(&states[1]);
 	linkESMActive(&states[2]);

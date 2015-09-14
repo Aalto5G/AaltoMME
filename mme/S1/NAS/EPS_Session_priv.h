@@ -49,7 +49,6 @@ typedef struct{
 
     guint8                 pco[0xff+2];   /* TLV Protocol Configuration Options*/
     guint32                current_pti;
-
 }EPS_Session_t;
 
 gboolean ePSsession_getPCO(EPS_Session s, gpointer pco);

@@ -29,7 +29,6 @@
 
 gpointer emm_init(gpointer ecm){
     EMMCtx_t *self = emmCtx_init();
-    emmConfigureFSM();
     emmChangeState(self, EMM_Deregistered);
     self->ecm = ecm;
     self->s6a = ecmSession_getS6a(ecm);
@@ -42,8 +41,13 @@ void emm_free(gpointer emm_h){
     EMMCtx_t *self = (EMMCtx_t*)emm_h;
     nas_freeHandler(self->parser);
     esm_free(self->esm);
-    emmDestroyFSM();
     emmCtx_free(self);
+}
+
+
+void emm_deregister(EMMCtx emm_h){
+	EMMCtx_t *self = (EMMCtx_t*)emm_h;
+	self->ecm = NULL;
 }
 
 gpointer emm_getS11(gpointer emm_h){
@@ -276,3 +280,8 @@ void emm_sendUEContextReleaseCommand(EMMCtx emm, cause_choice_t choice, uint32_t
 	EMMCtx_t *self = (EMMCtx_t*)emm;
 	ecm_sendUEContextReleaseCommand(self->ecm, CauseRadioNetwork, CauseRadioNetwork_user_inactivity);
 }
+
+guint32 *emm_getM_TMSI_p(EMMCtx emm){
+	return emmCtx_getM_TMSI_p(emm);
+}
+

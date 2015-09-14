@@ -266,7 +266,7 @@ void ePSsession_getPDNAddr(const EPS_Session s, TransportLayerAddress_t* addr){
 }
 
 void ePSsession_test(EPS_Session s){
-    log_msg(LOG_ERR, 0, "Attach Done");
+	log_msg(LOG_DEBUG, 0, "Activate Default EPS Bearer Context Accept");
 }
 
 void ePSsession_setE_RABSetupuListCtxtSURes(EPS_Session s, E_RABSetupListCtxtSURes_t* l){
