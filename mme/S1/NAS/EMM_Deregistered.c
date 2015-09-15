@@ -93,16 +93,18 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         }
 
         /* Recover existing EMM context if available */
-        if(emm->last_guti.mtmsi != 0 && FALSE){
-	        log_msg(LOG_INFO, 0, "Lookup GUTI on previous EMM contexts (M-TMSI %x)",
+        if(emm->last_guti.mtmsi != 0){
+	        log_msg(LOG_DEBUG, 0, "Lookup GUTI on previous EMM contexts (M-TMSI %x)",
 	                ntohl(emm->last_guti.mtmsi));
 	        mme_lookupEMMSession(mme, emm->last_guti.mtmsi, &old_emm);
 	        if(old_emm){
-		        log_msg(LOG_INFO, 0, "Found existing EMM context for received GUTI");
+		        log_msg(LOG_DEBUG, 0, "Found existing EMM context for received GUTI");
 		        emmCtx_replaceEMM(&emm, old_emm);
 		        nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
 		        if(isAuth && emm->sci){
-			        log_msg(LOG_INFO, 0, "Reusing Existing Security Context");
+			        log_msg(LOG_INFO, 0, "Reusing Security Context (eKSI %u, IMSI %llu)",
+			                emm->ksi, emm->imsi);
+			        emm->nasUlCountForSC = nas_getCount(emm->parser, NAS_UpLink);
 			        nas_incrementNASCount(emm->parser, NAS_UpLink);
 			        emmChangeState(emm, EMM_SpecificProcedureInitiated);
 			        emm_processFirstESMmsg(emm);

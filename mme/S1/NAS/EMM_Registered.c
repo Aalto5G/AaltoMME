@@ -95,7 +95,7 @@ static void emm_detach(EMMCtx_t *emm){
 }
 
 static void emm_detach_switchoff(EMMCtx_t *emm){
-	log_msg(LOG_INFO, 0, "UE (IMSI: %llu) NAS Detach Switch Off", emm->imsi);
+	log_msg(LOG_INFO, 0, "UE (IMSI: %llu) NAS Detach Switch-off", emm->imsi);
     emmChangeState(emm, EMM_Deregistered);
     ecm_sendUEContextReleaseCommand(emm->ecm, CauseNas, CauseNas_detach);
 }

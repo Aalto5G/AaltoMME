@@ -141,7 +141,7 @@ static void processAttachComplete(EMMCtx_t *emm, GenericNASMsg_t *msg){
             complete->eSM_MessageContainer.v,
             complete->eSM_MessageContainer.l);
     emm->attachStarted = FALSE;
-    log_msg(LOG_INFO, 0, "UE (IMSI: %llu) Attached", emmCtx_getIMSI(emm));
+    log_msg(LOG_INFO, 0, "UE (IMSI: %llu) NAS Attach", emmCtx_getIMSI(emm));
     emmChangeState(emm, EMM_Registered);
     esm_processMsg(emm->esm, &(esm_msg.plain.eSM));
 }
