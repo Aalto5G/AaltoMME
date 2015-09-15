@@ -46,8 +46,8 @@ void emm_free(gpointer emm_h){
 
 
 void emm_deregister(EMMCtx emm_h){
-	EMMCtx_t *self = (EMMCtx_t*)emm_h;
-	self->ecm = NULL;
+    EMMCtx_t *self = (EMMCtx_t*)emm_h;
+    self->ecm = NULL;
 }
 
 gpointer emm_getS11(gpointer emm_h){
@@ -98,9 +98,9 @@ void emm_sendAuthRequest(EMMCtx emm_h){
     emm->old_ksi = emm->ksi;
     emm->ksi = emm->next_ksi;
     if(emm->next_ksi < 6){
-	    emm->next_ksi++;
+        emm->next_ksi++;
     }else{
-	    emm->next_ksi = 1;
+        emm->next_ksi = 1;
     }
     nasIe_v_t1_l(&pointer, emm->ksi&0x0F);
     pointer++; /*Spare half octet*/
@@ -211,7 +211,7 @@ static void generate_KeNB(const uint8_t *kasme, const uint32_t ulNASCount, uint8
     P0 = Uplink NAS COUNT,
     L0 = length of uplink NAS COUNT (i.e. 0x00 0x04)
      */
-	uint32_t count;
+    uint32_t count;
     uint8_t s[7];
     s[0]=0x11;
     count = htonl(ulNASCount);
@@ -242,46 +242,115 @@ void emm_getUEAMBR(const EMMCtx emm, UEAggregateMaximumBitrate_t *ambr){
 }
 
 void emm_sendESM(const EMMCtx emm, const gpointer msg, const gsize len, GError **e){
-	EMMCtx_t *self = (EMMCtx_t*)emm;
-	self->state->sendESM(self, msg, len, e);
+    EMMCtx_t *self = (EMMCtx_t*)emm;
+    self->state->sendESM(self, msg, len, e);
 }
 
 void emm_internalSendESM(const EMMCtx emm, const gpointer msg, const gsize len, GError **e){
-	EMMCtx_t *self = (EMMCtx_t*)emm;
-	guint8 out[len+6];
-	gsize oLen;
+    EMMCtx_t *self = (EMMCtx_t*)emm;
+    guint8 out[len+6];
+    gsize oLen;
 
-	if(!self->sci){
-		ecm_send(self->ecm, msg, len);
-		return;
-	}
+    if(!self->sci){
+        ecm_send(self->ecm, msg, len);
+        return;
+    }
 
-	newNASMsg_sec(self->parser, out, (uint32_t*)&oLen,
-	              EPSMobilityManagementMessages,
-	              IntegrityProtectedAndCiphered,
+    newNASMsg_sec(self->parser, out, (uint32_t*)&oLen,
+                  EPSMobilityManagementMessages,
+                  IntegrityProtectedAndCiphered,
                   NAS_DownLink,
-	              msg, len);
+                  msg, len);
 
     ecm_send(self->ecm, out, oLen);
     nas_incrementNASCount(self->parser, NAS_DownLink);
 }
 
 void emm_setE_RABSetupuListCtxtSURes(EMMCtx emm, E_RABSetupListCtxtSURes_t* l){
-	EMMCtx_t *self = (EMMCtx_t*)emm;
-	esm_setE_RABSetupuListCtxtSURes(self->esm, l);
+    EMMCtx_t *self = (EMMCtx_t*)emm;
+    esm_setE_RABSetupuListCtxtSURes(self->esm, l);
 }
 
 void emm_UEContextReleaseReq(EMMCtx emm, cause_choice_t choice, uint32_t cause){
-	EMMCtx_t *self = (EMMCtx_t*)emm;
-	esm_UEContextReleaseReq(self->esm, choice, cause);
+    EMMCtx_t *self = (EMMCtx_t*)emm;
+    esm_UEContextReleaseReq(self->esm, choice, cause);
 }
 
 void emm_sendUEContextReleaseCommand(EMMCtx emm, cause_choice_t choice, uint32_t cause){
-	EMMCtx_t *self = (EMMCtx_t*)emm;
-	ecm_sendUEContextReleaseCommand(self->ecm, CauseRadioNetwork, CauseRadioNetwork_user_inactivity);
+    EMMCtx_t *self = (EMMCtx_t*)emm;
+    ecm_sendUEContextReleaseCommand(self->ecm, CauseRadioNetwork, CauseRadioNetwork_user_inactivity);
 }
 
 guint32 *emm_getM_TMSI_p(EMMCtx emm){
-	return emmCtx_getM_TMSI_p(emm);
+    return emmCtx_getM_TMSI_p(emm);
 }
 
+void emm_processTAUReq(EMMCtx emm_h, GenericNASMsg_t *msg, guint8 *ksi_msg, guti_t *guti){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    uint8_t mobId[20];
+    uint32_t esmSize, i;
+    uint64_t mobid=0ULL;
+
+    TrackingAreaUpdateRequest_t *tau_msg = (TrackingAreaUpdateRequest_t*)&(msg->plain.eMM);
+
+    log_msg(LOG_DEBUG, 0, "Enter");
+
+    /*EPS update type */
+    /* if((tau_msg->ePSUpdateType.v &0x07) != 0){ */
+    /*     log_msg(LOG_WARNING, 0, "Not a TA update, ignoring. (ePSUpdateType = %u)", */
+    /*             tau_msg->ePSUpdateType.v); */
+    /*     return; */
+    /* } */
+
+    /*nASKeySetId*/
+    *ksi_msg = tau_msg->nASKeySetId.v & 0x07;
+
+    /*EPSMobileId*/
+    if(((ePSMobileId_header_t*)tau_msg->oldGUTI.v)->type == 6 ){    /*GUTI*/
+        memcpy(&(emm->msg_guti), (guti_t *)(tau_msg->oldGUTI.v+1), 10);
+    }
+}
+
+void emm_sendTAUAccept(EMMCtx emm_h){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    guint8 *pointer, t3412;
+    guint8 out[156], plain[150], guti_b[11];
+    gsize len=0, tlen;
+    NAS_tai_list_t tAIl;
+    guti_t guti;
+
+    memset(out, 0, 156);
+    memset(plain, 0, 150);
+
+    /* Build TAU Accept*/
+    pointer = plain;
+    newNASMsg_EMM(&pointer, EPSMobilityManagementMessages, PlainNAS);
+
+    encaps_EMM(&pointer, TrackingAreaUpdateAccept);
+
+    /*EPS update result*/
+    /* nasIe_v_t1_l(&pointer, 1); /\* Combined TA/LA updated *\/ */
+    nasIe_v_t1_l(&pointer, 0); /* TA updated */
+    pointer++;
+
+    /* T3412 value */
+    t3412 = 0x23;
+    nasIe_tv_t3(&pointer, 0x5A, &t3412, 1); /*  */
+    /* GUTI */
+    emmCtx_newGUTI(emm, &guti);
+    guti_b[0]=0xF6;   /*1111 0 110 - spare, odd/even , GUTI id*/
+    memcpy(guti_b+1, &guti, 10);
+    nasIe_tlv_t4(&pointer, 0x50, guti_b, 11);
+    /* TAI list */
+    ecmSession_getTAIlist(emm->ecm, &tAIl, &tlen);
+    nasIe_tlv_t4(&pointer, 0x54, (uint8_t*)&tAIl, tlen);
+
+    newNASMsg_sec(emm->parser, out, &len,
+                  EPSMobilityManagementMessages,
+                  IntegrityProtectedAndCiphered,
+                  NAS_DownLink,
+                  plain, pointer-plain);
+
+    ecm_send(emm->ecm, out, len);
+    nas_incrementNASCount(emm->parser, NAS_DownLink);
+}

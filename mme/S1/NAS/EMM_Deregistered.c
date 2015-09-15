@@ -64,8 +64,9 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     ProtocolDiscriminator_t p;
     guint8 res, msg_ksi;
     guint8 isAuth;
-	ECMSession_t *ecm = (ECMSession_t*)emm->ecm;
-	struct mme_t *mme = s1_getMME(s1Assoc_getS1(ecm->assoc));
+    ECMSession_t *ecm = (ECMSession_t*)emm->ecm;
+    struct mme_t *mme = s1_getMME(s1Assoc_getS1(ecm->assoc));
+    guti_t msg_guti;
 
     nas_getHeader(buf, len, &s, &p);
 
@@ -86,35 +87,71 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     switch(msg.plain.eMM.messageType){
 
     case AttachRequest:
-	    processAttach(emm, &msg, &msg_ksi);
+        processAttach(emm, &msg, &msg_ksi);
 
         if(msg_ksi < 6){
-            emm->next_ksi = msg_ksi ++;
+            emm->next_ksi = msg_ksi+1;
         }
 
         /* Recover existing EMM context if available */
-        if(emm->last_guti.mtmsi != 0){
-	        log_msg(LOG_DEBUG, 0, "Lookup GUTI on previous EMM contexts (M-TMSI %x)",
-	                ntohl(emm->last_guti.mtmsi));
-	        mme_lookupEMMSession(mme, emm->last_guti.mtmsi, &old_emm);
-	        if(old_emm){
-		        log_msg(LOG_DEBUG, 0, "Found existing EMM context for received GUTI");
-		        emmCtx_replaceEMM(&emm, old_emm);
-		        nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
-		        if(isAuth && emm->sci){
-			        log_msg(LOG_INFO, 0, "Reusing Security Context (eKSI %u, IMSI %llu)",
-			                emm->ksi, emm->imsi);
-			        emm->nasUlCountForSC = nas_getCount(emm->parser, NAS_UpLink);
-			        nas_incrementNASCount(emm->parser, NAS_UpLink);
-			        emmChangeState(emm, EMM_SpecificProcedureInitiated);
-			        emm_processFirstESMmsg(emm);
-			        return;
-		        }
-	        }
+        if(emm->msg_guti.mtmsi != 0){
+            log_msg(LOG_DEBUG, 0, "Lookup GUTI on previous EMM contexts (M-TMSI %x)",
+                    ntohl(emm->msg_guti.mtmsi));
+            mme_lookupEMMSession(mme, emm->msg_guti.mtmsi, &old_emm);
+            if(old_emm){
+                log_msg(LOG_DEBUG, 0, "Found existing EMM context for received GUTI");
+                emmCtx_replaceEMM(&emm, old_emm);
+                nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
+                if(isAuth && emm->sci){
+                    log_msg(LOG_INFO, 0, "Reusing Security Context (eKSI %u, IMSI %llu)",
+                            emm->ksi, emm->imsi);
+                    emm->nasUlCountForSC = nas_getCount(emm->parser, NAS_UpLink);
+                    nas_incrementNASCount(emm->parser, NAS_UpLink);
+
+                    emm_processFirstESMmsg(emm);
+                    emmChangeState(emm, EMM_SpecificProcedureInitiated);
+                    return;
+                }else{
+                    /* Security Context not valid, removing it*/
+                    emm->ksi = 7;
+                    memset(emm->kasme, 0, 32);
+                    emm->nasUlCountForSC=0;
+                }
+            }
         }
 
         attachContinuationSwitch(emm, msg_ksi);
-        
+
+        break;
+    case TrackingAreaUpdateRequest:
+        emm_processTAUReq(emm, &msg, &msg_ksi, &msg_guti);
+                /* Recover existing EMM context if available */
+        if(emm->msg_guti.mtmsi != 0){
+            log_msg(LOG_DEBUG, 0, "Lookup GUTI on previous EMM contexts (M-TMSI %x)",
+                    ntohl(emm->msg_guti.mtmsi));
+            mme_lookupEMMSession(mme, emm->msg_guti.mtmsi, &old_emm);
+            if(old_emm){
+                log_msg(LOG_DEBUG, 0, "Found existing EMM context for received GUTI");
+                emmCtx_replaceEMM(&emm, old_emm);
+                nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
+                if(isAuth && emm->sci){
+                    log_msg(LOG_INFO, 0, "Reusing Security Context (eKSI %u, IMSI %llu)",
+                            emm->ksi, emm->imsi);
+                    emm->nasUlCountForSC = nas_getCount(emm->parser, NAS_UpLink);
+                    nas_incrementNASCount(emm->parser, NAS_UpLink);
+
+                    emm_sendTAUAccept(emm);
+                    emmChangeState(emm, EMM_CommonProcedureInitiated);
+                    return;
+                }else{
+                    /* Security Context not valid, removing it*/
+                    emm->ksi = 7;
+                    memset(emm->kasme, 0, 32);
+                    emm->nasUlCountForSC=0;
+                }
+            }
+        }
+        emm_sendTAUAccept(emm);
         break;
     default:
         log_msg(LOG_WARNING, 0,
@@ -164,7 +201,7 @@ void processAttach(gpointer emm_h,  GenericNASMsg_t* msg, guint8 *ksi_msg){
         log_msg(LOG_DEBUG, 0,"Attach Received from imsi : %llu", mobid);
         emm->imsi = mobid;
     }else if(((ePSMobileId_header_t*)attachMsg->ePSMobileId.v)->type == 6 ){    /*GUTI*/
-	    memcpy(&(emm->last_guti), (guti_t *)(attachMsg->ePSMobileId.v+1), 10);
+        memcpy(&(emm->msg_guti), (guti_t *)(attachMsg->ePSMobileId.v+1), 10);
     }
 
     memcpy(emm->ueCapabilities,
@@ -177,9 +214,9 @@ void attachContinuationSwitch(gpointer emm_h, guint8 ksi_msg){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
 
     if(emm->imsi == 0ULL){ /* !isIMSIavailable(emm) */
-	    sendIdentityReq(emm);
-	    emmChangeState(emm, EMM_CommonProcedureInitiated);
-	    return;
+        sendIdentityReq(emm);
+        emmChangeState(emm, EMM_CommonProcedureInitiated);
+        return;
     }
 
     /* Check Auth, Proof down*/

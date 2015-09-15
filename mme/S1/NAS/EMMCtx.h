@@ -48,7 +48,7 @@ typedef struct{
     guint64      imsi;
     guint64      msisdn;
     guint64      imeisv;
-    guti_t       last_guti;
+    guti_t       msg_guti;
     guti_t       guti;
 
     Subscription subs;

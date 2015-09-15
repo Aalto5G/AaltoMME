@@ -113,6 +113,9 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     case SecurityModeReject:
         log_msg(LOG_ERR, 0, "Received SecurityModeReject, not implemented");
         break;
+    case TrackingAreaUpdateComplete:
+	    log_msg(LOG_INFO, 0, "Received TrackingAreaUpdateComplete, not implemented");
+	    break;
     default:
         log_msg(LOG_WARNING, 0,
                 "NAS Message type (%u) not recognized in this context",

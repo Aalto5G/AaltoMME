@@ -82,7 +82,7 @@ void ePSsession_parsePDNConnectivityRequest(EPS_Session s, ESM_Message_t *msg, g
     }
 }
 
-void esm_sendActivateDefaultEPSBearerCtxtReq(EPS_Session s){
+void ePSsession_sendActivateDefaultEPSBearerCtxtReq(EPS_Session s){
     EPS_Session_t *self = (EPS_Session_t*)s;
 
     guint8 buffer[150], *pointer, apn[150], pco[30];
@@ -180,7 +180,7 @@ void ePSsession_activateDefault(EPS_Session s, gboolean infoTxRequired){
     guint8 *pointer, buf[100];
     if(!infoTxRequired){
         self->s11 = S11_newUserAttach(esm_getS11iface(self->esm), self->esm->emm, self,
-                                       esm_sendActivateDefaultEPSBearerCtxtReq, self);
+                                      ePSsession_sendActivateDefaultEPSBearerCtxtReq, self);
     }else{
         pointer = buf;
         newNASMsg_ESM(&pointer,
