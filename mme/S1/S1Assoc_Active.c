@@ -48,7 +48,7 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid){
         }else if(s1msg->pdu->procedureCode == id_eNBConfigurationTransfer &&
                  s1msg->choice == initiating_message){
             process_eNBConfigurationTransfer(assoc, s1msg);
-            log_msg(LOG_INFO, 0, "Received eNB Configuration Transfer");
+            log_msg(LOG_DEBUG, 0, "Received eNB Configuration Transfer");
         }else if(s1msg->pdu->procedureCode == id_ENBConfigurationUpdate &&
                  s1msg->choice == initiating_message){
             log_msg(LOG_WARNING, 0, "Received eNB Configuration Update");

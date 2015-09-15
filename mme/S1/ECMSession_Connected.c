@@ -50,7 +50,7 @@ static void processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
 	    log_msg(LOG_WARNING, 0, "Received id_HandoverCancel");
     }else if(s1msg->pdu->procedureCode ==  id_UEContextRelease &&
              s1msg->choice == successful_outcome){
-	    log_msg(LOG_INFO, 0, "Received id_UEContextReleaseComplete");
+	    log_msg(LOG_DEBUG, 0, "Received id_UEContextReleaseComplete");
 	    s1Assoc_deregisterECMSession(ecm->assoc, ecm);
     }else if(s1msg->pdu->procedureCode ==  id_InitialContextSetup &&
              s1msg->choice == successful_outcome){
@@ -95,7 +95,7 @@ static void processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
         emm_UEContextReleaseReq(ecm->emm, c->choice, c->cause.radioNetwork.cause.noext);
     }else if(s1msg->pdu->procedureCode == id_UECapabilityInfoIndication &&
              s1msg->choice == initiating_message){
-	    log_msg(LOG_WARNING, 0, "Received id_UECapabilityInfoIndication");
+	    log_msg(LOG_DEBUG, 0, "Received id_UECapabilityInfoIndication");
     }else if(s1msg->pdu->procedureCode == id_eNBStatusTransfer &&
              s1msg->choice == initiating_message){
 	    log_msg(LOG_WARNING, 0, "Received id_eNBStatusTransfer");

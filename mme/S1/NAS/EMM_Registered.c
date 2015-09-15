@@ -88,12 +88,14 @@ static void emm_detach(EMMCtx_t *emm){
     encaps_EMM(&pointer, DetachAccept);
 
     ecm_send(emm->ecm, buffer, pointer-buffer);
+    log_msg(LOG_INFO, 0, "UE (IMSI: %llu) NAS Detach", emm->imsi);
     emmChangeState(emm, EMM_Deregistered);
     ecm_sendUEContextReleaseCommand(emm->ecm, CauseNas, CauseNas_detach);
     /*TODO, move EMM context to MME structure*/
 }
 
 static void emm_detach_switchoff(EMMCtx_t *emm){
+	log_msg(LOG_INFO, 0, "UE (IMSI: %llu) NAS Detach Switch Off", emm->imsi);
     emmChangeState(emm, EMM_Deregistered);
     ecm_sendUEContextReleaseCommand(emm->ecm, CauseNas, CauseNas_detach);
 }

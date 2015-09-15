@@ -63,9 +63,9 @@ static void s1Assoc_free_cb(gpointer h){
         }
     }
 
-    if(self->cGS_IdList){
-        if(self->cGS_IdList->freeIE){
-            self->cGS_IdList->freeIE(self->suportedTAs);
+    if(self->cSG_IdList){
+        if(self->cSG_IdList->freeIE){
+            self->cSG_IdList->freeIE(self->suportedTAs);
         }
     }
 

@@ -53,6 +53,9 @@ ECMSession ecmSession_init(S1Assoc s1, guint32 l_id){
 void ecmSession_free(ECMSession h){
     ECMSession_t *self = (ECMSession_t *)h;
     emm_deregister(self->emm);
+    struct mme_t * mme = s1_getMME(s1Assoc_getS1(self->assoc));
+
+    mme_freeLocalUEid(mme, self->mmeUEId);
     g_free(self);
 }
 

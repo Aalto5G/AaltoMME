@@ -105,7 +105,7 @@ void help_log_menu(CommandConn_t *self){
 static printAssoc(gpointer assoc, CommandConn_t *self){
     mme_GlobaleNBid gid;
     s1Assoc_getID(assoc, &gid);
-    conn_print(self, "eNB: \t%u\t%u\t%#x\t%s\n",
+    conn_print(self, "eNB: \t%u\t%u\t%.6x\t%s\n",
                globaleNB_getMCC(&gid),
                globaleNB_getMNC(&gid),
                globaleNB_getCI(&gid),

@@ -114,10 +114,10 @@ void subs_cpyQoS_GTP(Subscription s, struct qos_t *qos){
     qos->pl     = pdn->qos.arp.level;
     qos->pci    = pdn->qos.arp.preemption_vulnerability;
     qos->qci    = pdn->qos.qci;
-    qos->mbr_ul = self->ambr_ul;
-    qos->mbr_dl = self->ambr_dl;
-    qos->gbr_ul = 0;
-    qos->gbr_dl = 0;
+    qos->mbr_ul = hton64(self->ambr_ul);
+    qos->mbr_dl = hton64(self->ambr_dl);
+    qos->gbr_ul = hton64(0);
+    qos->gbr_dl = hton64(0);
 }
 
 const uint64_t subs_getMSISDN(const Subscription s){

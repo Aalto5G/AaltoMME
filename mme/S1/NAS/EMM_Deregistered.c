@@ -93,7 +93,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         }
 
         /* Recover existing EMM context if available */
-        if(emm->last_guti.mtmsi != 0){
+        if(emm->last_guti.mtmsi != 0 && FALSE){
 	        log_msg(LOG_INFO, 0, "Lookup GUTI on previous EMM contexts (M-TMSI %x)",
 	                ntohl(emm->last_guti.mtmsi));
 	        mme_lookupEMMSession(mme, emm->last_guti.mtmsi, &old_emm);

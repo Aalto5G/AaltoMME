@@ -164,9 +164,9 @@ void free_S1_EndPoint_Info(S1_EndPoint_Info_t *epInfo){
         }
     }
 
-    if(epInfo->cGS_IdList){
-        if(epInfo->cGS_IdList->freeIE){
-            epInfo->cGS_IdList->freeIE(epInfo->suportedTAs);
+    if(epInfo->cSG_IdList){
+        if(epInfo->cSG_IdList->freeIE){
+            epInfo->cSG_IdList->freeIE(epInfo->suportedTAs);
         }
     }
 }
@@ -723,7 +723,7 @@ static uint8_t TASK_MME_S1___S1Setup(Signal *signal)
     epInfo->global_eNB_ID   = s1ap_getIe(s1msg, id_Global_ENB_ID);
     epInfo->eNBname         = s1ap_getIe(s1msg, id_eNBname);              /*OPTIONAL*/
     epInfo->suportedTAs     = s1ap_getIe(s1msg, id_SupportedTAs);
-    epInfo->cGS_IdList      = s1ap_getIe(s1msg, id_CSG_IdList);
+    epInfo->cSG_IdList      = s1ap_getIe(s1msg, id_CSG_IdList);
 
     CHECKIEPRESENCE(epInfo->global_eNB_ID)
     CHECKIEPRESENCE(epInfo->suportedTAs)

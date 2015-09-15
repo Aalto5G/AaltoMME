@@ -72,7 +72,7 @@ void ePSsession_parsePDNConnectivityRequest(EPS_Session s, ESM_Message_t *msg, g
     }
     if(pdnReq->optionals[numOp].iei == 0x27){
         /*Protocol configuration options*/
-        temp =  & (pdnReq->optionals[numOp].tlv_t4);
+        temp =  &(pdnReq->optionals[numOp].tlv_t4);
         memcpy(self->pco, temp, temp->l+2);
         numOp++;
     }

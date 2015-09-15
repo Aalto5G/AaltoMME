@@ -42,8 +42,6 @@ EMMCtx emmCtx_init(){
     self->ksi = 7;
     self->next_ksi = 1;
 
-    log_msg(LOG_INFO, 0, "After INIT (M-TMSI %x)",
-            ntohl(self->guti.mtmsi));
     return self;
 }
 

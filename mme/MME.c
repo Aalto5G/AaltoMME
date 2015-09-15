@@ -478,14 +478,16 @@ unsigned int newTeid(){
 
 uint32_t mme_newLocalUEid(struct mme_t *self){
     guint32 *i = g_new0(guint32, 1);
-    for (*i=1; *i<=MAX_UE;*i++){
+    for (*i=1; *i<=MAX_UE ;(*i)++){
         if(!g_hash_table_contains(self->s1_localIDs, i)){
-            g_hash_table_add (self->s1_localIDs, i);
+            g_hash_table_add(self->s1_localIDs, i);
+            log_msg(LOG_DEBUG, 0, "MME S1AP UE ID %u Chosen", *i);
             return *i;
         }
+        log_msg(LOG_DEBUG, 0, "MME S1AP UE ID %u exists already", *i);
     }
     g_free(i);
-    log_msg(LOG_WARNING, 0, "Maximum number of UE (%u) reached", i);
+    log_msg(LOG_ERR, 0, "Maximum number of UE (%u) reached", *i);
     return 0;
 }
 

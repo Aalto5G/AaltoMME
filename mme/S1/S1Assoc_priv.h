@@ -46,7 +46,7 @@ typedef struct{
     mme_GlobaleNBid     global_eNB_ID;
     //Global_ENB_ID_t     *global_eNB_ID;
     SupportedTAs_t      *suportedTAs;
-    CSG_IdList_t        *cGS_IdList;
+    CSG_IdList_t        *cSG_IdList;
     GHashTable          *ecm_sessions;  /**< ECM sessions allocated in this association*/
     void                (*cb)(gpointer);
     gpointer            args;

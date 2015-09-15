@@ -107,7 +107,7 @@ void esm_processMsg(gpointer esm_h, ESM_Message_t* msg){
 		break;
 	/* Miscelaneous*/
 	case ESMInformationResponse:
-		log_msg(LOG_ERR, 0, "Received ESMInformationResponse");
+		log_msg(LOG_DEBUG, 0, "Received ESMInformationResponse");
 		l = g_hash_table_get_values (self->sessions);
 		ePSsession_activateDefault(l->data, FALSE);
 		/* g_hash_table_foreach (GHashTable *hash_table, */
@@ -140,7 +140,8 @@ void esm_UEContextReleaseReq(ESM esm_h, cause_choice_t choice, uint32_t cause){
 	ESM_t *self = (ESM_t*)esm_h;
 	GList *ls;
 	ls = g_hash_table_get_values (self->sessions);
-	ePSsession_UEContextReleaseReq(ls->data, choice, cause);
+	if(ls)
+		ePSsession_UEContextReleaseReq(ls->data, choice, cause);
 }
 
 void esm_releaseEPSSession(EPS_Session s){
