@@ -35,7 +35,7 @@ typedef struct{
     uint32_t           rTEID;    /**< remote control TEID*/
     struct sockaddr    rAddr;    /**<Peer IP address, IPv4 or IPv6*/
     socklen_t          rAddrLen; /**<Peer Socket length returned by recvfrom*/
-    struct fteid_t	   s5s8;     /**< F-TEID PGW S5/S8 (Control Plane)*/
+    struct fteid_t     s5s8;     /**< F-TEID PGW S5/S8 (Control Plane)*/
     EMMCtx             emm;
     EPS_Session        session;
     //struct user_ctx_t  *user;    /**< User information*/
@@ -140,7 +140,7 @@ void modBearer(gpointer session, void(*cb)(gpointer), gpointer args){
 }
 
 void releaseAccess(gpointer session, void(*cb)(gpointer), gpointer args){
-	S11_user_t *self = (S11_user_t*)session;
+    S11_user_t *self = (S11_user_t*)session;
     self->cb = cb;
     self->args = args;
     self->state->releaseAccess(self);
@@ -210,7 +210,8 @@ void sendCreateSessionReq(gpointer u){
     struct qos_t    qos;
     union gtpie_member ie[14], ie_bearer_ctx[3];
     int hlen, a;
-    uint32_t ielen, ienum=0;
+    uint32_t ielen, ienum=0, ul, dl;
+    uint64_t ul_64, dl_64;
     uint8_t bytefield[30], *tmp;
     struct nodeinfo_t pgwInfo;
     uint8_t pco[0xff+2];
@@ -324,7 +325,16 @@ void sendCreateSessionReq(gpointer u){
     memcpy(ie[ienum].tliv.v, bytefield, 1);
     ienum++;
 
-
+    /*APN-AMBR*/
+    ie[ienum].tliv.i=0;
+    ie[ienum].tliv.l=hton16(8);
+    ie[ienum].tliv.t=GTPV2C_IE_AMBR;
+    subs_getUEAMBR(self->subs, &ul_64, &dl_64);
+    ul = htonl((uint32_t)ul_64/1000);
+    dl = htonl((uint32_t)dl_64/1000);
+    memcpy(ie[ienum].tliv.v, &ul, 4);
+    memcpy(ie[ienum].tliv.v+4, &dl, 4);
+    ienum++;
 
     /*Protocol Configuration Options*/
     if(ePSsession_getPCO(self->session, pco)){
@@ -508,10 +518,10 @@ void parseCtxRsp(gpointer u, GError **err){
     /* PDN Address Allocation - PAA*/
     gtp2ie_gettliv(self->ie, GTPV2C_IE_PAA, 0, value, &vsize);
     if(value!= NULL && vsize>0){
-	    ePSsession_setPDNAddress(self->session, value, vsize);
-	    log_msg(LOG_DEBUG, 0, "PDN Address Allocated %s for IMSI: %llu",
-	            ePSsession_getPDNAddrStr(self->session, addr, INET6_ADDRSTRLEN),
-	            emmCtx_getIMSI(self->emm));
+        ePSsession_setPDNAddress(self->session, value, vsize);
+        log_msg(LOG_DEBUG, 0, "PDN Address Allocated %s for IMSI: %llu",
+                ePSsession_getPDNAddrStr(self->session, addr, INET6_ADDRSTRLEN),
+                emmCtx_getIMSI(self->emm));
     }
     /* APN Restriction*/
 
@@ -519,7 +529,7 @@ void parseCtxRsp(gpointer u, GError **err){
     /* Protocol Configuration Options PCO*/
     gtp2ie_gettliv(self->ie, GTPV2C_IE_PCO, 0, value, &vsize);
     if(value!= NULL && vsize>0){
-	    ePSsession_setPCO(self->session, value, vsize);
+        ePSsession_setPCO(self->session, value, vsize);
     }
 
     /* Bearer Context*/
@@ -532,23 +542,23 @@ void parseCtxRsp(gpointer u, GError **err){
         gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_EBI, 0, value_bc, &vsize);
         ebi = esm_bc_getEBI(bearer);
         if(ebi != *value_bc){
-	        log_msg(LOG_ERR, 0, "Wrong EPC Bearer ID %u != %u",
-	                ebi, *value_bc);
-	        return;
+            log_msg(LOG_ERR, 0, "Wrong EPC Bearer ID %u != %u",
+                    ebi, *value_bc);
+            return;
         }
 
         /* F-TEID S1-U (SGW)*/
         gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_FTEID, 0, value_bc, &vsize);
         if(value_bc!= NULL && vsize>0){
-	        esm_bc_setS1uSGWfteid(bearer, value_bc, vsize);
-	        //log_msg(LOG_DEBUG, 0, "S1-u Sgw teid = %x, ip = %s", hton32(self->user->ebearer[0].s1u_sgw.teid), inet_ntoa(s1uaddr));
+            esm_bc_setS1uSGWfteid(bearer, value_bc, vsize);
+            //log_msg(LOG_DEBUG, 0, "S1-u Sgw teid = %x, ip = %s", hton32(self->user->ebearer[0].s1u_sgw.teid), inet_ntoa(s1uaddr));
         }
 
         /* F-TEID S5/S8-U(PGW) */
         gtp2ie_gettliv(bearerCtxGroupIE, GTPV2C_IE_FTEID, 2, value_bc, &vsize);
         if(value_bc!= NULL && vsize>0){
-	        esm_bc_setS5S8uPGWfteid(bearer, value_bc, vsize);
-	        //log_msg(LOG_DEBUG, 0, "S5/S8 Pgw teid = %x into", hton32(self->user->ebearer[0].s5s8u.teid));
+            esm_bc_setS5S8uPGWfteid(bearer, value_bc, vsize);
+            //log_msg(LOG_DEBUG, 0, "S5/S8 Pgw teid = %x into", hton32(self->user->ebearer[0].s5s8u.teid));
         }else{
 
         }

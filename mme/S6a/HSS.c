@@ -506,7 +506,7 @@ void HSS_UpdateLocation(EMMCtx emm, const ServedGUMMEIs_t * sGUMMEIs){
 
     pdnCtx_setDefaultBearerQoS(subs_pdn, &qos);
 
-    pdnCtx_setPDNtype(subs_pdn, atoi(row[9]));
+    pdnCtx_setPDNtype(subs_pdn, *row[9]);
     sprintf(apn, "%s.mnc%.3u.mcc%.3u.gprs", row[5], mnc, mcc);
     pdnCtx_setAPN(subs_pdn, apn);
     mysql_free_result(result);

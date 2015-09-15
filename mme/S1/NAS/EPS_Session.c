@@ -197,7 +197,7 @@ gboolean ePSsession_getPCO(const EPS_Session s, gpointer pco){
     EPS_Session_t *self = (EPS_Session_t*)s;
 
     if(self->pco[0]==0x27){
-        memcpy(pco, self->pco, self->pco[1]);
+        memcpy(pco, self->pco, self->pco[1]+2);
         return TRUE;
     }
     return FALSE;
