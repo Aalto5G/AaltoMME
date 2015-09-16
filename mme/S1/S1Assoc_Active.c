@@ -40,8 +40,7 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid){
             log_msg(LOG_WARNING, 0, "Received Reset");
         }else if(s1msg->pdu->procedureCode == id_initialUEMessage &&
                  s1msg->choice == initiating_message){
-            ecm = ecmSession_init(assoc, mme_newLocalUEid(mme));
-            ecmSession_processMsg(ecm, s1msg, r_sid);
+	        ecm = ecmSession_init(assoc, s1msg, r_sid);
         }else if(s1msg->pdu->procedureCode == id_ErrorIndication &&
                  s1msg->choice == initiating_message){
             log_msg(LOG_WARNING, 0, "Received Error Indication");
@@ -71,8 +70,7 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid){
         /* ************************************************** */
         /*         Setup of new UE associated signaling       */
         /* ************************************************** */
-        ecm = ecmSession_init(assoc, mme_newLocalUEid(mme));
-        ecmSession_processMsg(ecm, s1msg, r_sid);
+        ecm = ecmSession_init(assoc, s1msg, r_sid);
     }else{
         /* ************************************************** */
         /*               UE associated signaling              */

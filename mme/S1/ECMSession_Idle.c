@@ -22,6 +22,8 @@
 #include "ECMSession.h"
 #include "ECMSession_priv.h"
 #include "NAS_EMM.h"
+#include "S1Assoc_priv.h"
+#include "NAS_Definitions.h"
 
 static void ecm_processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
     ECMSession_t *ecm = (ECMSession_t *)_ecm;
@@ -31,6 +33,9 @@ static void ecm_processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
     TAI_t *tAI;
     EUTRAN_CGI_t *eCGI;
     RRC_Establishment_Cause_t *cause;
+    guti_t guti;
+    struct mme_t * mme = s1_getMME(s1Assoc_getS1(ecm->assoc));
+    memset(&guti, 0, sizeof(guti_t));
 
     if(s1msg->pdu->procedureCode == id_initialUEMessage &&
        s1msg->choice == initiating_message){
@@ -52,6 +57,16 @@ static void ecm_processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
 	        ecm->r_sid_valid = TRUE;
 	        ecm->r_sid = r_sid;
         }
+
+        emm_getGUTIfromMsg(nASPDU->str, nASPDU->len, &guti);
+        if(guti.mtmsi != 0 && mme_GUMMEI_IsLocal(mme, guti.tbcd_plmn, guti.mmegi, guti.mmec)){
+	        mme_lookupEMMCtxt(mme, guti.mtmsi, &(ecm->emm));
+        }
+
+        if(ecm->emm == NULL){
+	        ecm->emm = emm_init(ecm);
+        }
+
         emm_processMsg(ecm->emm, nASPDU->str, nASPDU->len);
         ecm_ChangeState(ecm, ECM_Connected);
     }

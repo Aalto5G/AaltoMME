@@ -33,17 +33,18 @@
 
 
 /* API to S1AP */
-ECMSession ecmSession_init(S1Assoc s1, guint32 l_id){
+ECMSession ecmSession_init(S1Assoc s1, S1AP_Message_t *s1msg, int r_sid){
     ECMSession_t *self = g_new0(ECMSession_t, 1);
+    struct mme_t * mme = s1_getMME(s1Assoc_getS1(s1));
     self->assoc = s1;
-    self->mmeUEId = l_id;
+    self->mmeUEId = mme_newLocalUEid(mme);
+    self->r_sid = r_sid;
     self->r_sid_valid = FALSE;
 
     /* Initial state for ECM FSM*/
     ecm_ChangeState(self, ECM_Idle);
 
-    /* Configure high layer*/
-    self->emm = emm_init(self);
+    self->state->processMsg(self, s1msg, r_sid);
 
     s1Assoc_registerECMSession(s1, self);
 
@@ -278,7 +279,7 @@ void ecmSession_newGUTI(ECMSession h, guti_t *guti){
 	n =  emmCtx_getIMSI(self->emm) ^ ((guint64)r & ((guint64)r)<<32);
 	guti->mtmsi = g_int64_hash(&n);
 
-	mme_registerEMMSession(mme, self->emm);
+	mme_registerEMMCtxt(mme, self->emm);
 }
 
 void ecm_sendUEContextReleaseCommand(const ECMSession h, cause_choice_t choice, uint32_t cause){

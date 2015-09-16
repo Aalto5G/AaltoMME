@@ -77,6 +77,48 @@ void emm_processMsg(gpointer emm_h, gpointer buffer, gsize len){
     }
 }
 
+void emm_getGUTIfromMsg(gpointer buffer, gsize len, guti_t* guti){
+    GenericNASMsg_t msg;
+    SecurityHeaderType_t s;
+    ProtocolDiscriminator_t p;
+    AttachRequest_t *attachMsg;
+    TrackingAreaUpdateRequest_t *tau_msg;
+
+    if (!nas_getHeader(buffer, len, &s, &p))
+        g_error("Empty NAS message buffer");
+
+    if(s == PlainNAS){
+        dec_NAS(&msg, buffer, len);
+    }else if(s == IntegrityProtected){
+	    dec_NAS(&msg, buffer+6, len-6);
+    }else{
+	    log_msg(LOG_DEBUG, 0, "Cannot get GUTI from cyphered message");
+	    return;
+    }
+    log_msg(LOG_DEBUG, 0, "Get GUTI from message type %u",
+            msg.plain.eMM.messageType);
+
+    switch(msg.plain.eMM.messageType){
+    case AttachRequest:
+	    attachMsg = (AttachRequest_t*)&(msg.plain.eMM);
+	    if(((ePSMobileId_header_t*)attachMsg->ePSMobileId.v)->type == 6 ){
+		    memcpy(guti, (guti_t *)(attachMsg->ePSMobileId.v+1), 10);
+	    }
+	    break;
+    case TrackingAreaUpdateRequest:
+	    tau_msg = (TrackingAreaUpdateRequest_t*)&(msg.plain.eMM);
+	    if(((ePSMobileId_header_t*)tau_msg->oldGUTI.v)->type == 6 ){
+		    memcpy(guti, (guti_t *)(tau_msg->oldGUTI.v+1), 10);
+	    }
+	    break;
+    default:
+	    log_msg(LOG_WARNING, 0, "Not implemented for message type %u",
+	            msg.plain.eMM.messageType);
+	    break;
+    }
+    log_msg(LOG_DEBUG, 0, "M-TMSI %x", guti->mtmsi);
+}
+
 void emm_sendAuthRequest(EMMCtx emm_h){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     guint8 *pointer;

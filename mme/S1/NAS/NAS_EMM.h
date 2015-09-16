@@ -48,6 +48,8 @@ void emm_free(gpointer emm_h);
  */
 void emm_processMsg(gpointer emm_h, gpointer msg, gsize len);
 
+void emm_getGUTIfromMsg(gpointer buffer, gsize len, guti_t* guti);
+
 /**
  * @brief get KeNB
  * @param [in]   emm_h EMM Stack handler

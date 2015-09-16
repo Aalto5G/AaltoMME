@@ -28,7 +28,7 @@
 typedef gpointer ECMSession;
 
 /* API to S1AP */
-ECMSession ecmSession_init(S1Assoc s1, guint32 l_id);
+ECMSession ecmSession_init(S1Assoc s1, S1AP_Message_t *s1msg, int r_sid);
 
 void ecmSession_free(ECMSession h);
 

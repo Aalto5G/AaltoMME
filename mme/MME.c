@@ -521,19 +521,19 @@ void mme_lookupS1Assoc(struct mme_t *self, gconstpointer geNBid, gpointer *assoc
 }
 
 
-void mme_registerEMMSession(struct mme_t *self, gpointer emm){
+void mme_registerEMMCtxt(struct mme_t *self, gpointer emm){
     g_hash_table_insert(self->emm_sessions,
                         emm_getM_TMSI_p(emm),
                         emm);
 }
 
-void mme_deregisterEMMSession(struct mme_t *self, gpointer emm){
+void mme_deregisterEMMCtxt(struct mme_t *self, gpointer emm){
 	if(g_hash_table_remove(self->emm_sessions, emm_getM_TMSI_p(emm)) != TRUE){
         log_msg(LOG_ERR, 0, "Unable to find ECM session");
     }
 }
 
-void mme_lookupEMMSession(struct mme_t *self, const guint32 m_tmsi, gpointer *emm){
+void mme_lookupEMMCtxt(struct mme_t *self, const guint32 m_tmsi, gpointer *emm){
 	*emm = g_hash_table_lookup(self->emm_sessions, &m_tmsi);
 }
 
@@ -547,4 +547,11 @@ gpointer mme_getS6a(struct mme_t *self){
 
 gpointer mme_getS11(struct mme_t *self){
     return self->s11;
+}
+
+gboolean mme_GUMMEI_IsLocal(const struct mme_t *self,
+                            const guint32 plmn,
+                            const guint16 mmegi,
+                            const guint8 mmec){
+	return TRUE;
 }
