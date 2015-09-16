@@ -47,25 +47,26 @@ S1Assoc s1Assoc_init(S1 s1){
 }
 
 static void s1Assoc_free_cb(gpointer h){
-	S1Assoc_t *self = (S1Assoc_t *)h;
+    S1Assoc_t *self = (S1Assoc_t *)h;
 
-	struct mme_t * mme = s1_getMME(self->s1);
-	mme_deregisterS1Assoc(mme, self);
+    if(self->ecm_sessions)
+        g_hash_table_destroy(self->ecm_sessions);
 
-	g_hash_table_destroy(self->ecm_sessions);
-    close(self->fd);
+    if(self->fd>0)
+        close(self->fd);
 
-    g_string_free(self->eNBname, TRUE);
+    if(self->eNBname)
+        g_string_free(self->eNBname, TRUE);
 
-    if(self->suportedTAs){
-        if(self->suportedTAs->freeIE){
-            self->suportedTAs->freeIE(self->suportedTAs);
+    if(self->supportedTAs){
+        if(self->supportedTAs->freeIE){
+            self->supportedTAs->freeIE(self->supportedTAs);
         }
     }
 
     if(self->cSG_IdList){
         if(self->cSG_IdList->freeIE){
-            self->cSG_IdList->freeIE(self->suportedTAs);
+            self->cSG_IdList->freeIE(self->supportedTAs);
         }
     }
 
@@ -87,12 +88,11 @@ static void s1_accept(evutil_socket_t fd, short event, void *arg){
     struct t_message *msg;
     struct user_ctx_t *user;
 
-    struct EndpointStruct_t* ep_S1 = NULL;
-
     /*SCTP variables*/
     struct sctp_sndrcvinfo sndrcvinfo;
 
     S1AP_Message_t *s1msg;
+    GError *error = NULL;
 
     memset(&sndrcvinfo, 0, sizeof(struct sctp_sndrcvinfo));
 
@@ -142,7 +142,10 @@ static void s1_accept(evutil_socket_t fd, short event, void *arg){
     s1msg = s1ap_decode((void *)msg->packet.raw, msg->length);
 
     /* Process message*/
-    self->state->processMsg(self, s1msg, sndrcvinfo.sinfo_stream);
+    self->state->processMsg(self, s1msg, sndrcvinfo.sinfo_stream, &error);
+    if (error != NULL){
+        s1_deregisterAssoc(self->s1, self);
+    }
 
     s1msg->freemsg(s1msg);
     freeMsg(msg);
@@ -180,7 +183,7 @@ void s1Assoc_accept(S1Assoc h, int ss){
     log_msg(LOG_DEBUG, 0, "Accepted SCTP association from %s:%u",
             ipStr, ntoh16(addr_in->sin_port));
 
-    /* Enable receipt of SCTP Snd/Rcv Data via sctp_recvmsg */
+    /* Enable reception of SCTP Snd/Rcv Data via sctp_recvmsg */
     memset((void *)&events, 0, sizeof(events) );
     events.sctp_data_io_event = 1;
     setsockopt(self->fd, SOL_SCTP, SCTP_EVENTS,

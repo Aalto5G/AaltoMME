@@ -22,13 +22,17 @@
 #include "MME_S1_priv.h"
 #include "S1AP.h"
 
+static void sendS1SetupReject_UnknownPLMN(S1Assoc_t *assoc);
 static void sendS1SetupResponse(S1Assoc_t *assoc);
 
-static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid){
+static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid, GError** err){
     S1Assoc_t *assoc = (S1Assoc_t *)_assoc;
     ENBname_t       *eNBname;
     Global_ENB_ID_t *global_eNB_ID;
     struct mme_t * mme = s1_getMME(assoc->s1);
+
+    assoc->nonue_rsid = r_sid;
+    assoc->nonue_lsid = 0;
 
     /* Check Procedure*/
     if(s1msg->pdu->procedureCode != id_S1Setup &&
@@ -46,18 +50,26 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid){
     global_eNB_ID = s1ap_findIe(s1msg, id_Global_ENB_ID);
     s1Assoc_setGlobalID(assoc, global_eNB_ID);
 
-    assoc->suportedTAs     = s1ap_getIe(s1msg, id_SupportedTAs);
-    //assoc->cGS_IdList      = s1ap_getIe(s1msg, id_CSG_IdList);
+    assoc->supportedTAs     = s1ap_getIe(s1msg, id_SupportedTAs);
+    /* assoc->cGS_IdList      = s1ap_getIe(s1msg, id_CSG_IdList); */
 
     CHECKIEPRESENCE(global_eNB_ID);
-    CHECKIEPRESENCE(assoc->suportedTAs);
+    CHECKIEPRESENCE(assoc->supportedTAs);
 
-    assoc->nonue_rsid = r_sid;
-    assoc->nonue_lsid = 0;
+    mme_registerS1Assoc(mme, assoc);
+    
+    if(!mme_containsSupportedTAs(mme, assoc->supportedTAs)){
+	    sendS1SetupReject_UnknownPLMN(assoc);
+	    log_msg(LOG_INFO, 0, "S1-Setup Rejected: %s - Unknown PLMN", assoc->eNBname->str);
+	    g_set_error(err,
+	                1,//s1Assoc_quark(),   // error domain
+	                1,                 // error code
+	                "Received Supported PLMN not available in this MME");
+	    return;
+    }
 
     log_msg(LOG_INFO, 0, "S1-Setup : new eNB \"%s\", connection added", assoc->eNBname->str);
     sendS1SetupResponse(assoc);
-    mme_registerS1Assoc(mme, assoc);
     s1ChangeState(assoc, Active);
 }
 
@@ -75,26 +87,21 @@ void linkS1AssocNotConfigured(S1Assoc_State* s){
 static void sendS1SetupResponse(S1Assoc_t *assoc){
     S1AP_Message_t *s1msg;
     S1AP_PROTOCOL_IES_t* ie;
+    MMEname_t *name;
+    ServedGUMMEIs_t *gummeis;
+    RelativeMMECapacity_t* cap;
 
     struct mme_t * mme = s1_getMME(assoc->s1);
-    /* Forge response*/
+    /* Build response*/
     s1msg = S1AP_newMsg();
     s1msg->choice = successful_outcome;
     s1msg->pdu->procedureCode = id_S1Setup;
     s1msg->pdu->criticality = reject;
-    s1msg->pdu->value = new_ProtocolIE_Container();
-
-    /*mme->name->showIE(mme->name);*/
 
     /* MME Name (optional)*/
     if(mme->name != NULL){
-        ie=newProtocolIE();
-        ie->id = id_MMEname;
-        ie->presence = optional;
-        ie->criticality = ignore;
-        ie->value = mme->name;
-        ie->showValue = mme->name->showIE;
-        s1msg->pdu->value->addIe(s1msg->pdu->value, ie);
+	    name = s1ap_newIE(s1msg, id_MMEname, mandatory, reject);
+	    memcpy(name->name, mme->name->name, strlen(mme->name->name));
     }
 
     /* Served GUMMEIs*/
@@ -103,6 +110,8 @@ static void sendS1SetupResponse(S1Assoc_t *assoc){
         log_msg(LOG_ERR, 0, "S1AP: Coudn't allocate new Protocol IE structure");
     }
 
+    /* gummeis = s1ap_newIE(s1msg, id_ServedGUMMEIs, optional, reject); */
+    /* memcpy(gummeis, mme->servedGUMMEIs, sizeof(ServedGUMMEIs_t*)); */
     ie->id = id_ServedGUMMEIs;
     ie->presence = optional;
     ie->criticality = reject;
@@ -111,13 +120,8 @@ static void sendS1SetupResponse(S1Assoc_t *assoc){
     s1msg->pdu->value->addIe(s1msg->pdu->value, ie);
 
     /* Relative MME Capacity*/
-    ie=newProtocolIE();
-    ie->id = id_RelativeMMECapacity;
-    ie->presence = optional;
-    ie->criticality = ignore;
-    ie->value = mme->relativeCapacity;
-    ie->showValue = mme->relativeCapacity->showIE;
-    s1msg->pdu->value->addIe(s1msg->pdu->value, ie);
+    cap = s1ap_newIE(s1msg, id_RelativeMMECapacity, optional, ignore);
+    cap->cap = mme->relativeCapacity->cap;
 
     /* Send Response*/
     s1Assoc_sendNonUE(assoc, s1msg);
@@ -126,6 +130,30 @@ static void sendS1SetupResponse(S1Assoc_t *assoc){
 
     /* This function doesn't deallocate the IE stored on the mme structure,
      * because the freeValue callback attribute of the ProtocolIE structure is NULL */
+    s1msg->freemsg(s1msg);
+
+}
+
+
+static void sendS1SetupReject_UnknownPLMN(S1Assoc_t *assoc){
+    S1AP_Message_t *s1msg;
+    struct mme_t * mme = s1_getMME(assoc->s1);
+    Cause_t *c;
+
+    /* Build response*/
+    s1msg = S1AP_newMsg();
+    s1msg->choice = unsuccessful_outcome;
+    s1msg->pdu->procedureCode = id_S1Setup;
+    s1msg->pdu->criticality = reject;
+
+    /*Cause: Unknown PLMN*/
+    c = s1ap_newIE(s1msg, id_Cause, mandatory, reject);
+    c->choice = CauseMisc;
+    c->cause.misc.cause.noext = CauseMisc_unknown_PLMN;
+
+    /* Send Response*/
+    s1Assoc_sendNonUE(assoc, s1msg);
+
     s1msg->freemsg(s1msg);
 
 }

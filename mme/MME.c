@@ -555,3 +555,33 @@ gboolean mme_GUMMEI_IsLocal(const struct mme_t *self,
                             const guint8 mmec){
 	return TRUE;
 }
+
+
+gboolean mme_containsSupportedTAs(const struct mme_t *self, SupportedTAs_t *tas){
+	int i, j, k, l;
+	BPLMNs_t *bc_l;
+	PLMNidentity_t *plmn_eNB, *plmn_MME;
+	ServedPLMNs_t *served;
+
+
+	for(i=0; i<tas->size; i++){
+		bc_l = tas->item[i]->broadcastPLMNs;
+		for(j=0; j<bc_l->n ; j++){
+			plmn_eNB = bc_l->pLMNidentity[j];
+			for(k=0; k<self->servedGUMMEIs->size; k++){
+				served = self->servedGUMMEIs->item[k]->servedPLMNs;
+				for(l=0; l<served->size ; l++){
+					plmn_MME = served->item[l];
+					log_msg(LOG_DEBUG, 0, "Comparing SupportedTA with ServedGUMMEIs"
+					        " PLMN %x%x%x <=> %x%x%x",
+					        plmn_MME->tbc.s[0], plmn_MME->tbc.s[1], plmn_MME->tbc.s[2],
+					        plmn_eNB->tbc.s[0], plmn_eNB->tbc.s[1], plmn_eNB->tbc.s[2]);
+					if(memcmp(plmn_MME->tbc.s, plmn_eNB->tbc.s, 3)==0){
+						return TRUE;
+					}
+				}
+			}
+		}
+	}
+	return FALSE;
+}

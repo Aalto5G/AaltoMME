@@ -35,7 +35,7 @@
 typedef struct S1_EndPoint_Info_c{
     ENBname_t               *eNBname;
     Global_ENB_ID_t         *global_eNB_ID;
-    SupportedTAs_t          *suportedTAs;
+    SupportedTAs_t          *supportedTAs;
     CSG_IdList_t            *cSG_IdList;
     struct sctp_sndrcvinfo  sndrcvinfo;
 }S1_EndPoint_Info_t;

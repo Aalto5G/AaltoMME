@@ -26,7 +26,7 @@
 static void process_eNBConfigurationTransfer(S1Assoc_t *assoc,  S1AP_Message_t *s1msg);
 
 
-static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid){
+static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid, GError** err){
     S1Assoc_t *assoc = (S1Assoc_t *)_assoc;
     ECMSession ecm;
     MME_UE_S1AP_ID_t *mme_id;
@@ -118,8 +118,12 @@ static sendReset(gpointer _assoc){
 
 static void disconnect(gpointer _assoc, void (*cb)(gpointer), gpointer args){
     S1Assoc_t *assoc = (S1Assoc_t *)_assoc;
+    struct mme_t * mme = s1_getMME(assoc->s1);
+
     assoc->cb = cb;
     assoc->args = args;
+    mme_deregisterS1Assoc(mme, assoc);
+    /*s1_deregisterAssoc(self->s1, self);*/
     /* Use this instead of hack*/
     //sendReset(assoc);
     

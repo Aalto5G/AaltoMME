@@ -221,6 +221,7 @@ void loadMMEinfo(struct mme_t *mme){
                 log_msg(LOG_ERR ,0, "Couldn't parse MNC name - %s:%d - %s\n", config_error_file(&cfg), config_error_line(&cfg), config_error_text(&cfg));
             }
             pLMN->MNC = tmp;
+            plmnId_MccMnc2tbcd(pLMN);
 
             item->servedPLMNs->additem(item->servedPLMNs, pLMN);
         }

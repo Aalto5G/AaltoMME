@@ -28,6 +28,9 @@
 
 typedef gpointer S1Assoc;
 
+//g_quark_from_string("S1AP assoc");
+//G_DEFINE_QUARK(S1AP_ASSOC, s1Assoc);
+
 /* API to MME_S1 */
 S1Assoc s1Assoc_init(S1 s1);
 

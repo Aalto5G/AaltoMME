@@ -45,7 +45,7 @@ typedef struct{
     GString             *eNBname;
     mme_GlobaleNBid     global_eNB_ID;
     //Global_ENB_ID_t     *global_eNB_ID;
-    SupportedTAs_t      *suportedTAs;
+    SupportedTAs_t      *supportedTAs;
     CSG_IdList_t        *cSG_IdList;
     GHashTable          *ecm_sessions;  /**< ECM sessions allocated in this association*/
     void                (*cb)(gpointer);

@@ -25,7 +25,7 @@
 #include "S1AP.h"
 
 typedef void (*S1_event1)(gpointer);
-typedef void (*S1_processMsgEvent)(gpointer, S1AP_Message_t *, int);
+typedef void (*S1_processMsgEvent)(gpointer, S1AP_Message_t *, int, GError**);
 typedef void (*S1_disconnect)(gpointer, void (*cb)(gpointer), gpointer);
 
 #define S1STATE \
