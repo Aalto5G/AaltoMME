@@ -48,7 +48,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         log_msg(LOG_INFO, 0, "Received Message with wrong MAC");
         return;
     }
-    nas_incrementNASCount(emm->parser, NAS_UpLink);
+    /* nas_incrementNASCount(emm->parser, NAS_UpLink); */
 
     if(!dec_secNAS(emm->parser, &msg, NAS_UpLink, buf, len)){
         g_error("NAS Decyphering Error");
@@ -65,6 +65,9 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         log_msg(LOG_DEBUG, 0, "Received AttachComplete");
         processAttachComplete(emm, &msg);
         break;
+    case TrackingAreaUpdateComplete:
+	    log_msg(LOG_INFO, 0, "Received TrackingAreaUpdateComplete, not implemented");
+	    break;
     default:
         log_msg(LOG_WARNING, 0,
                 "NAS Message type (%u) not recognized in this context",
@@ -116,7 +119,7 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
                       IntegrityProtectedAndCiphered,
                       NAS_DownLink,
                       plain, pointer-plain);
-        nas_incrementNASCount(emm->parser, NAS_DownLink);
+        /* nas_incrementNASCount(emm->parser, NAS_DownLink); */
     }else{
         return;
     }

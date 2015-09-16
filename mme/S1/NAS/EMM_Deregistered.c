@@ -94,12 +94,11 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         }
 
         if(isAuth && emm->sci){
-	        emm->nasUlCountForSC = nas_getCount(emm->parser, NAS_UpLink);
-	        nas_incrementNASCount(emm->parser, NAS_UpLink);
-
-	        emm_processFirstESMmsg(emm);
-	        emmChangeState(emm, EMM_SpecificProcedureInitiated);
-	        return;
+            emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink);
+            /* nas_incrementNASCount(emm->parser, NAS_UpLink); */
+            emmChangeState(emm, EMM_SpecificProcedureInitiated);
+            emm_processFirstESMmsg(emm);
+            return;
         }
 
         /* Security Context not valid, removing it*/
@@ -112,15 +111,18 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         break;
     case TrackingAreaUpdateRequest:
         emm_processTAUReq(emm, &msg, &msg_ksi, &msg_guti);
-                /* Recover existing EMM context if available */
+
+        if(msg_ksi < 6){
+            emm->next_ksi = msg_ksi+1;
+        }
 
         if(isAuth && emm->sci){
-	        emm->nasUlCountForSC = nas_getCount(emm->parser, NAS_UpLink);
-	        nas_incrementNASCount(emm->parser, NAS_UpLink);
+            emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink);
+            /*nas_incrementNASCount(emm->parser, NAS_UpLink); */
 
-	        emm_sendTAUAccept(emm);
-	        emmChangeState(emm, EMM_CommonProcedureInitiated);
-	        return;
+            emm_sendTAUAccept(emm);
+            emmChangeState(emm, EMM_SpecificProcedureInitiated);
+            return;
         }
         /* Security Context not valid, removing it*/
         emm->ksi = 7;

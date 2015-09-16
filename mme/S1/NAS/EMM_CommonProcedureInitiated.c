@@ -103,8 +103,8 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
             return;
         }
         emm->sci = TRUE;
-        emm->nasUlCountForSC = nas_getCount(emm->parser, NAS_UpLink);
-        nas_incrementNASCount(emm->parser, NAS_UpLink);
+        emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink);
+        /* nas_incrementNASCount(emm->parser, NAS_UpLink); */
         emmChangeState(emm, EMM_SpecificProcedureInitiated);
         s6a_UpdateLocation(emm->s6a, emm,
                            (void(*)(gpointer)) emm_processFirstESMmsg,
@@ -113,9 +113,6 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     case SecurityModeReject:
         log_msg(LOG_ERR, 0, "Received SecurityModeReject, not implemented");
         break;
-    case TrackingAreaUpdateComplete:
-	    log_msg(LOG_INFO, 0, "Received TrackingAreaUpdateComplete, not implemented");
-	    break;
     default:
         log_msg(LOG_WARNING, 0,
                 "NAS Message type (%u) not recognized in this context",

@@ -22,13 +22,14 @@
 #include "ECMSession_FSMConfig.h"
 #include "ECMSession.h"
 
+static void ecm_UEContextRelease(gpointer ecm_h, S1AP_Message_t *s1msg);
+
 static void processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
     ECMSession_t *ecm = (ECMSession_t *)_ecm;
     MME_UE_S1AP_ID_t *mme_id;
     ENB_UE_S1AP_ID_t *eNB_ID;
     Unconstrained_Octed_String_t *nASPDU;
     E_RABSetupListCtxtSURes_t *list;
-    Cause_t *c;
 
     if(r_sid != ecm->r_sid && ecm->r_sid_valid){
         log_msg(LOG_ERR, 0,
@@ -91,8 +92,7 @@ static void processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
     }else if(s1msg->pdu->procedureCode == id_UEContextReleaseRequest &&
              s1msg->choice == initiating_message){
         log_msg(LOG_INFO, 0, "Received id_UEContextReleaseRequest");
-        c = (Cause_t*)s1ap_findIe(s1msg, id_Cause);
-        emm_UEContextReleaseReq(ecm->emm, c->choice, c->cause.radioNetwork.cause.noext);
+        ecm_UEContextRelease(ecm, s1msg);
     }else if(s1msg->pdu->procedureCode == id_UECapabilityInfoIndication &&
              s1msg->choice == initiating_message){
 	    log_msg(LOG_DEBUG, 0, "Received id_UECapabilityInfoIndication");
@@ -163,4 +163,19 @@ static void release(gpointer _ecm, cause_choice_t choice, uint32_t cause){
 void linkECMSessionConnected(ECMSession_State* s){
     s->processMsg = processMsg;
     s->release = release;
+}
+
+void ecm_UEContextRelease(gpointer ecm_h, S1AP_Message_t *s1msg){
+    ECMSession_t *ecm = (ECMSession_t *)ecm_h;
+    Cause_t *c = (Cause_t*)s1ap_findIe(s1msg, id_Cause);
+    /*
+      "User Inactivity",
+      "Radio Connection With UE Lost",
+      "CSG Subscription Expiry",
+      "CS Fallback triggered",
+      "Redirection towards 1xRTT",
+      "Inter-RAT Redirection",
+      "UE Not Available for PS Service"
+    */
+	emm_UEContextReleaseReq(ecm->emm, c->choice, c->cause.radioNetwork.cause.noext);
 }

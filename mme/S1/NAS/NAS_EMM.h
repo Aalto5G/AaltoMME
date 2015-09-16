@@ -38,6 +38,10 @@ gpointer emm_init(gpointer ecm);
  */
 void emm_free(gpointer emm_h);
 
+
+void emm_registerECM(EMMCtx emm_h, gpointer ecm);
+
+void emm_deregister(EMMCtx emm_h);
 /**
  * @brief NAS processing function
  * @param [in]  emm_h EMM Stack handler

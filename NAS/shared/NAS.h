@@ -105,7 +105,7 @@ int nas_getHeader(const uint8_t *buf, const uint32_t size,
  *
  * This function allows to access the NAS COUNT values to derive other keys
  */
-const uint32_t nas_getCount(const NAS h, const NAS_Direction direction);
+const uint32_t nas_getLastCount(const NAS h, const NAS_Direction direction);
 
 
 /**

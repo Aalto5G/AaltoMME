@@ -46,4 +46,10 @@ void emm_internalSendESM(const EMMCtx emm, const gpointer msg, const gsize len, 
 
 void emm_sendUEContextReleaseCommand(EMMCtx emm, cause_choice_t choice, uint32_t cause);
 
+void emm_processTAUReq(EMMCtx emm_h, GenericNASMsg_t *msg, guint8 *ksi_msg, guti_t *guti);
+
+void emm_sendTAUAccept(EMMCtx emm_h);
+
+void emm_sendTAUReject(EMMCtx emm_h);
+
 #endif /* NAS_EMM_PRIV_HFILE */

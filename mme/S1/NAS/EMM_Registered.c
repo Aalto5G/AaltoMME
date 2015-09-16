@@ -34,6 +34,8 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     SecurityHeaderType_t s;
     ProtocolDiscriminator_t p;
     gboolean isAuth = FALSE, res;
+    guti_t msg_guti;
+    guint8 msg_ksi;
 
     nas_getHeader(buf, len, &s, &p);
 
@@ -55,12 +57,42 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         g_error("NAS Decyphering Error");
     }
 
-    nas_incrementNASCount(emm->parser, NAS_UpLink);
+    /* nas_incrementNASCount(emm->parser, NAS_UpLink); */
 
     switch(msg.plain.eMM.messageType){
     case DetachRequest:
         log_msg(LOG_DEBUG, 0, "Received DetachRequest");
         processDetachReq(emm, &msg);
+        break;
+    case TrackingAreaUpdateRequest:
+        emm_processTAUReq(emm, &msg, &msg_ksi, &msg_guti);
+
+        if(msg_ksi < 6){
+            emm->next_ksi = msg_ksi+1;
+        }
+
+        if(isAuth && emm->sci){
+	        emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink);
+	        /* nas_incrementNASCount(emm->parser, NAS_UpLink); */
+
+	        emm_sendTAUReject(emm);
+	        emmChangeState(emm, EMM_Deregistered);
+
+	        /* emm_sendTAUAccept(emm); */
+	        /* emmChangeState(emm, EMM_SpecificProcedureInitiated); */
+	        return;
+        }
+        /* Security Context not valid, removing it*/
+        emm->ksi = 7;
+        memset(emm->kasme, 0, 32);
+        emm->nasUlCountForSC=0;
+        if(!emm->authQuadrsLen>0){
+	        log_msg(LOG_DEBUG, 0,"Getting info from HSS");
+	        s6a_GetAuthInformation(emm->s6a, emm, emm_sendAuthRequest, emm);
+        }else{
+	        emm_sendAuthRequest(emm);
+        }
+        emmChangeState(emm, EMM_CommonProcedureInitiated);
         break;
     default:
         log_msg(LOG_WARNING, 0,

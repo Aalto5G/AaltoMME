@@ -44,6 +44,10 @@ void emm_free(gpointer emm_h){
     emmCtx_free(self);
 }
 
+void emm_registerECM(EMMCtx emm_h, gpointer ecm){
+    EMMCtx_t *self = (EMMCtx_t*)emm_h;
+    self->ecm = ecm;
+}
 
 void emm_deregister(EMMCtx emm_h){
     EMMCtx_t *self = (EMMCtx_t*)emm_h;
@@ -90,31 +94,31 @@ void emm_getGUTIfromMsg(gpointer buffer, gsize len, guti_t* guti){
     if(s == PlainNAS){
         dec_NAS(&msg, buffer, len);
     }else if(s == IntegrityProtected){
-	    dec_NAS(&msg, buffer+6, len-6);
+        dec_NAS(&msg, buffer+6, len-6);
     }else{
-	    log_msg(LOG_DEBUG, 0, "Cannot get GUTI from cyphered message");
-	    return;
+        log_msg(LOG_DEBUG, 0, "Cannot get GUTI from cyphered message");
+        return;
     }
     log_msg(LOG_DEBUG, 0, "Get GUTI from message type %u",
             msg.plain.eMM.messageType);
 
     switch(msg.plain.eMM.messageType){
     case AttachRequest:
-	    attachMsg = (AttachRequest_t*)&(msg.plain.eMM);
-	    if(((ePSMobileId_header_t*)attachMsg->ePSMobileId.v)->type == 6 ){
-		    memcpy(guti, (guti_t *)(attachMsg->ePSMobileId.v+1), 10);
-	    }
-	    break;
+        attachMsg = (AttachRequest_t*)&(msg.plain.eMM);
+        if(((ePSMobileId_header_t*)attachMsg->ePSMobileId.v)->type == 6 ){
+            memcpy(guti, (guti_t *)(attachMsg->ePSMobileId.v+1), 10);
+        }
+        break;
     case TrackingAreaUpdateRequest:
-	    tau_msg = (TrackingAreaUpdateRequest_t*)&(msg.plain.eMM);
-	    if(((ePSMobileId_header_t*)tau_msg->oldGUTI.v)->type == 6 ){
-		    memcpy(guti, (guti_t *)(tau_msg->oldGUTI.v+1), 10);
-	    }
-	    break;
+        tau_msg = (TrackingAreaUpdateRequest_t*)&(msg.plain.eMM);
+        if(((ePSMobileId_header_t*)tau_msg->oldGUTI.v)->type == 6 ){
+            memcpy(guti, (guti_t *)(tau_msg->oldGUTI.v+1), 10);
+        }
+        break;
     default:
-	    log_msg(LOG_WARNING, 0, "Not implemented for message type %u",
-	            msg.plain.eMM.messageType);
-	    break;
+        log_msg(LOG_WARNING, 0, "Not implemented for message type %u",
+                msg.plain.eMM.messageType);
+        break;
     }
     log_msg(LOG_DEBUG, 0, "M-TMSI %x", guti->mtmsi);
 }
@@ -214,7 +218,7 @@ void emm_sendSecurityModeCommand(EMMCtx emm_h){
                   plain, pointer-plain);
 
     ecm_send(emm->ecm, out, len);
-    nas_incrementNASCount(emm->parser, NAS_DownLink);
+    /* nas_incrementNASCount(emm->parser, NAS_DownLink); */
     emmChangeState(emm, EMM_CommonProcedureInitiated);
 
     /* Set timer T3460*/
@@ -305,7 +309,7 @@ void emm_internalSendESM(const EMMCtx emm, const gpointer msg, const gsize len, 
                   msg, len);
 
     ecm_send(self->ecm, out, oLen);
-    nas_incrementNASCount(self->parser, NAS_DownLink);
+    /* nas_incrementNASCount(self->parser, NAS_DownLink); */
 }
 
 void emm_setE_RABSetupuListCtxtSURes(EMMCtx emm, E_RABSetupListCtxtSURes_t* l){
@@ -313,9 +317,18 @@ void emm_setE_RABSetupuListCtxtSURes(EMMCtx emm, E_RABSetupListCtxtSURes_t* l){
     esm_setE_RABSetupuListCtxtSURes(self->esm, l);
 }
 
+
+static void emm_detach_hack(gpointer emm_h){
+    EMMCtx_t *emm = (EMMCtx_t *)emm_h;
+    log_msg(LOG_INFO, 0, "NAS DETACH due to inactivity", emm->imsi);
+    ecm_sendUEContextReleaseCommand(emm->ecm, CauseRadioNetwork, CauseRadioNetwork_user_inactivity);
+}
+
 void emm_UEContextReleaseReq(EMMCtx emm, cause_choice_t choice, uint32_t cause){
     EMMCtx_t *self = (EMMCtx_t*)emm;
-    esm_UEContextReleaseReq(self->esm, choice, cause);
+    /* HACK*/
+    esm_detach(self->esm, emm_detach_hack, emm);
+    /* esm_UEContextReleaseReq(self->esm, choice, cause); */
 }
 
 void emm_sendUEContextReleaseCommand(EMMCtx emm, cause_choice_t choice, uint32_t cause){
@@ -343,6 +356,8 @@ void emm_processTAUReq(EMMCtx emm_h, GenericNASMsg_t *msg, guint8 *ksi_msg, guti
     /*             tau_msg->ePSUpdateType.v); */
     /*     return; */
     /* } */
+
+    /* Update type for T3412 expiration on the UE, periodic updating (0)*/
 
     /*nASKeySetId*/
     *ksi_msg = tau_msg->nASKeySetId.v & 0x07;
@@ -394,5 +409,39 @@ void emm_sendTAUAccept(EMMCtx emm_h){
                   plain, pointer-plain);
 
     ecm_send(emm->ecm, out, len);
-    nas_incrementNASCount(emm->parser, NAS_DownLink);
+    /* nas_incrementNASCount(emm->parser, NAS_DownLink); */
+}
+
+
+void emm_sendTAUReject(EMMCtx emm_h){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    guint8 *pointer, t3412;
+    guint8 out[156], plain[150], guti_b[11];
+    EMMCause_t cause;
+    gsize len=0, tlen;
+    NAS_tai_list_t tAIl;
+    guti_t guti;
+
+    memset(out, 0, 156);
+    memset(plain, 0, 150);
+
+    /* Build TAU Reject*/
+    pointer = plain;
+    newNASMsg_EMM(&pointer, EPSMobilityManagementMessages, PlainNAS);
+
+    encaps_EMM(&pointer, TrackingAreaUpdateReject);
+
+    /*EPS update result*/
+    /* nasIe_v_t1_l(&pointer, 1); /\* Combined TA/LA updated *\/ */
+    cause = EMM_ImplicitlyDetached;
+    nasIe_v_t3(&pointer, (uint8_t*)&cause, 1); /* TA updated */
+
+    newNASMsg_sec(emm->parser, out, &len,
+                  EPSMobilityManagementMessages,
+                  IntegrityProtectedAndCiphered,
+                  NAS_DownLink,
+                  plain, pointer-plain);
+
+    ecm_send(emm->ecm, out, len);
+    /* nas_incrementNASCount(emm->parser, NAS_DownLink); */
 }

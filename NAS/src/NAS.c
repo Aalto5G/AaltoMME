@@ -299,7 +299,7 @@ int newNASMsg_sec(const NAS h,
     /* Cypher Message*/
     if(s == IntegrityProtectedAndCiphered ||
        s == IntegrityProtectedAndCipheredWithNewEPSSecurityContext){
-	    /* out+6 instead of buf+1 ?*/
+        /* out+6 instead of buf+1 ?*/
         eea_cyph_cb[n->e](n->ekey, count, 0, direction, buf+1, &cLen, plain, pLen);
         if(pLen != cLen){
             return 0;
@@ -321,6 +321,8 @@ int newNASMsg_sec(const NAS h,
     /* Add sequence number and cyphered message */
     nasIe_v_t3(&pointer, buf, pLen + 1);
     *len = pointer - out;
+    /* Increment downlink counter*/
+    nas_incrementNASCount(n, NAS_DownLink);
     return 1;
 }
 
@@ -442,9 +444,11 @@ int nas_getHeader(const uint8_t *buf, const uint32_t size,
     return 1;
 }
 
-const uint32_t nas_getCount(const NAS h, const NAS_Direction direction){
+const uint32_t nas_getLastCount(const NAS h, const NAS_Direction direction){
     NASHandler *n = (NASHandler*)h;
-    return n->nas_count[direction];
+    /* -1 because we store the expected count message (UpLink), or the next count
+     * to be used in Downlink*/
+    return n->nas_count[direction]-1;
 }
 
 int nas_incrementNASCount(const NAS h, const NAS_Direction direction){
@@ -452,7 +456,9 @@ int nas_incrementNASCount(const NAS h, const NAS_Direction direction){
     if(!n->isValid)
         return 0;
 
-    nas_msg(NAS_INFO, 0, "Increment counter");
+    nas_msg(NAS_DEBUG, 0, "Increment counter for direction %u from %u",
+            direction,
+            n->nas_count[direction]);
 
     n->nas_count[direction]++;
     if(n->nas_count[direction] > 0xffffff-5){
@@ -497,6 +503,7 @@ int nas_authenticateMsg(const NAS h,
 
         if(memcmp(mac, mac_x, 4) == 0 || n->i == NAS_EIA0){
             *isAuth = 1;
+            nas_incrementNASCount(n, NAS_UpLink);
         }
         return 1;
     }else if(s == SecurityHeaderForServiceRequestMessage){
@@ -520,12 +527,12 @@ int dec_secNAS(const NAS h,
     nas_getHeader(buf, size, &s, NULL);
 
     if(s ==  IntegrityProtected){
-	    dec_NAS(msg, buf+6, len-6);
-	    return 1;
+        dec_NAS(msg, buf+6, len-6);
+        return 1;
     }else if( ! (s == IntegrityProtectedAndCiphered ||
                  s == IntegrityProtectedAndCipheredWithNewEPSSecurityContext ||
                  s == SecurityHeaderForServiceRequestMessage)){
-	    return 0;
+        return 0;
     }
 
     /* Keep it here, so it can decode IntegrityProtected Messages
