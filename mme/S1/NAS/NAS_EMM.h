@@ -71,5 +71,6 @@ void emm_UEContextReleaseReq(EMMCtx emm, cause_choice_t choice, uint32_t cause);
 
 guint32 *emm_getM_TMSI_p(EMMCtx emm);
 
+void emm_triggerAKAprocedure(EMMCtx emm_h);
 
 #endif /* NAS_EMM_H */

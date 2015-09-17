@@ -35,23 +35,29 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     ProtocolDiscriminator_t p;
     guint8 isAuth = 0, res;
     nas_getHeader(buf, len, &s, &p);
-    if(emm->sci){
-        res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
-        if(res==2){
-            log_msg(LOG_WARNING, 0, "Wrong SQN Count");
-            return;
-        }else if(res==0){
-            g_error("NAS Authentication Error");
-        }
+
+
+    if(!emm->sci){
+        g_error("Wrong state to be with a security context");
     }
-    if(!isAuth){
-        log_msg(LOG_INFO, 0, "Received Message with wrong MAC");
+
+    res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
+    if(res==0){
+        /* EH Send Indication Error*/
+        g_error("Received malformed NAS packet");
+    }else if(res==2){
+        /* EH trigger AKA procedure */
+        log_msg(LOG_WARNING, 0, "Wrong SQN Count");
         return;
     }
-    /* nas_incrementNASCount(emm->parser, NAS_UpLink); */
 
     if(!dec_secNAS(emm->parser, &msg, NAS_UpLink, buf, len)){
         g_error("NAS Decyphering Error");
+    }
+
+    if(!isAuth && nas_isAuthRequired(msg.plain.eMM.messageType)){
+        log_msg(LOG_INFO, 0, "Received Message with wrong MAC");
+        return;
     }
 
     if(p == EPSSessionManagementMessages ||
@@ -66,8 +72,8 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         processAttachComplete(emm, &msg);
         break;
     case TrackingAreaUpdateComplete:
-	    log_msg(LOG_INFO, 0, "Received TrackingAreaUpdateComplete, not implemented");
-	    break;
+        log_msg(LOG_INFO, 0, "Received TrackingAreaUpdateComplete, not implemented");
+        break;
     default:
         log_msg(LOG_WARNING, 0,
                 "NAS Message type (%u) not recognized in this context",

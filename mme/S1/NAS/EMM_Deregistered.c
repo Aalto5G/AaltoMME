@@ -63,73 +63,74 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     SecurityHeaderType_t s;
     ProtocolDiscriminator_t p;
     guint8 res, msg_ksi;
-    guint8 isAuth;
+    guint8 isAuth = 0;
     ECMSession_t *ecm = (ECMSession_t*)emm->ecm;
     struct mme_t *mme = s1_getMME(s1Assoc_getS1(ecm->assoc));
     guti_t msg_guti;
 
     nas_getHeader(buf, len, &s, &p);
 
+    /* The UE may have a Security Context but not the MME */
     if(emm->sci){
         res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
-        if(res==2){
-            log_msg(LOG_WARNING, 0, "Wrong SQN Count, ignoring msg");
+        if(res==0){
+            /* EH Send Indication Error*/
+            g_error("Received malformed NAS packet");
+        }else if(res==2){
+            /* EH trigger AKA procedure */
+            log_msg(LOG_WARNING, 0, "Wrong SQN Count");
             return;
-        }else if(res==0){
-            g_error("NAS Authentication Error");
         }
+
+        if(!dec_secNAS(emm->parser, &msg, NAS_UpLink, buf, len)){
+            g_error("NAS Decyphering Error");
+        }
+    }else{
+        dec_NAS(&msg, buf+6, len-6);
     }
 
-    if(!dec_secNAS(emm->parser, &msg, NAS_UpLink, buf, len)){
-        g_error("NAS Decyphering Error");
+    if(!isAuth && nas_isAuthRequired(msg.plain.eMM.messageType)){
+        log_msg(LOG_INFO, 0, "Received Message with wrong MAC");
+        return;
     }
 
     switch(msg.plain.eMM.messageType){
-
     case AttachRequest:
         processAttach(emm, &msg, &msg_ksi);
 
-        if(msg_ksi < 6){
-            emm->next_ksi = msg_ksi+1;
-        }
-
-        if(isAuth && emm->sci){
-            emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink);
-            /* nas_incrementNASCount(emm->parser, NAS_UpLink); */
-            emmChangeState(emm, EMM_SpecificProcedureInitiated);
-            emm_processFirstESMmsg(emm);
+        if(!isAuth){
+            emm_triggerAKAprocedure(emm);
             return;
         }
 
-        /* Security Context not valid, removing it*/
-        emm->ksi = 7;
-        memset(emm->kasme, 0, 32);
-        emm->nasUlCountForSC=0;
-
-        attachContinuationSwitch(emm, msg_ksi);
-
+        emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink);
+        emmChangeState(emm, EMM_SpecificProcedureInitiated);
+        emm_processFirstESMmsg(emm);
         break;
+    case IdentityResponse:
+    case AuthenticationResponse:
+    case AuthenticationFailure:
+    case SecurityModeReject:
+    case DetachAccept:
+        log_msg(LOG_INFO, 0,
+                "NAS Message type (%u) not valid in this state",
+                msg.plain.eMM.messageType);
+        break;
+    /* case TrackingAreaUpdateRequest: */
+    /*     emm_processTAUReq(emm, &msg, &msg_ksi, &msg_guti); */
+    /*     if(!isAuth){ */
+    /*         emm_triggerAKAprocedure(emm); */
+    /*         return; */
+    /*     } */
+    /*     emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink); */
+    /*     emmChangeState(emm, EMM_SpecificProcedureInitiated); */
+    /*     emm_sendTAUAccept(emm); */
+    /*     break; */
     case TrackingAreaUpdateRequest:
-        emm_processTAUReq(emm, &msg, &msg_ksi, &msg_guti);
-
-        if(msg_ksi < 6){
-            emm->next_ksi = msg_ksi+1;
-        }
-
-        if(isAuth && emm->sci){
-            emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink);
-            /*nas_incrementNASCount(emm->parser, NAS_UpLink); */
-
-            emm_sendTAUAccept(emm);
-            emmChangeState(emm, EMM_SpecificProcedureInitiated);
-            return;
-        }
-        /* Security Context not valid, removing it*/
-        emm->ksi = 7;
-        memset(emm->kasme, 0, 32);
-        emm->nasUlCountForSC=0;
-
-        attachContinuationSwitch(emm, msg_ksi);
+    case DetachRequest:
+        log_msg(LOG_WARNING, 0,
+                "NAS Message type (%u) not supported in this context",
+                msg.plain.eMM.messageType);
         break;
     default:
         log_msg(LOG_WARNING, 0,

@@ -481,6 +481,7 @@ int nas_authenticateMsg(const NAS h,
     NASHandler *n = (NASHandler*)h;
     uint8_t count[4], res = 0;
     uint32_t ncount;
+    uint8_t mac[4], mac_x[4], nas_sqn;
 
     nas_getHeader(buf, size, &s, NULL);
 
@@ -488,15 +489,15 @@ int nas_authenticateMsg(const NAS h,
     if(!n->isValid)
         return 0;
 
-    uint8_t mac[4], mac_x[4], nas_sqn;
     if( s == PlainNAS ){
         return 0;
     }
 
-    if(s == IntegrityProtected ||
-       s == IntegrityProtectedAndCiphered ||
-       s == IntegrityProtectedWithNewEPSSecurityContext ||
-       s == IntegrityProtectedAndCipheredWithNewEPSSecurityContext ){
+    switch(s){
+    case IntegrityProtected:
+    case IntegrityProtectedAndCiphered:
+    case IntegrityProtectedWithNewEPSSecurityContext:
+    case IntegrityProtectedAndCipheredWithNewEPSSecurityContext:
         /*Check NAS SQN*/
         nas_sqn = buf[5];
         if((n->nas_count[direction]&0xff) != nas_sqn){
@@ -508,15 +509,17 @@ int nas_authenticateMsg(const NAS h,
         memcpy(count, &ncount, 4);
         eia_cb[n->i](n->ikey, count, 0, direction, buf+5, (size-5)*8, mac_x);
 
-        if(memcmp(mac, mac_x, 4) == 0 || n->i == NAS_EIA0){
+        if(memcmp(mac, mac_x, 4) == 0 /* Integrity Verification OK*/
+           || n->i == NAS_EIA0){      /* Integrity verification is not
+                                       * applicable when EIA0 is used */
             *isAuth = 1;
             nas_incrementNASCount(n, NAS_UpLink);
         }
         return 1;
-    }else if(s == SecurityHeaderForServiceRequestMessage){
+    case SecurityHeaderForServiceRequestMessage:
         return 0;
         /*Non-standard L3 message*/
-    }else{
+    default:
         return 0;
     }
 }
@@ -578,4 +581,5 @@ uint8_t nas_isAuthRequired(NASMessageType_t messageType){
         res = 1;
         break;
     }
+    return res;
 }

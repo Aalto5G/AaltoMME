@@ -40,17 +40,17 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     nas_getHeader(buf, len, &s, &p);
 
     if(!emm->sci){
-	    g_error("Wrong state to be with a security context");
+        g_error("Wrong state to be with a security context");
     }
 
     res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
     if(res==0){
-	    /* EH Send Indication Error*/
-	    g_error("Received malformed NAS packet");
+        /* EH Send Indication Error*/
+        g_error("Received malformed NAS packet");
     }else if(res==2){
-	    /* EH trigger AKA procedure */
-	    log_msg(LOG_WARNING, 0, "Wrong SQN Count");
-	    return;
+        /* EH trigger AKA procedure */
+        log_msg(LOG_WARNING, 0, "Wrong SQN Count");
+        return;
     }
 
     if(!dec_secNAS(emm->parser, &msg, NAS_UpLink, buf, len)){
@@ -59,6 +59,12 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
 
     if(!isAuth && nas_isAuthRequired(msg.plain.eMM.messageType)){
         log_msg(LOG_INFO, 0, "Received Message with wrong MAC");
+        return;
+    }
+
+    if(p == EPSSessionManagementMessages ||
+       msg.header.protocolDiscriminator.v == EPSSessionManagementMessages){
+        esm_processMsg(emm->esm, &(msg.plain.eSM));
         return;
     }
 
@@ -71,22 +77,23 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         emm_processTAUReq(emm, &msg, &msg_ksi, &msg_guti);
 
         if(!isAuth){
-	        if(msg_ksi < 6){
-		        emm->next_ksi = msg_ksi+1;
-	        }
-	        /* Security Context not valid, removing it*/
-	        emm->ksi = 7;
-	        memset(emm->kasme, 0, 32);
-	        emm->nasUlCountForSC=0;
-	        if(!emm->authQuadrsLen>0){
-		        log_msg(LOG_DEBUG, 0,"Getting info from HSS");
-		        s6a_GetAuthInformation(emm->s6a, emm, emm_sendAuthRequest, emm);
-	        }else{
-		        emm_sendAuthRequest(emm);
-	        }
-	        emmChangeState(emm, EMM_CommonProcedureInitiated);
-	        return;
+            /* Security Context not valid, removing it*/
+            if(msg_ksi < 6){
+                emm->msg_ksi = msg_ksi+1;
+            }
+            emm->ksi = 7;
+            memset(emm->kasme, 0, 32);
+            emm->nasUlCountForSC=0;
+            if(!emm->authQuadrsLen>0){
+                log_msg(LOG_DEBUG, 0,"Getting info from HSS");
+                s6a_GetAuthInformation(emm->s6a, emm, emm_sendAuthRequest, emm);
+            }else{
+                emm_sendAuthRequest(emm);
+            }
+            emmChangeState(emm, EMM_CommonProcedureInitiated);
+            return;
         }
+
         emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink);
 
         /* HACK: Send reject to detach user and trigger reattach*/
@@ -131,7 +138,7 @@ static void emm_detach(EMMCtx_t *emm){
 }
 
 static void emm_detach_switchoff(EMMCtx_t *emm){
-	log_msg(LOG_INFO, 0, "UE (IMSI: %llu) NAS Detach Switch-off", emm->imsi);
+    log_msg(LOG_INFO, 0, "UE (IMSI: %llu) NAS Detach Switch-off", emm->imsi);
     emmChangeState(emm, EMM_Deregistered);
     ecm_sendUEContextReleaseCommand(emm->ecm, CauseNas, CauseNas_detach);
 }
@@ -175,8 +182,8 @@ static void processDetachReq(EMMCtx_t *emm, GenericNASMsg_t *msg){
         }
     }
     if(switchoff){
-	    esm_detach(emm->esm, emm_detach_switchoff, emm);
+        esm_detach(emm->esm, emm_detach_switchoff, emm);
     }else{
-	    esm_detach(emm->esm, emm_detach, emm);
+        esm_detach(emm->esm, emm_detach, emm);
     }
 }

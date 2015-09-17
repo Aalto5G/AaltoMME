@@ -123,6 +123,23 @@ void emm_getGUTIfromMsg(gpointer buffer, gsize len, guti_t* guti){
     log_msg(LOG_DEBUG, 0, "M-TMSI %x", guti->mtmsi);
 }
 
+static guint8 emm_nextKSI(guint8 k){
+    if(k < 6){
+        return k+1;
+    }else{
+        return 1;
+    }
+}
+
+static guint8 emm_generateNewKSI(guint8 k1, guint k2){
+    k1 = emm_nextKSI(k1);
+    k2 = emm_nextKSI(k2);
+    if(k1 == k2){
+        k1 = emm_nextKSI(k1);
+    }
+    return k1;
+}
+
 void emm_sendAuthRequest(EMMCtx emm_h){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     guint8 *pointer;
@@ -132,7 +149,7 @@ void emm_sendAuthRequest(EMMCtx emm_h){
 
     log_msg(LOG_DEBUG, 0, "Initiating UE authentication");
 
-    /* Build Auth Request*/
+    /* Build Auth Request */
     sec = (AuthQuadruplet *)g_ptr_array_index(emm->authQuadrs,0);
 
     pointer = buffer;
@@ -140,14 +157,9 @@ void emm_sendAuthRequest(EMMCtx emm_h){
 
     encaps_EMM(&pointer, AuthenticationRequest);
 
-    /* NAS Key Set ID */
-    emm->old_ksi = emm->ksi;
-    emm->ksi = emm->next_ksi;
-    if(emm->next_ksi < 6){
-        emm->next_ksi++;
-    }else{
-        emm->next_ksi = 1;
-    }
+    /* Generate new eKSI */
+    emm->ksi = emm_generateNewKSI(emm->ksi, emm->msg_ksi);
+
     nasIe_v_t1_l(&pointer, emm->ksi&0x0F);
     pointer++; /*Spare half octet*/
 
@@ -444,4 +456,84 @@ void emm_sendTAUReject(EMMCtx emm_h){
 
     ecm_send(emm->ecm, out, len);
     /* nas_incrementNASCount(emm->parser, NAS_DownLink); */
+}
+
+guint emm_checkIdentity(EMMCtx emm_h){
+    EMMCtx_t *self = (EMMCtx_t*)emm_h;
+    guint res = 1;
+
+    if(self->imsi == 0ULL){ /* !isIMSIavailable(self) */
+        sendIdentityReq(self);
+        res = 0;
+    }
+    return res;
+}
+
+void emm_removeCurrentSC(EMMCtx emm_h){
+    EMMCtx_t *self = (EMMCtx_t*)emm_h;
+
+    /* Move current SC to Old SC and
+     * set new NAS Key Set ID */
+    self->old_ksi = self->ksi;
+    self->ksi = 7;
+
+    memcpy(self->old_kasme, self->kasme, 32);
+    memset(self->kasme, 0, 32);
+
+    self->nasUlCountForSC=0;
+}
+
+guint emm_checkAuthInformation(EMMCtx emm_h){
+    EMMCtx_t *self = (EMMCtx_t*)emm_h;
+    guint res = 1;
+
+    if(!self->authQuadrsLen>0){
+        s6a_GetAuthInformation(self->s6a, self, emm_sendAuthRequest, self);
+        res = 0;
+    }
+    return res;
+}
+
+guint emm_checkSCAvailability(EMMCtx emm_h){
+    EMMCtx_t *self = (EMMCtx_t*)emm_h;
+    guint res = 1;
+
+    if(self->ksi == 7                   /* SC invalid*/
+       || self->ksi != self->msg_ksi){  /* SC doesn't match*/
+        emm_sendAuthRequest(self);
+        res = 0;
+    }
+    return res;
+}
+
+guint emm_checkSCActive(EMMCtx emm_h){
+    EMMCtx_t *self = (EMMCtx_t*)emm_h;
+    guint res = 1;
+
+    if(!self->sci){
+        emm_sendSecurityModeCommand(self);
+        res = 0;
+    }
+    return res;
+}
+
+void emm_triggerAKAprocedure(EMMCtx emm_h){
+    EMMCtx_t *self = (EMMCtx_t*)emm_h;
+    emm_removeCurrentSC(self);
+    if(!emm_checkIdentity(self)){
+        log_msg(LOG_DEBUG, 0, "Sent Identity Request");
+        emmChangeState(self, EMM_CommonProcedureInitiated);
+        return;
+    }
+    if(!emm_checkAuthInformation(self)){
+        log_msg(LOG_DEBUG, 0,"Getting info from HSS");
+        return;
+    }
+    if(!emm_checkSCAvailability(self)){
+        log_msg(LOG_DEBUG, 0,"Sent Authentication Request");
+        /* Set T3460 */
+        emmChangeState(self, EMM_CommonProcedureInitiated);
+        return;
+    }
+    g_error("Authentication failure and not sending Auth Req?");
 }

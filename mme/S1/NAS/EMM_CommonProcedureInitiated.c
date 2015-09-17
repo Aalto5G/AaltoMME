@@ -21,7 +21,7 @@
 #include "NAS_EMM_priv.h"
 
 static void processIdentityRsp(EMMCtx_t *emm, GenericNASMsg_t *msg);
-static void processAuthResp(EMMCtx_t * emm,  GenericNASMsg_t* msg, gboolean *isAuth);
+static void processAuthResp(EMMCtx_t * emm,  GenericNASMsg_t* msg, guint8 *isAuth);
 static void processAuthFailure(EMMCtx_t *emm, GenericNASMsg_t *msg);
 
 static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
@@ -29,7 +29,7 @@ static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
     GenericNASMsg_t *ciph;
     NASPlainMsg_t *plain;
     GenericNASMsg_t msg2;
-    gboolean isAuth;
+    guint8 isAuth;
 
     if(msg->header.securityHeaderType.v != PlainNAS){
         g_error("NAS message with security is not processed here");
@@ -65,27 +65,35 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
 
     SecurityHeaderType_t s;
     ProtocolDiscriminator_t p;
-    guint8 isAuth, res;
+    guint8 isAuth = 0, res = 0;
 
     nas_getHeader(buf, len, &s, &p);
 
+    /* The UE may have a Security Context but not the MME */
     if(emm->sci || s == IntegrityProtectedAndCipheredWithNewEPSSecurityContext){
-        res = nas_authenticateMsg(emm->parser, buf, len,
-                                  NAS_UpLink, (uint8_t*)&isAuth);
-        if(res==2){
+        res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
+        if(res==0){
+            /* EH Send Indication Error*/
+            g_error("Received malformed NAS packet");
+        }else if(res==2){
+            /* EH trigger AKA procedure */
             log_msg(LOG_WARNING, 0, "Wrong SQN Count");
             return;
-        }else if(res==0){
-            g_error("NAS Authentication Error");
         }
+
+        if(!dec_secNAS(emm->parser, &msg, NAS_UpLink, buf, len)){
+            g_error("NAS Decyphering Error");
+        }
+    }else{
+        dec_NAS(&msg, buf+6, len-6);
     }
 
-    if(!dec_secNAS(emm->parser, &msg, NAS_UpLink, buf, len)){
-        g_error("NAS Decyphering Error");
+    if(!isAuth && nas_isAuthRequired(msg.plain.eMM.messageType)){
+        log_msg(LOG_INFO, 0, "Received Message with wrong MAC");
+        return;
     }
 
     switch(msg.plain.eMM.messageType){
-
     case IdentityResponse:
         processIdentityRsp(emm, &msg);
         log_msg(LOG_DEBUG, 0, "Received IdentityResponse from: %llu", emm->imsi);
@@ -97,28 +105,25 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     case AuthenticationFailure:
         processAuthFailure(emm, &msg);
         break;
+    case SecurityModeReject:
+        log_msg(LOG_ERR, 0, "Received SecurityModeReject, not implemented");
+        break;
     case SecurityModeComplete:
-        if(!isAuth){
-            log_msg(LOG_ERR, 0, "Authentication Error on Security Mode Complete");
+        if(! s == IntegrityProtectedAndCipheredWithNewEPSSecurityContext){
             return;
         }
         emm->sci = TRUE;
         emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink);
-        /* nas_incrementNASCount(emm->parser, NAS_UpLink); */
         emmChangeState(emm, EMM_SpecificProcedureInitiated);
         s6a_UpdateLocation(emm->s6a, emm,
                            (void(*)(gpointer)) emm_processFirstESMmsg,
                            (gpointer)emm);
-        break;
-    case SecurityModeReject:
-        log_msg(LOG_ERR, 0, "Received SecurityModeReject, not implemented");
         break;
     default:
         log_msg(LOG_WARNING, 0,
                 "NAS Message type (%u) not recognized in this context",
                 msg.plain.eMM.messageType);
     }
-
 }
 
 
@@ -147,7 +152,7 @@ void test(EMMCtx_t *emm){
     log_msg(LOG_ERR, 0, "Upsated NAS SQN");
 }
 
-static void processAuthResp(EMMCtx_t * emm,  GenericNASMsg_t* msg, gboolean *isAuth){
+static void processAuthResp(EMMCtx_t * emm,  GenericNASMsg_t* msg, guint8 *isAuth){
     AuthenticationResponse_t * authRsp;
     authRsp = (AuthenticationResponse_t*)&(msg->plain.eMM);
     AuthQuadruplet *sec;
