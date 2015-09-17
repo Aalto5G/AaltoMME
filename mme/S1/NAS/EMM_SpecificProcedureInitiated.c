@@ -33,7 +33,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     GenericNASMsg_t msg;
     SecurityHeaderType_t s;
     ProtocolDiscriminator_t p;
-    gboolean isAuth = FALSE, res;
+    guint8 isAuth = 0, res;
     nas_getHeader(buf, len, &s, &p);
     if(emm->sci){
         res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);

@@ -65,7 +65,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
 
     SecurityHeaderType_t s;
     ProtocolDiscriminator_t p;
-    gboolean isAuth, res;
+    guint8 isAuth, res;
 
     nas_getHeader(buf, len, &s, &p);
 

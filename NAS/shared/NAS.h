@@ -109,18 +109,6 @@ const uint32_t nas_getLastCount(const NAS h, const NAS_Direction direction);
 
 
 /**
- * @brief Increment the NAS Counter
- * @param [in]  h           NAS handler
- * @param [in]  direction   0 for uplink, 1 for downlink
- * @return 1 on success, 0 if overflow
- *
- * It increments the NAS counter depending on the direction provided,
- * if an overflow is about to occur (5 counts before), returns 0
- */
-int nas_incrementNASCount(const NAS h, const NAS_Direction direction);
-
-
-/**
  * @brief Check NAS integrity of a message
  * @param [in]  h           NAS handler
  * @param [in]  buf         Received NAS message
@@ -231,7 +219,23 @@ void encaps_EMM(uint8_t **curpos,
 
 
 /* Tool Functions*/
-uint32_t encapPLMN(uint16_t mcc, uint16_t mnc);
+
+/**
+ * @brief Check NAS integrity of a message
+ * @param [in]  messageType   NAS message type
+ * @return 1 if integrity check is required to process the message, else 0
+ *
+ * This function returns 1 with the message integrity check is mandatory to
+ * process the message. If the message has to be processed even if the
+ * integrity fails returns 0.
+ *
+ * The rules that are applied are the ones described in clause 4.4.4.3 of
+ * TS 24.301. The exceptional cases are not contemplated and the developer
+ * is required to check them:
+ * - The Identity response has to be processed only if the parameter is IMSI
+ * - The Detach Request if sent before security has been activated.
+ */
+uint8_t nas_isAuthRequired(NASMessageType_t messageType);
 
 
 #endif  /* !_NAS_H */

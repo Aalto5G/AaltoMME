@@ -33,31 +33,34 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     GenericNASMsg_t msg;
     SecurityHeaderType_t s;
     ProtocolDiscriminator_t p;
-    gboolean isAuth = FALSE, res;
+    guint8 isAuth = 0, res;
     guti_t msg_guti;
     guint8 msg_ksi;
 
     nas_getHeader(buf, len, &s, &p);
 
-    if(emm->sci){
-        res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
-        if(res==2){
-            log_msg(LOG_WARNING, 0, "Wrong SQN Count");
-            return;
-        }else if(res==0){
-            g_error("NAS Authentication Error");
-        }
+    if(!emm->sci){
+	    g_error("Wrong state to be with a security context");
     }
-    if(!isAuth){
-        log_msg(LOG_INFO, 0, "Received Message with wrong MAC");
-        return;
+
+    res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
+    if(res==0){
+	    /* EH Send Indication Error*/
+	    g_error("Received malformed NAS packet");
+    }else if(res==2){
+	    /* EH trigger AKA procedure */
+	    log_msg(LOG_WARNING, 0, "Wrong SQN Count");
+	    return;
     }
 
     if(!dec_secNAS(emm->parser, &msg, NAS_UpLink, buf, len)){
         g_error("NAS Decyphering Error");
     }
 
-    /* nas_incrementNASCount(emm->parser, NAS_UpLink); */
+    if(!isAuth && nas_isAuthRequired(msg.plain.eMM.messageType)){
+        log_msg(LOG_INFO, 0, "Received Message with wrong MAC");
+        return;
+    }
 
     switch(msg.plain.eMM.messageType){
     case DetachRequest:
@@ -67,32 +70,33 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     case TrackingAreaUpdateRequest:
         emm_processTAUReq(emm, &msg, &msg_ksi, &msg_guti);
 
-        if(msg_ksi < 6){
-            emm->next_ksi = msg_ksi+1;
-        }
-
-        if(isAuth && emm->sci){
-	        emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink);
-	        /* nas_incrementNASCount(emm->parser, NAS_UpLink); */
-
-	        emm_sendTAUReject(emm);
-	        emmChangeState(emm, EMM_Deregistered);
-
-	        /* emm_sendTAUAccept(emm); */
-	        /* emmChangeState(emm, EMM_SpecificProcedureInitiated); */
+        if(!isAuth){
+	        if(msg_ksi < 6){
+		        emm->next_ksi = msg_ksi+1;
+	        }
+	        /* Security Context not valid, removing it*/
+	        emm->ksi = 7;
+	        memset(emm->kasme, 0, 32);
+	        emm->nasUlCountForSC=0;
+	        if(!emm->authQuadrsLen>0){
+		        log_msg(LOG_DEBUG, 0,"Getting info from HSS");
+		        s6a_GetAuthInformation(emm->s6a, emm, emm_sendAuthRequest, emm);
+	        }else{
+		        emm_sendAuthRequest(emm);
+	        }
+	        emmChangeState(emm, EMM_CommonProcedureInitiated);
 	        return;
         }
-        /* Security Context not valid, removing it*/
-        emm->ksi = 7;
-        memset(emm->kasme, 0, 32);
-        emm->nasUlCountForSC=0;
-        if(!emm->authQuadrsLen>0){
-	        log_msg(LOG_DEBUG, 0,"Getting info from HSS");
-	        s6a_GetAuthInformation(emm->s6a, emm, emm_sendAuthRequest, emm);
-        }else{
-	        emm_sendAuthRequest(emm);
-        }
-        emmChangeState(emm, EMM_CommonProcedureInitiated);
+        emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink);
+
+        /* HACK: Send reject to detach user and trigger reattach*/
+        emm_sendTAUReject(emm);
+        emmChangeState(emm, EMM_Deregistered);
+
+        /* Normal processing*/
+        /* emm_sendTAUAccept(emm); */
+        /* emmChangeState(emm, EMM_SpecificProcedureInitiated); */
+
         break;
     default:
         log_msg(LOG_WARNING, 0,

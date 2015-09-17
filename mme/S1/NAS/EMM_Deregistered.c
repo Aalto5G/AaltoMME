@@ -73,7 +73,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     if(emm->sci){
         res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
         if(res==2){
-            log_msg(LOG_WARNING, 0, "Wrong SQN Count");
+            log_msg(LOG_WARNING, 0, "Wrong SQN Count, ignoring msg");
             return;
         }else if(res==0){
             g_error("NAS Authentication Error");

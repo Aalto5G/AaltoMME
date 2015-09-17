@@ -282,6 +282,9 @@ int newNASMsg_sec(const NAS h,
     size_t cLen = 0;
     NASHandler *n = (NASHandler*)h;
 
+    if(!n->isValid)
+        return 0;
+
     if(!(s == IntegrityProtected ||
          s == IntegrityProtectedAndCiphered ||
          s == IntegrityProtectedWithNewEPSSecurityContext ||
@@ -339,22 +342,6 @@ void encaps_EMM(uint8_t **curpos, NASMessageType_t messageType){
 }
 
 /* Tool functions*/
-
-uint32_t encapPLMN(uint16_t mcc, uint16_t mnc){
-    uint32_t tbcd;
-    uint8_t tmp[3];
-    tmp[0] = ((mcc%100)/10<<4) | mcc/100;
-    tmp[1] = (mcc%10);
-    if(mnc/100 == 0){
-        tmp[1]|=0xf0;
-        tmp[2] = (mnc/10) | (mnc%10)<<4;
-    }else{
-        tmp[1]|= (mnc%10)<<4;
-        tmp[2] = ((mnc%100)/10<<4) | mnc/100;
-    }
-    memcpy(&tbcd, tmp, 3);
-    return tbcd;
-}
 
 NAS nas_newHandler(){
     NASHandler *n = (NASHandler*)malloc(sizeof(NASHandler));
@@ -451,16 +438,36 @@ const uint32_t nas_getLastCount(const NAS h, const NAS_Direction direction){
     return n->nas_count[direction]-1;
 }
 
+
+/**
+ * @brief Increment the NAS Counter
+ * @param [in]  h           NAS handler
+ * @param [in]  direction   0 for uplink, 1 for downlink
+ * @return 1 on success, 0 if overflow
+ *
+ * It increments the NAS counter depending on the direction provided,
+ * if an overflow is about to occur (5 counts before), returns 0
+ */
 int nas_incrementNASCount(const NAS h, const NAS_Direction direction){
     NASHandler *n = (NASHandler*)h;
-    if(!n->isValid)
-        return 0;
 
+    /* NAS COUNT structure:
+     * 1 Byte    NAS Sequence (8 least significant bits)
+     * 2 Bytes   NAS overflow counter
+     * 1 Byte    Zeros
+     */
     nas_msg(NAS_DEBUG, 0, "Increment counter for direction %u from %u",
             direction,
             n->nas_count[direction]);
 
     n->nas_count[direction]++;
+
+    if((n->nas_count[direction]&0xff) == 0){
+        /* NAS sequence (8bits) overflow, increasing both NAS sequence
+         * and NAS overflow counter (next 16 bits)*/
+        n->nas_count[direction]++;
+    }
+
     if(n->nas_count[direction] > 0xffffff-5){
         return 0;
     }
@@ -548,4 +555,27 @@ int dec_secNAS(const NAS h,
                      plain, &len);
 
     return dec_NAS(msg, plain, len);
+}
+
+uint8_t nas_isAuthRequired(NASMessageType_t messageType){
+    uint8_t res;
+
+    switch (messageType) {
+    case AttachRequest:
+    case IdentityResponse:
+    case AuthenticationResponse:
+    case AuthenticationFailure:
+    case SecurityModeReject:
+    case DetachRequest:
+    case DetachAccept:
+    case TrackingAreaUpdateRequest:
+    /* Service Request not considered as it doesn't have message type
+     * Check TS 24.301*/
+    case ExtendedServiceRequest:
+        res = 0;
+        break;
+    default:
+        res = 1;
+        break;
+    }
 }
