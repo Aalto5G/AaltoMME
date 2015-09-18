@@ -73,7 +73,37 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         break;
     case TrackingAreaUpdateComplete:
         log_msg(LOG_INFO, 0, "Received TrackingAreaUpdateComplete, not implemented");
+        emmChangeState(emm, EMM_Registered);
         break;
+
+    /*HACK: 2 extra cases*/
+    case AttachRequest:
+        processAttach(emm, &msg);
+
+        if(!isAuth){
+            emm_triggerAKAprocedure(emm);
+            return;
+        }
+
+        emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink);
+        emmChangeState(emm, EMM_SpecificProcedureInitiated);
+        emm_processFirstESMmsg(emm);
+        break;
+    case TrackingAreaUpdateRequest:
+        emm_processTAUReq(emm, &msg);
+
+        if(!isAuth){
+            emm_triggerAKAprocedure(emm);
+            return;
+        }
+        emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink);
+
+        /* HACK: Send reject to detach user and trigger reattach*/
+        emm_sendTAUReject(emm);
+        emmChangeState(emm, EMM_Deregistered);
+        break;
+        /* End of HACK*/
+
     default:
         log_msg(LOG_WARNING, 0,
                 "NAS Message type (%u) not recognized in this context",

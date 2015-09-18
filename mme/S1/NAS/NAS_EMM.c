@@ -133,7 +133,6 @@ static guint8 emm_nextKSI(guint8 k){
 
 static guint8 emm_generateNewKSI(guint8 k1, guint k2){
     k1 = emm_nextKSI(k1);
-    k2 = emm_nextKSI(k2);
     if(k1 == k2){
         k1 = emm_nextKSI(k1);
     }
@@ -146,6 +145,8 @@ void emm_sendAuthRequest(EMMCtx emm_h){
     guint8 buffer[150];
     AuthQuadruplet *sec;
     guint8 old_ksi;
+
+    memset(buffer, 0, 150);
 
     log_msg(LOG_DEBUG, 0, "Initiating UE authentication");
 
@@ -185,6 +186,7 @@ void emm_setSecurityQuadruplet(EMMCtx emm_h){
 
     memcpy(emm->kasme, sec->kASME, 32);
 
+    emm->authQuadrsLen--;
     g_ptr_array_remove_index(emm->authQuadrs, 0);
 }
 
@@ -352,7 +354,7 @@ guint32 *emm_getM_TMSI_p(EMMCtx emm){
     return emmCtx_getM_TMSI_p(emm);
 }
 
-void emm_processTAUReq(EMMCtx emm_h, GenericNASMsg_t *msg, guint8 *ksi_msg, guti_t *guti){
+void emm_processTAUReq(EMMCtx emm_h, GenericNASMsg_t *msg){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     uint8_t mobId[20];
     uint32_t esmSize, i;
@@ -372,7 +374,7 @@ void emm_processTAUReq(EMMCtx emm_h, GenericNASMsg_t *msg, guint8 *ksi_msg, guti
     /* Update type for T3412 expiration on the UE, periodic updating (0)*/
 
     /*nASKeySetId*/
-    *ksi_msg = tau_msg->nASKeySetId.v & 0x07;
+    emm->msg_ksi = tau_msg->nASKeySetId.v & 0x07;
 
     /*EPSMobileId*/
     if(((ePSMobileId_header_t*)tau_msg->oldGUTI.v)->type == 6 ){    /*GUTI*/
@@ -384,6 +386,7 @@ void emm_sendTAUAccept(EMMCtx emm_h){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     guint8 *pointer, t3412;
     guint8 out[156], plain[150], guti_b[11];
+    guint16 bearerStatus;
     gsize len=0, tlen;
     NAS_tai_list_t tAIl;
     guti_t guti;
@@ -413,6 +416,9 @@ void emm_sendTAUAccept(EMMCtx emm_h){
     /* TAI list */
     ecmSession_getTAIlist(emm->ecm, &tAIl, &tlen);
     nasIe_tlv_t4(&pointer, 0x54, (uint8_t*)&tAIl, tlen);
+    /* EPS Bearer Context Status*/
+    bearerStatus = hton16(0x0000);
+    nasIe_tlv_t4(&pointer, 0x57, (uint8_t *)&bearerStatus, 2);
 
     newNASMsg_sec(emm->parser, out, &len,
                   EPSMobilityManagementMessages,
@@ -476,9 +482,7 @@ void emm_removeCurrentSC(EMMCtx emm_h){
      * set new NAS Key Set ID */
     self->old_ksi = self->ksi;
     self->ksi = 7;
-
-    memcpy(self->old_kasme, self->kasme, 32);
-    memset(self->kasme, 0, 32);
+    self->sci = FALSE;
 
     self->nasUlCountForSC=0;
 }

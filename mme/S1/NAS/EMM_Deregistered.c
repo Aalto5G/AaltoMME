@@ -26,7 +26,7 @@
 #include "MME_S1_priv.h"
 
 
-void processAttach(gpointer emm_h,  GenericNASMsg_t* msg, guint8 *ksi_msg);
+void processAttach(gpointer emm_h,  GenericNASMsg_t* msg);
 void attachContinuationSwitch(gpointer emm_h, guint8 ksi_msg);
 void sendIdentityReq(gpointer emm_h);
 void emm_AuthInfoAvailable(gpointer emm_h);
@@ -43,8 +43,8 @@ static void emmProcessMsg(gpointer emm_h,  GenericNASMsg_t* msg){
     switch(msg->plain.eMM.messageType){
 
     case AttachRequest:
-        processAttach(emm, msg, &ksi_msg);
-        attachContinuationSwitch(emm, ksi_msg);
+        processAttach(emm, msg);
+        emm_triggerAKAprocedure(emm);
         break;
     default:
         log_msg(LOG_WARNING, 0,
@@ -96,9 +96,9 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
 
     switch(msg.plain.eMM.messageType){
     case AttachRequest:
-        processAttach(emm, &msg, &msg_ksi);
+        processAttach(emm, &msg);
 
-        if(!isAuth){
+        if(!isAuth || TRUE){
             emm_triggerAKAprocedure(emm);
             return;
         }
@@ -149,7 +149,7 @@ void linkEMMDeregistered(EMM_State* s){
 
 
 
-void processAttach(gpointer emm_h,  GenericNASMsg_t* msg, guint8 *ksi_msg){
+void processAttach(gpointer emm_h,  GenericNASMsg_t* msg){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     AttachRequest_t *attachMsg;
     guint i;
@@ -160,7 +160,7 @@ void processAttach(gpointer emm_h,  GenericNASMsg_t* msg, guint8 *ksi_msg){
     attachMsg = (AttachRequest_t*)&(msg->plain.eMM);
     emm->attachStarted = TRUE;
     emm->attachType = attachMsg->ePSAttachType.v;
-    *ksi_msg = attachMsg->nASKeySetId.v & 0x07;
+    emm->msg_ksi = attachMsg->nASKeySetId.v & 0x07;
 
     esmRaw = g_byte_array_new();
     g_byte_array_append(esmRaw,

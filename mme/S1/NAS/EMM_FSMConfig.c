@@ -48,13 +48,13 @@ void emmConfigureFSM(){
 }
 
 void emmDestroyFSM(){
-	esmDestroyFSM();
+    esmDestroyFSM();
     g_free(emm_states);
 }
 
 
 void emmChangeState(gpointer ctx, EMMState s){
-    log_msg(LOG_DEBUG, 0, "Change to EMM %s", EMMStateName[s]);
+    log_msg(LOG_INFO, 0, "Change to EMM %s", EMMStateName[s]);
     emm_setState(ctx, &(emm_states[s]));
 }
 

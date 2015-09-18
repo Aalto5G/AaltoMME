@@ -54,19 +54,19 @@ static void ecm_processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
 
         ecm->l_sid = 1;
         if(r_sid != 0){
-	        ecm->r_sid_valid = TRUE;
-	        ecm->r_sid = r_sid;
+            ecm->r_sid_valid = TRUE;
+            ecm->r_sid = r_sid;
         }
 
         emm_getGUTIfromMsg(nASPDU->str, nASPDU->len, &guti);
         if(guti.mtmsi != 0 && mme_GUMMEI_IsLocal(mme, guti.tbcd_plmn, guti.mmegi, guti.mmec)){
-	        mme_lookupEMMCtxt(mme, guti.mtmsi, &(ecm->emm));
+            mme_lookupEMMCtxt(mme, guti.mtmsi, &(ecm->emm));
         }
 
         if(ecm->emm == NULL){
-	        ecm->emm = emm_init(ecm);
+            ecm->emm = emm_init(ecm);
         }else{
-	        emm_registerECM(ecm->emm, ecm);
+            emm_registerECM(ecm->emm, ecm);
         }
 
         emm_processMsg(ecm->emm, nASPDU->str, nASPDU->len);

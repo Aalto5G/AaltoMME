@@ -23,7 +23,9 @@
 static void processDetachReq(EMMCtx_t *emm, GenericNASMsg_t *msg);
 
 static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
-    log_msg(LOG_ERR, 0, "Not Implemented");
+    log_msg(LOG_WARNING, 0,
+            "NAS Message type (%u) not recognized in this context",
+            msg->plain.eMM.messageType);
 }
 
 
@@ -33,7 +35,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     GenericNASMsg_t msg;
     SecurityHeaderType_t s;
     ProtocolDiscriminator_t p;
-    guint8 isAuth = 0, res;
+    guint8 isAuth = 0, res=0;
     guti_t msg_guti;
     guint8 msg_ksi;
 
@@ -74,36 +76,21 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         processDetachReq(emm, &msg);
         break;
     case TrackingAreaUpdateRequest:
-        emm_processTAUReq(emm, &msg, &msg_ksi, &msg_guti);
+        emm_processTAUReq(emm, &msg);
 
         if(!isAuth){
-            /* Security Context not valid, removing it*/
-            if(msg_ksi < 6){
-                emm->msg_ksi = msg_ksi+1;
-            }
-            emm->ksi = 7;
-            memset(emm->kasme, 0, 32);
-            emm->nasUlCountForSC=0;
-            if(!emm->authQuadrsLen>0){
-                log_msg(LOG_DEBUG, 0,"Getting info from HSS");
-                s6a_GetAuthInformation(emm->s6a, emm, emm_sendAuthRequest, emm);
-            }else{
-                emm_sendAuthRequest(emm);
-            }
-            emmChangeState(emm, EMM_CommonProcedureInitiated);
+            emm_triggerAKAprocedure(emm);
             return;
         }
-
         emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink);
 
-        /* HACK: Send reject to detach user and trigger reattach*/
-        emm_sendTAUReject(emm);
-        emmChangeState(emm, EMM_Deregistered);
+        /* /\* HACK: Send reject to detach user and trigger reattach*\/ */
+        /* emm_sendTAUReject(emm); */
+        /* emmChangeState(emm, EMM_Deregistered); */
 
         /* Normal processing*/
-        /* emm_sendTAUAccept(emm); */
-        /* emmChangeState(emm, EMM_SpecificProcedureInitiated); */
-
+        emm_sendTAUAccept(emm);
+        emmChangeState(emm, EMM_SpecificProcedureInitiated);
         break;
     default:
         log_msg(LOG_WARNING, 0,
@@ -134,7 +121,6 @@ static void emm_detach(EMMCtx_t *emm){
     log_msg(LOG_INFO, 0, "UE (IMSI: %llu) NAS Detach", emm->imsi);
     emmChangeState(emm, EMM_Deregistered);
     ecm_sendUEContextReleaseCommand(emm->ecm, CauseNas, CauseNas_detach);
-    /*TODO, move EMM context to MME structure*/
 }
 
 static void emm_detach_switchoff(EMMCtx_t *emm){

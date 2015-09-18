@@ -484,7 +484,7 @@ uint32_t mme_newLocalUEid(struct mme_t *self){
             log_msg(LOG_DEBUG, 0, "MME S1AP UE ID %u Chosen", *i);
             return *i;
         }
-        log_msg(LOG_DEBUG, 0, "MME S1AP UE ID %u exists already", *i);
+        /* log_msg(LOG_DEBUG, 0, "MME S1AP UE ID %u exists already", *i); */
     }
     g_free(i);
     log_msg(LOG_ERR, 0, "Maximum number of UE (%u) reached", *i);
@@ -517,7 +517,7 @@ void mme_deregisterS1Assoc(struct mme_t *self, gpointer assoc){
 
 
 void mme_lookupS1Assoc(struct mme_t *self, gconstpointer geNBid, gpointer *assoc){
-	*assoc = g_hash_table_lookup(self->s1_by_GeNBid, geNBid);
+    *assoc = g_hash_table_lookup(self->s1_by_GeNBid, geNBid);
 }
 
 
@@ -528,17 +528,17 @@ void mme_registerEMMCtxt(struct mme_t *self, gpointer emm){
 }
 
 void mme_deregisterEMMCtxt(struct mme_t *self, gpointer emm){
-	if(g_hash_table_remove(self->emm_sessions, emm_getM_TMSI_p(emm)) != TRUE){
+    if(g_hash_table_remove(self->emm_sessions, emm_getM_TMSI_p(emm)) != TRUE){
         log_msg(LOG_ERR, 0, "Unable to find ECM session");
     }
 }
 
 void mme_lookupEMMCtxt(struct mme_t *self, const guint32 m_tmsi, gpointer *emm){
-	*emm = g_hash_table_lookup(self->emm_sessions, &m_tmsi);
+    *emm = g_hash_table_lookup(self->emm_sessions, &m_tmsi);
 }
 
 GList *mme_getS1Assocs(struct mme_t *self){
-	return g_hash_table_get_values(self->s1_by_GeNBid);
+    return g_hash_table_get_values(self->s1_by_GeNBid);
 }
 
 gpointer mme_getS6a(struct mme_t *self){
@@ -553,35 +553,35 @@ gboolean mme_GUMMEI_IsLocal(const struct mme_t *self,
                             const guint32 plmn,
                             const guint16 mmegi,
                             const guint8 mmec){
-	return TRUE;
+    return TRUE;
 }
 
 
 gboolean mme_containsSupportedTAs(const struct mme_t *self, SupportedTAs_t *tas){
-	int i, j, k, l;
-	BPLMNs_t *bc_l;
-	PLMNidentity_t *plmn_eNB, *plmn_MME;
-	ServedPLMNs_t *served;
+    int i, j, k, l;
+    BPLMNs_t *bc_l;
+    PLMNidentity_t *plmn_eNB, *plmn_MME;
+    ServedPLMNs_t *served;
 
 
-	for(i=0; i<tas->size; i++){
-		bc_l = tas->item[i]->broadcastPLMNs;
-		for(j=0; j<bc_l->n ; j++){
-			plmn_eNB = bc_l->pLMNidentity[j];
-			for(k=0; k<self->servedGUMMEIs->size; k++){
-				served = self->servedGUMMEIs->item[k]->servedPLMNs;
-				for(l=0; l<served->size ; l++){
-					plmn_MME = served->item[l];
-					log_msg(LOG_DEBUG, 0, "Comparing SupportedTA with ServedGUMMEIs"
-					        " PLMN %x%x%x <=> %x%x%x",
-					        plmn_MME->tbc.s[0], plmn_MME->tbc.s[1], plmn_MME->tbc.s[2],
-					        plmn_eNB->tbc.s[0], plmn_eNB->tbc.s[1], plmn_eNB->tbc.s[2]);
-					if(memcmp(plmn_MME->tbc.s, plmn_eNB->tbc.s, 3)==0){
-						return TRUE;
-					}
-				}
-			}
-		}
-	}
-	return FALSE;
+    for(i=0; i<tas->size; i++){
+        bc_l = tas->item[i]->broadcastPLMNs;
+        for(j=0; j<bc_l->n ; j++){
+            plmn_eNB = bc_l->pLMNidentity[j];
+            for(k=0; k<self->servedGUMMEIs->size; k++){
+                served = self->servedGUMMEIs->item[k]->servedPLMNs;
+                for(l=0; l<served->size ; l++){
+                    plmn_MME = served->item[l];
+                    log_msg(LOG_DEBUG, 0, "Comparing SupportedTA with ServedGUMMEIs"
+                            " PLMN %x%x%x <=> %x%x%x",
+                            plmn_MME->tbc.s[0], plmn_MME->tbc.s[1], plmn_MME->tbc.s[2],
+                            plmn_eNB->tbc.s[0], plmn_eNB->tbc.s[1], plmn_eNB->tbc.s[2]);
+                    if(memcmp(plmn_MME->tbc.s, plmn_eNB->tbc.s, 3)==0){
+                        return TRUE;
+                    }
+                }
+            }
+        }
+    }
+    return FALSE;
 }
