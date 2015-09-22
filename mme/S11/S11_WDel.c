@@ -35,6 +35,7 @@ static void processMsg(gpointer self){
             g_error_free (err);
             return;
         }
+        s11changeState(self, noCtx);
         returnControlAndRemoveSession(self);
         break;
     default:
@@ -56,7 +57,7 @@ static void modBearer(gpointer self){
 }
 
 static void releaseAccess(gpointer self){
-	log_msg(LOG_ERR, 0, "Not Implemented");
+    log_msg(LOG_ERR, 0, "Not Implemented");
 }
 
 

@@ -119,6 +119,7 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
     guint32 len;
     gsize tlen;
     NAS_tai_list_t tAIl;
+    EMMCause_t cause;
 
     memset(out, 0, 156);
     memset(plain, 0, 150);
@@ -132,11 +133,13 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
         encaps_EMM(&pointer, AttachAccept);
 
         /* EPS attach result.*/
+        /* nasIe_v_t1_l(&pointer,  1); /\* EPS only*\/ */
         nasIe_v_t1_l(&pointer,  emm->attachType);
         pointer++; /*Spare half octet*/
         /* T3412 value */
-        t3412 = 0x23;
-        nasIe_v_t3(&pointer, &t3412, 1); /* EPS only */
+        /* t3412 = 0x23; /\* 3 min*\/ */
+        t3412 = 0x49; /* 54 min, default */
+        nasIe_v_t3(&pointer, &t3412, 1);
         /* TAI list */
         ecmSession_getTAIlist(emm->ecm, &tAIl, &tlen);
         nasIe_lv_t4(&pointer, (uint8_t*)&tAIl, tlen);
@@ -149,6 +152,13 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
         memcpy(guti_b+1, &guti, 10);
         nasIe_tlv_t4(&pointer, 0x50, guti_b, 11);
 
+        /* EMM cause if the attach type is different
+         * This version only accepts EPS services, the combined attach
+         * is not supported*/
+        /* if(emm->attachType == 2){ */
+        /*     cause = EMM_CSDomainNotAvailable; */
+        /*     nasIe_tv_t3(&pointer, 0x53, (uint8_t*)&cause, 1); */
+        /* } */
 
         newNASMsg_sec(emm->parser, out, &len,
                       EPSMobilityManagementMessages,

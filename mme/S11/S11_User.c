@@ -80,10 +80,12 @@ gpointer s11u_newUser(gpointer s11, EMMCtx emm, EPS_Session s){
 
     /*Initial state noCtx*/
     s11changeState(self, noCtx);
+    log_msg(LOG_INFO, 0, "Created S11 session");
     return self;
 }
 
 void s11u_freeUser(gpointer self){
+    log_msg(LOG_INFO, 0, "Removing S11 session");
     g_free(self);
 }
 
