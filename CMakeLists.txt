@@ -68,7 +68,7 @@ target_link_libraries( ${PROJECT_NAME}
   ${OPENSSL_LIBRARIES})
 
 install(TARGETS ${PROJECT_NAME} DESTINATION /usr/bin COMPONENT binaries)
-install(FILES mme/mme.cfg DESTINATION ~/ COMPONENT config)
+install(FILES mme/mme.cfg DESTINATION /etc/cumucore/ COMPONENT config)
 
 ################################
 # GTP library : libgtp.a
@@ -109,6 +109,10 @@ set(CPACK_PACKAGE_VERSION_MAJOR "${${PROJECT_NAME}_VERSION_MAJOR}")
 set(CPACK_PACKAGE_VERSION_MINOR "${${PROJECT_NAME}_VERSION_MINOR}")
 set(CPACK_PACKAGE_VERSION_PATCH "${${PROJECT_NAME}_VERSION_PATCH}")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Vicent Ferrer Guasch <vicent.ferrerguasch@aalto.fi>")
-set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Mobility Management Entity used in Evolved Packet Core")
-
+set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Mobility Management Entity used in Evolved Packet Core.
+ First version prepared for the phase 1 of LSA Testbed in Rome")
+#set(CPACK_PACKAGE_DESCRIPTION_SUMMARY"Mobility Management Entity used in Evolved Packet Core")
+set(CPACK_DEBIAN_PACKAGE_SECTION Network)
+set(CPACK_DEBIAN_PACKAGE_SHLIBDEPS ON)
+set(CPACK_STRIP_FILES "1")
 include (CPack)

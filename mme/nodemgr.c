@@ -27,7 +27,7 @@
 
 #include <libconfig.h>
 
-#define CFGFILENAME "mme.cfg"
+#define CFGFILENAME "/etc/cumucore/mme.cfg"
 
 /*Config structure*/
 config_t cfg;
@@ -86,13 +86,13 @@ void getNode(struct nodeinfo_t *node, const enum nodeType type, Subscription sub
         count = config_setting_length(nodes);
         iPgw = (iPgw+1)%count;
         break;
-	case CTRL:
-		node->type = CTRL;
-		nodes = config_lookup(&cfg, "nodes.sdn");
-		nodecfg = config_setting_get_elem(nodes, iCtrl);
-		count = config_setting_length(nodes);
-		iCtrl = (iCtrl+1)%count;
-		break;
+    case CTRL:
+        node->type = CTRL;
+        nodes = config_lookup(&cfg, "nodes.sdn");
+        nodecfg = config_setting_get_elem(nodes, iCtrl);
+        count = config_setting_length(nodes);
+        iCtrl = (iCtrl+1)%count;
+        break;
     }
     /*Parser*/
     if(!(config_setting_lookup_string(nodecfg, "name", &name) &&
@@ -153,8 +153,8 @@ void getNodeByAddr6(const struct in6_addr *addr, const enum nodeType type, struc
 }
 
 void loadMMEinfo(struct mme_t *mme){
-	config_setting_t *mmeNAMEconf, *mmeIp4, *gUMMEIsconf, *gummeiconf, *pLMNsconf, *gIDsconf, *mMECsconf, *pLMNconf, *relCapconf, *uE_DNS;
-	const char *name, *mmeIpv4str, *uE_DNSstr;
+    config_setting_t *mmeNAMEconf, *mmeIp4, *gUMMEIsconf, *gummeiconf, *pLMNsconf, *gIDsconf, *mMECsconf, *pLMNconf, *relCapconf, *uE_DNS;
+    const char *name, *mmeIpv4str, *uE_DNSstr;
     uint32_t iGUMMEI, lGUMMEI, iPLMN, lPLMN, iGID, lGID, iMMEC, lMMEC;
     int tmp;
     ServedGUMMEIsItem_t *item;
@@ -172,15 +172,15 @@ void loadMMEinfo(struct mme_t *mme){
     mmeIp4 = config_lookup(&cfg, "mme.ipv4");
     mmeIpv4str = config_setting_get_string(mmeIp4);
     if(mmeIpv4str != NULL && mmeIpv4str[0]!= '\0'){
-	    memcpy(mme->ipv4, mmeIpv4str, INET_ADDRSTRLEN);
+        memcpy(mme->ipv4, mmeIpv4str, INET_ADDRSTRLEN);
     }
 
     uE_DNS = config_lookup(&cfg, "mme.UE_DNS");
     if( uE_DNS != NULL) {
-	        uE_DNSstr = config_setting_get_string(uE_DNS);
-	        if(uE_DNSstr != NULL && uE_DNSstr[0]!= '\0'){
-		        inet_pton(AF_INET, uE_DNSstr, &(mme->uE_DNS));
-	        }
+            uE_DNSstr = config_setting_get_string(uE_DNS);
+            if(uE_DNSstr != NULL && uE_DNSstr[0]!= '\0'){
+                inet_pton(AF_INET, uE_DNSstr, &(mme->uE_DNS));
+            }
     }
 
     mme->servedGUMMEIs = new_ServedGUMMEIs();
