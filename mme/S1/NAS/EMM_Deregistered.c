@@ -28,7 +28,6 @@
 
 void processAttach(gpointer emm_h,  GenericNASMsg_t* msg);
 void attachContinuationSwitch(gpointer emm_h, guint8 ksi_msg);
-void sendIdentityReq(gpointer emm_h);
 void emm_AuthInfoAvailable(gpointer emm_h);
 
 static void emmProcessMsg(gpointer emm_h,  GenericNASMsg_t* msg){
@@ -193,7 +192,7 @@ void attachContinuationSwitch(gpointer emm_h, guint8 ksi_msg){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
 
     if(emm->imsi == 0ULL){ /* !isIMSIavailable(emm) */
-        sendIdentityReq(emm);
+        emm_sendIdentityReq(emm);
         emmChangeState(emm, EMM_CommonProcedureInitiated);
         return;
     }
@@ -235,23 +234,4 @@ void attachContinuationSwitch(gpointer emm_h, guint8 ksi_msg){
 void emm_AuthInfoAvailable(gpointer emm_h){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     emm_sendAuthRequest(emm);
-}
-
-void sendIdentityReq(gpointer emm_h){
-    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
-    guint8 *pointer;
-    guint8 buffer[150];
-
-    log_msg(LOG_DEBUG, 0, "Building Identity Request");
-
-    pointer = buffer;
-    newNASMsg_EMM(&pointer, EPSMobilityManagementMessages, PlainNAS);
-
-    encaps_EMM(&pointer, IdentityRequest);
-
-    /* Selected NAS security algorithms */
-    nasIe_v_t1_l(&pointer, 1); /*Get Imsi*/
-    pointer++; /*Spare half octet*/
-
-    ecm_send(emm->ecm, buffer, pointer-buffer);
 }

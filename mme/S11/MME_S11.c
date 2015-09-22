@@ -19,6 +19,7 @@
 //#include "MME_engine.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "signals.h"
 
 #include "MME_S11.h"
@@ -101,14 +102,14 @@ struct t_process *S11_handler_create(struct t_engine_data *engine, struct t_proc
 /* ======================================================================*/
 
 static gpointer s11_newSession(S11_t *s11, EMMCtx emm, EPS_Session s){
-	gpointer u = s11u_newUser(s11, emm, s);
+    gpointer u = s11u_newUser(s11, emm, s);
     g_hash_table_insert(s11->users, s11u_getTEIDp(u), u);
     return u;
 }
 
 void s11_deleteSession(gpointer s11_h, gpointer u){
-	S11_t *self = (S11_t *) s11_h;
-	g_hash_table_remove(self->users, s11u_getTEIDp(u));
+    S11_t *self = (S11_t *) s11_h;
+    g_hash_table_remove(self->users, s11u_getTEIDp(u));
 }
 
 
@@ -169,18 +170,18 @@ void s11_accept(evutil_socket_t listener, short event, void *arg){
     msg->packet.gtp.flags=0x0;
     if (gtp2_recv(listener, &(msg->packet.gtp), &(msg->length),
                   &peer, &peerlen) != 0 ){
-	    log_errpack(LOG_ERR, errno, (struct sockaddr_in *)&(peer),
-	                &(msg->packet.gtp), msg->length,
-	                "gtp2_recv(fd=%d, msg=%lx, len=%d) failed",
-	                listener, (unsigned long) &(msg->packet.gtp), msg->length);
+        log_errpack(LOG_ERR, errno, (struct sockaddr_in *)&(peer),
+                    &(msg->packet.gtp), msg->length,
+                    "gtp2_recv(fd=%d, msg=%lx, len=%d) failed",
+                    listener, (unsigned long) &(msg->packet.gtp), msg->length);
     }
 
     switch(peer.sa_family){
     case AF_INET:
-	    ipv4 = (struct sockaddr_in*) &peer;
-	    inet_ntop(AF_INET, &(ipv4->sin_addr), msg->srcAddr, INET_ADDRSTRLEN);
+        ipv4 = (struct sockaddr_in*) &peer;
+        inet_ntop(AF_INET, &(ipv4->sin_addr), msg->srcAddr, INET_ADDRSTRLEN);
     /* case AF_INET6: */
-	/*     inet_ntop(AF_INET6, &(peer.sin6_addr), str, INET6_ADDRSTRLEN); */
+    /*     inet_ntop(AF_INET6, &(peer.sin6_addr), str, INET6_ADDRSTRLEN); */
     }
 
     msg->peer.fd = listener;
@@ -212,18 +213,18 @@ void s11_accept(evutil_socket_t listener, short event, void *arg){
         log_msg(LOG_DEBUG, 0, "Received new S11 request");
         processMsg(session, msg);
     }
-    
+
     freeMsg(msg);
 }
 
 const unsigned int getNextSeq(gpointer s11_h){
-	S11_t *self = (S11_t *) s11_h;
+    S11_t *self = (S11_t *) s11_h;
     return self->seq++;
 }
 
 const char *s11_getLocalAddress(gpointer s11_h){
-	S11_t *self = (S11_t *) s11_h;
-	return mme_getLocalAddress(self->mme);
+    S11_t *self = (S11_t *) s11_h;
+    return mme_getLocalAddress(self->mme);
 }
 
 /* ======================================================================

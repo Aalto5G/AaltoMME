@@ -469,7 +469,7 @@ guint emm_checkIdentity(EMMCtx emm_h){
     guint res = 1;
 
     if(self->imsi == 0ULL){ /* !isIMSIavailable(self) */
-        sendIdentityReq(self);
+        emm_sendIdentityReq(self);
         res = 0;
     }
     return res;
@@ -540,4 +540,23 @@ void emm_triggerAKAprocedure(EMMCtx emm_h){
         return;
     }
     g_error("Authentication failure and not sending Auth Req?");
+}
+
+void emm_sendIdentityReq(EMMCtx emm_h){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    guint8 *pointer;
+    guint8 buffer[150];
+
+    log_msg(LOG_DEBUG, 0, "Building Identity Request");
+
+    pointer = buffer;
+    newNASMsg_EMM(&pointer, EPSMobilityManagementMessages, PlainNAS);
+
+    encaps_EMM(&pointer, IdentityRequest);
+
+    /* Selected NAS security algorithms */
+    nasIe_v_t1_l(&pointer, 1); /*Get Imsi*/
+    pointer++; /*Spare half octet*/
+
+    ecm_send(emm->ecm, buffer, pointer-buffer);
 }

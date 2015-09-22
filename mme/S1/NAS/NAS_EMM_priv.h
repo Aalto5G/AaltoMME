@@ -52,4 +52,6 @@ void emm_sendTAUAccept(EMMCtx emm_h);
 
 void emm_sendTAUReject(EMMCtx emm_h);
 
+void emm_sendIdentityReq(EMMCtx emm_h);
+
 #endif /* NAS_EMM_PRIV_HFILE */
