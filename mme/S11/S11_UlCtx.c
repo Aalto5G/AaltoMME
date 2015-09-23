@@ -19,31 +19,33 @@
 #include "S11_FSMConfig.h"
 
 static void processMsg(gpointer self){
-	log_msg(LOG_ERR, 0, "Not Implemented");
+    log_msg(LOG_ERR, 0, "Not Implemented");
 }
 
 static void attach(gpointer self){
-	log_msg(LOG_ERR, 0, "Not Implemented");
+    log_msg(LOG_ERR, 0, "Not Implemented");
 }
 
 static void detach(gpointer self){
-	log_msg(LOG_ERR, 0, "Not Implemented");
+    log_msg(LOG_DEBUG, 0, "Deleting Bearer Context");
+    sendDeleteSessionReq(self);
+    s11changeState(self, wDel);
 }
 
 static void modBearer(gpointer self){
-	log_msg(LOG_DEBUG, 0, "Sending Modify Bearer Request");
-	sendModifyBearerReq(self);
-	s11changeState(self, wModBearerRsp);
+    log_msg(LOG_DEBUG, 0, "Sending Modify Bearer Request");
+    sendModifyBearerReq(self);
+    s11changeState(self, wModBearerRsp);
 }
 
 static void releaseAccess(gpointer self){
-	log_msg(LOG_ERR, 0, "Not Implemented");
+    log_msg(LOG_ERR, 0, "Not Implemented");
 }
 
 void linkUlCtx(S11_State* s){
-	s->processMsg = processMsg;
-	s->attach = attach;
-	s->detach =  detach;
-	s->modBearer = modBearer;
-	s->releaseAccess = releaseAccess;
+    s->processMsg = processMsg;
+    s->attach = attach;
+    s->detach =  detach;
+    s->modBearer = modBearer;
+    s->releaseAccess = releaseAccess;
 }

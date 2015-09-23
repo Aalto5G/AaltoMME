@@ -137,8 +137,8 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
         nasIe_v_t1_l(&pointer,  emm->attachType);
         pointer++; /*Spare half octet*/
         /* T3412 value */
-        /* t3412 = 0x23; /\* 3 min*\/ */
-        t3412 = 0x49; /* 54 min, default */
+        t3412 = 0x23; /* 3 min*/
+        /* t3412 = 0x49; /\* 54 min, default *\/ */
         nasIe_v_t3(&pointer, &t3412, 1);
         /* TAI list */
         ecmSession_getTAIlist(emm->ecm, &tAIl, &tlen);

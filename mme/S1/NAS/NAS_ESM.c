@@ -132,8 +132,12 @@ uint32_t esm_getDNSsrv(ESM esm_h){
 void esm_setE_RABSetupuListCtxtSURes(ESM esm_h, E_RABSetupListCtxtSURes_t* l){
     GList *ls;
     ESM_t *self = (ESM_t*)esm_h;
+    EPS_Session_t *session;
     ls = g_hash_table_get_values (self->sessions);
-    ePSsession_setE_RABSetupuListCtxtSURes(ls->data, l);
+    if(ls){
+        session = ls->data;
+        ePSsession_setE_RABSetupuListCtxtSURes(session, l);
+    }
 }
 
 void esm_UEContextReleaseReq(ESM esm_h, cause_choice_t choice, uint32_t cause){
@@ -141,8 +145,8 @@ void esm_UEContextReleaseReq(ESM esm_h, cause_choice_t choice, uint32_t cause){
     GList *ls;
     EPS_Session_t *session;
     ls = g_hash_table_get_values (self->sessions);
-    session = ls->data;
     if(ls){
+        session = ls->data;
         ePSsession_UEContextReleaseReq(session, choice, cause);
     }
 }
@@ -161,11 +165,13 @@ void esm_releaseEPSSession(EPS_Session s){
 void esm_detach(ESM esm_h, void(*cb)(gpointer), gpointer args){
     ESM_t *self = (ESM_t*)esm_h;
     GList *ls;
+    EPS_Session_t *session;
     ls = g_hash_table_get_values(self->sessions);
     self->cb = cb;
     self->args = args;
     if(ls){
-        ePSsession_detach(ls->data, esm_releaseEPSSession, ls->data);
+        session = ls->data;
+        ePSsession_detach(session, esm_releaseEPSSession, session);
     }else if(cb){
         cb(args);
     }

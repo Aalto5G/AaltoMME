@@ -1168,12 +1168,12 @@ void S11_dettach(gpointer s11_user, void(*cb)(gpointer), gpointer args){
 }
 
 void S11_ReleaseAccessBearers(gpointer s11_user, void(*cb)(gpointer), gpointer args){
-	log_msg(LOG_DEBUG, 0, "enter");
-	/* For Future use, requires S-GW compatibility*/
-	/* releaseAccess(s11_user, cb, args); */
+    log_msg(LOG_DEBUG, 0, "enter");
+    /* For Future use, requires S-GW compatibility*/
+    releaseAccess(s11_user, cb, args);
 
-	/* HACK*/
-	detach(s11_user, cb, args);
+    /* HACK*/
+    /* detach(s11_user, cb, args); */
 }
 
 /* void S11_CreateIndirectDataForwardingTunnel(gpointer s11_user, void(*cb)(gpointer), gpointer args){ */

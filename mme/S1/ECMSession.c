@@ -61,8 +61,8 @@ void ecmSession_free(ECMSession h){
 }
 
 void ecmSession_setEMM(ECMSession h, gpointer emm){
-	ECMSession_t *self = (ECMSession_t *)h;
-	self->emm = emm;
+    ECMSession_t *self = (ECMSession_t *)h;
+    self->emm = emm;
 }
 
 void ecmSession_processMsg(ECMSession h, S1AP_Message_t *s1msg, int r_sid){
@@ -119,7 +119,7 @@ void ecm_send(ECMSession h, gpointer msg, size_t len){
 }
 
 void ecm_sendCtxtSUReq(ECMSession h, gpointer msg, size_t len, GList *bearers){
-	S1AP_Message_t *s1out;
+    S1AP_Message_t *s1out;
 
     MME_UE_S1AP_ID_t *mmeUEId;
     ENB_UE_S1AP_ID_t *eNBUEId;
@@ -154,7 +154,7 @@ void ecm_sendCtxtSUReq(ECMSession h, gpointer msg, size_t len, GList *bearers){
     ambr = s1ap_newIE(s1out, id_uEaggregateMaximumBitrate, mandatory, reject);
     emm_getUEAMBR(self->emm, ambr);
 
-    
+
     /* E-RABToBeSetupListCtxtSUReq*/
     /* NAS-PDU*/
     list = s1ap_newIE(s1out, id_E_RABToBeSetupListCtxtSUReq, mandatory, reject);
@@ -168,21 +168,21 @@ void ecm_sendCtxtSUReq(ECMSession h, gpointer msg, size_t len, GList *bearers){
 
     /* NAS PDU is optional */
     if(msg && len>0){
-	    eRABitem->opt |=0x80;
-	    eRABitem->nAS_PDU = new_Unconstrained_Octed_String();
-	    eRABitem->nAS_PDU->str = msg;
-	    eRABitem->nAS_PDU->len = len;
+        eRABitem->opt |=0x80;
+        eRABitem->nAS_PDU = new_Unconstrained_Octed_String();
+        eRABitem->nAS_PDU->str = msg;
+        eRABitem->nAS_PDU->len = len;
     }
 
     first = g_list_first(bearers);
     session = (EPS_Session)first->data;
     bearer = ePSsession_getDefaultBearer(session);
-    
-    
+
+
     /* /\*eRABitem->eRABlevelQoSParameters->gbrQosInformation = new_GBR_QosInformation();*\/ */
 
     eRABitem->eRAB_ID.id = esm_bc_getEBI(bearer);
-    
+
     eRABitem->eRABlevelQoSParameters->qCI = 9;
     eRABitem->eRABlevelQoSParameters->allocationRetentionPriority->priorityLevel= 15;
     eRABitem->eRABlevelQoSParameters->allocationRetentionPriority->pre_emptionCapability = 0;
@@ -232,64 +232,64 @@ gpointer ecmSession_getS11(const ECMSession h){
 }
 
 void ecmSession_getTAIlist(const ECMSession h, NAS_tai_list_t *tAIl, gsize *len){
-	ECMSession_t *self = (ECMSession_t *)h;
+    ECMSession_t *self = (ECMSession_t *)h;
 
-	memset(tAIl, 0, sizeof(NAS_tai_list_t));
-	tAIl->numOfElem = 0; /* 1 - 1*/
-	tAIl->type = 0;
-	tAIl->list.singlePLMNnonconsec.plmn
-		= hton24(self->tAI.sn[0] <<16
-		         | self->tAI.sn[1] << 8
-		         | self->tAI.sn[2]);
+    memset(tAIl, 0, sizeof(NAS_tai_list_t));
+    tAIl->numOfElem = 0; /* 1 - 1*/
+    tAIl->type = 0;
+    tAIl->list.singlePLMNnonconsec.plmn
+        = hton24(self->tAI.sn[0] <<16
+                 | self->tAI.sn[1] << 8
+                 | self->tAI.sn[2]);
 
-	tAIl->list.singlePLMNnonconsec.tAC[0] = htons(self->tAI.tAC);
-	*len=6;
+    tAIl->list.singlePLMNnonconsec.tAC[0] = htons(self->tAI.tAC);
+    *len=6;
 }
 
 void ecmSession_getGUMMEI(const ECMSession h, guint32* sn, guint16 *mmegi, guint8 *mmec){
-	ECMSession_t *self = (ECMSession_t *)h;
-	struct mme_t *mme = s1_getMME(s1Assoc_getS1(self->assoc));
+    ECMSession_t *self = (ECMSession_t *)h;
+    struct mme_t *mme = s1_getMME(s1Assoc_getS1(self->assoc));
 
-	ServedGUMMEIsItem_t * item;
-	const ServedGUMMEIs_t *gummeis = mme_getServedGUMMEIs(mme);
-	item = gummeis->item[0];
+    ServedGUMMEIsItem_t * item;
+    const ServedGUMMEIs_t *gummeis = mme_getServedGUMMEIs(mme);
+    item = gummeis->item[0];
 
-	*sn = hton24(self->tAI.sn[0] <<16 | self->tAI.sn[1] << 8 | self->tAI.sn[2]);
+    *sn = hton24(self->tAI.sn[0] <<16 | self->tAI.sn[1] << 8 | self->tAI.sn[2]);
 
-	memcpy(mmegi, item->servedGroupIDs->item[0]->s, 2);
-	*mmec = item->servedMMECs->item[0]->s[0];
+    memcpy(mmegi, item->servedGroupIDs->item[0]->s, 2);
+    *mmec = item->servedMMECs->item[0]->s[0];
 }
 
 void ecmSession_newGUTI(ECMSession h, guti_t *guti){
-	ECMSession_t *self = (ECMSession_t *)h;
-	guint32 sn, r;
-	guint16 mmegi;
-	guint8 mmec;
-	guint64 n;
-	struct mme_t *mme = s1_getMME(s1Assoc_getS1(self->assoc));
+    ECMSession_t *self = (ECMSession_t *)h;
+    guint32 sn, r;
+    guint16 mmegi;
+    guint8 mmec;
+    guint64 n;
+    struct mme_t *mme = s1_getMME(s1Assoc_getS1(self->assoc));
 
-	ecmSession_getGUMMEI(self, &sn, &mmegi, &mmec);
-	guti->tbcd_plmn = sn;
-	guti->mmegi = mmegi;
-	guti->mmec = mmec;
+    ecmSession_getGUMMEI(self, &sn, &mmegi, &mmec);
+    guti->tbcd_plmn = sn;
+    guti->mmegi = mmegi;
+    guti->mmec = mmec;
 
-	/* M-TMSI IMSI hash salted with random number*/
-	srand(time(NULL));
-	r = rand();
-	n =  emmCtx_getIMSI(self->emm) ^ ((guint64)r & ((guint64)r)<<32);
-	guti->mtmsi = g_int64_hash(&n);
+    /* M-TMSI IMSI hash salted with random number*/
+    srand(time(NULL));
+    r = rand();
+    n =  emmCtx_getIMSI(self->emm) ^ ((guint64)r & ((guint64)r)<<32);
+    guti->mtmsi = g_int64_hash(&n);
 
-	mme_registerEMMCtxt(mme, self->emm);
+    mme_registerEMMCtxt(mme, self->emm);
 }
 
 void ecm_sendUEContextReleaseCommand(const ECMSession h, cause_choice_t choice, uint32_t cause){
-	ECMSession_t *self = (ECMSession_t *)h;
-	self->state->release(self, choice, cause);
+    ECMSession_t *self = (ECMSession_t *)h;
+    self->state->release(self, choice, cause);
 }
 
 
 const guint32 *ecmSession_getM_TMSI_p(const ECMSession h){
-	ECMSession_t *self = (ECMSession_t *)h;
-	const guti_t *guti = emmCtx_getGUTI(self->emm);
-	return &(guti->mtmsi);
+    ECMSession_t *self = (ECMSession_t *)h;
+    const guti_t *guti = emmCtx_getGUTI(self->emm);
+    return &(guti->mtmsi);
 }

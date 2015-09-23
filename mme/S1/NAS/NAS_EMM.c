@@ -341,8 +341,8 @@ static void emm_detach_hack(gpointer emm_h){
 void emm_UEContextReleaseReq(EMMCtx emm, cause_choice_t choice, uint32_t cause){
     EMMCtx_t *self = (EMMCtx_t*)emm;
     /* HACK*/
-    esm_detach(self->esm, emm_detach_hack, emm);
-    /* esm_UEContextReleaseReq(self->esm, choice, cause); */
+    /* esm_detach(self->esm, emm_detach_hack, emm); */
+    esm_UEContextReleaseReq(self->esm, choice, cause);
 }
 
 void emm_sendUEContextReleaseCommand(EMMCtx emm, cause_choice_t choice, uint32_t cause){
@@ -401,8 +401,8 @@ void emm_sendTAUAccept(EMMCtx emm_h){
     encaps_EMM(&pointer, TrackingAreaUpdateAccept);
 
     /*EPS update result*/
-    /* nasIe_v_t1_l(&pointer, 1); /\* Combined TA/LA updated *\/ */
-    nasIe_v_t1_l(&pointer, 0); /* TA updated */
+    nasIe_v_t1_l(&pointer, 1); /* Combined TA/LA updated */
+    /* nasIe_v_t1_l(&pointer, 0); /\* TA updated *\/ */
     pointer++;
 
     /* T3412 value */
@@ -418,6 +418,7 @@ void emm_sendTAUAccept(EMMCtx emm_h){
     nasIe_tlv_t4(&pointer, 0x54, (uint8_t*)&tAIl, tlen);
     /* EPS Bearer Context Status*/
     bearerStatus = hton16(0x0000);
+    /* bearerStatus = hton16(0x2000); */
     nasIe_tlv_t4(&pointer, 0x57, (uint8_t *)&bearerStatus, 2);
 
     newNASMsg_sec(emm->parser, out, &len,
