@@ -56,6 +56,7 @@ typedef struct{
     gpointer     s11;
 
     gboolean     attachStarted;
+    gboolean     s1BearersActive;
     guint8       attachType;
     GPtrArray    *pendingESMmsg;
 
@@ -72,8 +73,6 @@ typedef struct{
     guint8       nasIntAlg;
     guint8       nasCipAlg;
     NAS          parser;
-    //    guint32      nasUlCount;
-    //    guint32      nasDlCount;
     gboolean     sci;          /**< Security Context indicator */
     guint32      nasUlCountForSC;
     guint8       kasme[32];

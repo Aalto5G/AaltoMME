@@ -58,9 +58,17 @@ static void ecm_processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
             ecm->r_sid = r_sid;
         }
 
-        emm_getGUTIfromMsg(nASPDU->str, nASPDU->len, &guti);
-        if(guti.mtmsi != 0 && mme_GUMMEI_IsLocal(mme, guti.tbcd_plmn, guti.mmegi, guti.mmec)){
-            mme_lookupEMMCtxt(mme, guti.mtmsi, &(ecm->emm));
+        if(cause->cause.noext == RRC_mo_Signalling){
+            /* Attach, Detach, TAU*/
+            emm_getGUTIfromMsg(nASPDU->str, nASPDU->len, &guti);
+            if(guti.mtmsi != 0 && mme_GUMMEI_IsLocal(mme, guti.tbcd_plmn, guti.mmegi, guti.mmec)){
+                mme_lookupEMMCtxt(mme, guti.mtmsi, &(ecm->emm));
+            }
+        }else if(cause->cause.noext == RRC_mo_Data){
+            /* Service Request: User Plane Radio, Uplink signaling
+             * Extended Service Request: CS fallback*/
+            //sTMSI = (S_TMSI_t*)s1ap_findIe(s1msg, id_S_TMSI);
+
         }
 
         if(ecm->emm == NULL){

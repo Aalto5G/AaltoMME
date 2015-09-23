@@ -72,12 +72,18 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         processAttachComplete(emm, &msg);
         break;
     case TrackingAreaUpdateComplete:
-        log_msg(LOG_INFO, 0, "Received TrackingAreaUpdateComplete, not implemented");
+        log_msg(LOG_INFO, 0, "Received TrackingAreaUpdateComplete");
+
+        if(!emm->s1BearersActive){
+            /* Disconnect ECM */
+            ecm_sendUEContextReleaseCommand(emm->ecm, CauseNas, CauseNas_normal_release);
+        }
         emmChangeState(emm, EMM_Registered);
         break;
 
     /*HACK: 2 extra cases*/
     case AttachRequest:
+        log_msg(LOG_ALERT, 0, "Wrong State (SPI): HACK");
         processAttach(emm, &msg);
 
         if(!isAuth){
@@ -90,6 +96,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         emm_processFirstESMmsg(emm);
         break;
     case TrackingAreaUpdateRequest:
+        log_msg(LOG_ALERT, 0, "Wrong State (SPI): HACK");
         emm_processTAUReq(emm, &msg);
 
         if(!isAuth){
@@ -114,7 +121,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
 
 static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GList *bearers){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
-    guint8 *pointer, out[256], plain[250], count, t3412, guti_b[11];
+    guint8 *pointer, out[256], plain[250], count, t3412, addRes, guti_b[11], lAI[5], tmsi[5];
     guti_t guti;
     guint32 len;
     gsize tlen;
@@ -155,10 +162,22 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
         /* EMM cause if the attach type is different
          * This version only accepts EPS services, the combined attach
          * is not supported*/
-        /* if(emm->attachType == 2){ */
+        if(emm->attachType == 2){
         /*     cause = EMM_CSDomainNotAvailable; */
         /*     nasIe_tv_t3(&pointer, 0x53, (uint8_t*)&cause, 1); */
-        /* } */
+            /* LAI list HACK */
+            memcpy(lAI, &(tAIl.list), 5);
+            nasIe_tv_t3(&pointer, 0x13, lAI, 5);
+            /* MS identity : TMSI*/
+            tmsi[0]=0xf4;
+            memcpy(tmsi+1, &(guti.mtmsi), 4);
+            nasIe_tlv_t4(&pointer, 0x23, tmsi, 5);
+
+            /* Additional Update Result*/
+            addRes = 2; /*SMS only*/
+            nasIe_v_t1_l(&pointer, addRes);
+            nasIe_v_t1_h(&pointer, 0xf);
+        }
 
         newNASMsg_sec(emm->parser, out, &len,
                       EPSMobilityManagementMessages,
@@ -169,6 +188,7 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
     }else{
         return;
     }
+    emm->s1BearersActive = TRUE;
     ecm_sendCtxtSUReq(emm->ecm, out, len, bearers);
 }
 

@@ -39,7 +39,8 @@ EPS_Session ePSsession_init(ESM esm, Subscription _subs, ESM_BearerContext b);
  */
 void ePSsession_free(EPS_Session s);
 
-void ePSsession_parsePDNConnectivityRequest(EPS_Session s, ESM_Message_t *msg, gboolean *infoTxRequired);
+void ePSsession_parsePDNConnectivityRequest(EPS_Session s, ESM_Message_t *msg,
+                                            gboolean *infoTxRequired);
 
 void ePSsession_activateDefault(EPS_Session s, gboolean infoTxRequired);
 
@@ -47,7 +48,8 @@ void ePSsession_getPDNAddr(const EPS_Session s, TransportLayerAddress_t* addr);
 
 ESM_BearerContext ePSsession_getDefaultBearer(EPS_Session s);
 
-void ePSsession_UEContextReleaseReq(EPS_Session s, cause_choice_t choice, uint32_t cause);
+void ePSsession_UEContextReleaseReq(EPS_Session s,
+                                    void (*cb)(gpointer), gpointer args);
 
 void ePSsession_detach(EPS_Session s, void(*cb)(gpointer), gpointer args);
 

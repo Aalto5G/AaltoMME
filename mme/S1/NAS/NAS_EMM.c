@@ -332,23 +332,14 @@ void emm_setE_RABSetupuListCtxtSURes(EMMCtx emm, E_RABSetupListCtxtSURes_t* l){
 }
 
 
-static void emm_detach_hack(gpointer emm_h){
-    EMMCtx_t *emm = (EMMCtx_t *)emm_h;
-    log_msg(LOG_INFO, 0, "NAS DETACH due to inactivity", emm->imsi);
-    ecm_sendUEContextReleaseCommand(emm->ecm, CauseRadioNetwork, CauseRadioNetwork_user_inactivity);
-}
-
-void emm_UEContextReleaseReq(EMMCtx emm, cause_choice_t choice, uint32_t cause){
+void emm_UEContextReleaseReq(EMMCtx emm, void (*cb)(gpointer), gpointer args){
     EMMCtx_t *self = (EMMCtx_t*)emm;
     /* HACK*/
     /* esm_detach(self->esm, emm_detach_hack, emm); */
-    esm_UEContextReleaseReq(self->esm, choice, cause);
+    self->s1BearersActive = FALSE;
+    esm_UEContextReleaseReq(self->esm, cb, args);
 }
 
-void emm_sendUEContextReleaseCommand(EMMCtx emm, cause_choice_t choice, uint32_t cause){
-    EMMCtx_t *self = (EMMCtx_t*)emm;
-    ecm_sendUEContextReleaseCommand(self->ecm, CauseRadioNetwork, CauseRadioNetwork_user_inactivity);
-}
 
 guint32 *emm_getM_TMSI_p(EMMCtx emm){
     return emmCtx_getM_TMSI_p(emm);
@@ -385,11 +376,12 @@ void emm_processTAUReq(EMMCtx emm_h, GenericNASMsg_t *msg){
 void emm_sendTAUAccept(EMMCtx emm_h){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     guint8 *pointer, t3412;
-    guint8 out[156], plain[150], guti_b[11];
+    guint8 out[156], plain[150], guti_b[11], tmsi[5];
     guint16 bearerStatus;
     gsize len=0, tlen;
     NAS_tai_list_t tAIl;
     guti_t guti;
+    uint8_t lAI[5], addRes;
 
     memset(out, 0, 156);
     memset(plain, 0, 150);
@@ -401,7 +393,7 @@ void emm_sendTAUAccept(EMMCtx emm_h){
     encaps_EMM(&pointer, TrackingAreaUpdateAccept);
 
     /*EPS update result*/
-    nasIe_v_t1_l(&pointer, 1); /* Combined TA/LA updated */
+    nasIe_v_t1_l(&pointer, 1); /* Combined TA/LA updated, HACK*/
     /* nasIe_v_t1_l(&pointer, 0); /\* TA updated *\/ */
     pointer++;
 
@@ -417,9 +409,29 @@ void emm_sendTAUAccept(EMMCtx emm_h){
     ecmSession_getTAIlist(emm->ecm, &tAIl, &tlen);
     nasIe_tlv_t4(&pointer, 0x54, (uint8_t*)&tAIl, tlen);
     /* EPS Bearer Context Status*/
-    bearerStatus = hton16(0x0000);
+    /* bearerStatus = hton16(0x0000); */
     /* bearerStatus = hton16(0x2000); */
-    nasIe_tlv_t4(&pointer, 0x57, (uint8_t *)&bearerStatus, 2);
+    /* nasIe_tlv_t4(&pointer, 0x57, (uint8_t *)&bearerStatus, 2); */
+
+    /* EMM cause if the attach type is different
+     * This version only accepts EPS services, the combined attach
+     * is not supported*/
+    if(emm->attachType == 2){
+        /*     cause = EMM_CSDomainNotAvailable; */
+        /*     nasIe_tv_t3(&pointer, 0x53, (uint8_t*)&cause, 1); */
+        /* LAI list HACK */
+        memcpy(lAI, &(tAIl.list), 5);
+        nasIe_tv_t3(&pointer, 0x13, lAI, 5);
+        /* MS identity : TMSI*/
+        tmsi[0]=0xf4;
+        memcpy(tmsi+1, &(guti.mtmsi), 4);
+        nasIe_tlv_t4(&pointer, 0x23, tmsi, 5);
+
+        /* Additional Update Result*/
+        addRes = 2; /*SMS only*/
+        nasIe_v_t1_l(&pointer, addRes);
+        nasIe_v_t1_h(&pointer, 0xf);
+    }
 
     newNASMsg_sec(emm->parser, out, &len,
                   EPSMobilityManagementMessages,
@@ -428,7 +440,6 @@ void emm_sendTAUAccept(EMMCtx emm_h){
                   plain, pointer-plain);
 
     ecm_send(emm->ecm, out, len);
-    /* nas_incrementNASCount(emm->parser, NAS_DownLink); */
 }
 
 

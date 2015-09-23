@@ -140,14 +140,15 @@ void esm_setE_RABSetupuListCtxtSURes(ESM esm_h, E_RABSetupListCtxtSURes_t* l){
     }
 }
 
-void esm_UEContextReleaseReq(ESM esm_h, cause_choice_t choice, uint32_t cause){
+
+void esm_UEContextReleaseReq(ESM esm_h, void (*cb)(gpointer), gpointer args){
     ESM_t *self = (ESM_t*)esm_h;
     GList *ls;
     EPS_Session_t *session;
     ls = g_hash_table_get_values (self->sessions);
     if(ls){
         session = ls->data;
-        ePSsession_UEContextReleaseReq(session, choice, cause);
+        ePSsession_UEContextReleaseReq(session, cb, args);
     }
 }
 

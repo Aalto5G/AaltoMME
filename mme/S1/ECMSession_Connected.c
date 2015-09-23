@@ -30,6 +30,7 @@ static void processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
     ENB_UE_S1AP_ID_t *eNB_ID;
     Unconstrained_Octed_String_t *nASPDU;
     E_RABSetupListCtxtSURes_t *list;
+    Cause_t *c;
 
     if(r_sid != ecm->r_sid && ecm->r_sid_valid){
         log_msg(LOG_ERR, 0,
@@ -52,6 +53,18 @@ static void processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
     }else if(s1msg->pdu->procedureCode ==  id_UEContextRelease &&
              s1msg->choice == successful_outcome){
         log_msg(LOG_DEBUG, 0, "Received id_UEContextReleaseComplete");
+        if(ecm->causeRelease){
+            c = ecm->causeRelease;
+            if(c->choice == CauseRadioNetwork &&
+               c->cause.radioNetwork.cause.noext == CauseRadioNetwork_radio_connection_with_ue_lost){
+                /* Deactivate GBR Dedicated Bearers*/
+            }else if(c->choice == CauseRadioNetwork &&
+                     c->cause.radioNetwork.cause.noext == CauseRadioNetwork_cs_fallback_triggered){
+                /* Check TS 23.272*/
+            }
+            ecm->causeRelease->freeIE(ecm->causeRelease);
+            ecm->causeRelease=NULL;
+        }
         s1Assoc_deregisterECMSession(ecm->assoc, ecm);
     }else if(s1msg->pdu->procedureCode ==  id_InitialContextSetup &&
              s1msg->choice == successful_outcome){
@@ -157,6 +170,35 @@ static void release(gpointer _ecm, cause_choice_t choice, uint32_t cause){
     s1out->freemsg(s1out);
 }
 
+static void sendUEContextReleaseCommand(gpointer _ecm){
+    ECMSession_t *ecm = (ECMSession_t *)_ecm;
+
+    S1AP_Message_t *s1out;
+
+    MME_UE_S1AP_ID_t *mmeUEId;
+    ENB_UE_S1AP_ID_t *eNBUEId;
+    UE_S1AP_IDs_t *ue_ids;
+
+    s1out = S1AP_newMsg();
+    s1out->choice = initiating_message;
+    s1out->pdu->procedureCode = id_UEContextRelease;
+    s1out->pdu->criticality = reject;
+
+    /* id-UE-S1AP-IDs */
+    ue_ids = s1ap_newIE(s1out, id_UE_S1AP_IDs, mandatory, reject);
+    ue_ids->choice = 0;
+    ue_ids->uE_S1AP_ID.uE_S1AP_ID_pair = new_UE_S1AP_ID_pair();
+    ue_ids->uE_S1AP_ID.uE_S1AP_ID_pair->eNB_UE_S1AP_ID->eNB_id = ecm->eNBUEId;
+    ue_ids->uE_S1AP_ID.uE_S1AP_ID_pair->mME_UE_S1AP_ID->mme_id = ecm->mmeUEId;
+
+    /* id-Cause */
+    s1ap_setValueOnNewIE(s1out, id_Cause, mandatory, ignore, ecm->causeRelease);
+
+    /*s1out->showmsg(s1out);*/
+    s1Assoc_send(ecm->assoc, ecm->l_sid, s1out);
+    s1out->freemsg(s1out);
+}
+
 void linkECMSessionConnected(ECMSession_State* s){
     s->processMsg = processMsg;
     s->release = release;
@@ -164,8 +206,9 @@ void linkECMSessionConnected(ECMSession_State* s){
 
 void ecm_UEContextRelease(gpointer ecm_h, S1AP_Message_t *s1msg){
     ECMSession_t *ecm = (ECMSession_t *)ecm_h;
-    Cause_t *c = (Cause_t*)s1ap_findIe(s1msg, id_Cause);
+    Cause_t *c = (Cause_t*)s1ap_getIe(s1msg, id_Cause);
     /*
+      TS.23.401 clause 5.3.5 --
       "User Inactivity",
       "Radio Connection With UE Lost",
       "CSG Subscription Expiry",
@@ -174,5 +217,6 @@ void ecm_UEContextRelease(gpointer ecm_h, S1AP_Message_t *s1msg){
       "Inter-RAT Redirection",
       "UE Not Available for PS Service"
     */
-    emm_UEContextReleaseReq(ecm->emm, c->choice, c->cause.radioNetwork.cause.noext);
+    ecm->causeRelease = c;
+    emm_UEContextReleaseReq(ecm->emm, sendUEContextReleaseCommand, ecm);
 }

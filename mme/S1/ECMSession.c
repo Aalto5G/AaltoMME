@@ -242,7 +242,7 @@ void ecmSession_getTAIlist(const ECMSession h, NAS_tai_list_t *tAIl, gsize *len)
                  | self->tAI.sn[1] << 8
                  | self->tAI.sn[2]);
 
-    tAIl->list.singlePLMNnonconsec.tAC[0] = htons(self->tAI.tAC);
+    tAIl->list.singlePLMNnonconsec.tAC[0] = self->tAI.tAC;
     *len=6;
 }
 

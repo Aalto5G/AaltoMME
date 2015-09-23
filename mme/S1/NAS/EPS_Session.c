@@ -266,7 +266,7 @@ void ePSsession_getPDNAddr(const EPS_Session s, TransportLayerAddress_t* addr){
 }
 
 void ePSsession_test(EPS_Session s){
-	log_msg(LOG_DEBUG, 0, "Activate Default EPS Bearer Context Accept");
+    log_msg(LOG_DEBUG, 0, "Activate Default EPS Bearer Context Accept");
 }
 
 void ePSsession_setE_RABSetupuListCtxtSURes(EPS_Session s, E_RABSetupListCtxtSURes_t* l){
@@ -297,51 +297,11 @@ void ePSsession_setE_RABSetupuListCtxtSURes(EPS_Session s, E_RABSetupListCtxtSUR
                                (gpointer)self);
 }
 
-static void ePSsession_releaseForUserInactivity(EPS_Session s){
-    EPS_Session_t *self = (EPS_Session_t*)s;
-    emm_sendUEContextReleaseCommand(self->esm->emm,
-                                    CauseRadioNetwork,
-                                    CauseRadioNetwork_user_inactivity);
-}
-
-static void ePSsession_releaseForInterRATRedirection(EPS_Session s){
-    EPS_Session_t *self = (EPS_Session_t*)s;
-    emm_sendUEContextReleaseCommand(self->esm->emm,
-                                    CauseRadioNetwork,
-                                    CauseRadioNetwork_interrat_redirection);
-}
-
-static void ePSsession_releaseForNASDetach(EPS_Session s){
-    EPS_Session_t *self = (EPS_Session_t*)s;
-    emm_sendUEContextReleaseCommand(self->esm->emm,
-                                    CauseNas,
-                                    CauseNas_detach);
-}
-
-
-
-void ePSsession_UEContextReleaseReq(EPS_Session s, cause_choice_t choice, uint32_t cause){
+void ePSsession_UEContextReleaseReq(EPS_Session s,
+                                    void (*cb)(gpointer), gpointer args){
     EPS_Session_t *self = (EPS_Session_t*)s;
 
-    if(choice == CauseRadioNetwork && cause == CauseRadioNetwork_interrat_redirection){
-        S11_ReleaseAccessBearers(self->s11,
-                                 ePSsession_releaseForInterRATRedirection,
-                                 self);
-        log_msg(LOG_INFO, 0, "UE Context Release Req because of Inter-RAT redirection.");
-        return;
-    }else if(choice == CauseRadioNetwork && cause == CauseRadioNetwork_user_inactivity){
-
-        S11_ReleaseAccessBearers(self->s11,
-                                 ePSsession_releaseForUserInactivity,
-                                 self);
-    }else if(choice == CauseNas && cause == CauseNas_detach){
-
-        S11_ReleaseAccessBearers(self->s11,
-                                 ePSsession_releaseForNASDetach,
-                                 self);
-    }else{
-        log_msg(LOG_INFO, 0, "UE Context Release Req Not implemented");
-    }
+    S11_ReleaseAccessBearers(self->s11, cb, args);
 }
 
 void ePSsession_detach(EPS_Session s, void(*cb)(gpointer), gpointer args){

@@ -112,6 +112,7 @@ void linkEMMRegistered(EMM_State* s){
 static void emm_detach(EMMCtx_t *emm){
     uint8_t *pointer, buffer[150];
 
+    emm->s1BearersActive = FALSE;
     /* Forge Detach Accept*/
     pointer = buffer;
     newNASMsg_EMM(&pointer, EPSMobilityManagementMessages, PlainNAS);

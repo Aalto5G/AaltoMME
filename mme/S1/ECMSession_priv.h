@@ -45,6 +45,7 @@ typedef struct{
       guint16    MNC;
       guint32    cellID:28;
     }                eCGI;    /**< E-UTRAN CGI (Cell Global ID)*/
+    Cause_t     *causeRelease;
 }ECMSession_t;
 
 
