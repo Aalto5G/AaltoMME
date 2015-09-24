@@ -75,7 +75,7 @@ void emm_processMsg(gpointer emm_h, gpointer buffer, gsize len){
     }else if(s > PlainNAS && s <= IntegrityProtectedAndCipheredWithNewEPSSecurityContext){
         self->state->processSecMsg(self, buffer, len);
     }else if(s == SecurityHeaderForServiceRequestMessage){
-        log_msg(LOG_WARNING, 0, "Service Request Not implemented");
+        self->state->processSrvReq(self, buffer, len);
     }else{
         log_msg(LOG_INFO, 0, "Invalid Security Header received: Ignoring");
     }
@@ -116,7 +116,7 @@ void emm_getGUTIfromMsg(gpointer buffer, gsize len, guti_t* guti){
         }
         break;
     default:
-        log_msg(LOG_WARNING, 0, "Not implemented for message type %u",
+        log_msg(LOG_DEBUG, 0, "Not implemented for message type %u",
                 msg.plain.eMM.messageType);
         break;
     }
@@ -334,8 +334,6 @@ void emm_setE_RABSetupuListCtxtSURes(EMMCtx emm, E_RABSetupListCtxtSURes_t* l){
 
 void emm_UEContextReleaseReq(EMMCtx emm, void (*cb)(gpointer), gpointer args){
     EMMCtx_t *self = (EMMCtx_t*)emm;
-    /* HACK*/
-    /* esm_detach(self->esm, emm_detach_hack, emm); */
     self->s1BearersActive = FALSE;
     esm_UEContextReleaseReq(self->esm, cb, args);
 }
@@ -393,12 +391,13 @@ void emm_sendTAUAccept(EMMCtx emm_h){
     encaps_EMM(&pointer, TrackingAreaUpdateAccept);
 
     /*EPS update result*/
-    nasIe_v_t1_l(&pointer, 1); /* Combined TA/LA updated, HACK*/
-    /* nasIe_v_t1_l(&pointer, 0); /\* TA updated *\/ */
+    /* nasIe_v_t1_l(&pointer, 1); /\* Combined TA/LA updated, HACK*\/ */
+    nasIe_v_t1_l(&pointer, 0); /* TA updated */
     pointer++;
 
     /* T3412 value */
-    t3412 = 0x23;
+    /* t3412 = 0x23; */
+    t3412 = 0x21;
     nasIe_tv_t3(&pointer, 0x5A, &t3412, 1); /*  */
     /* GUTI */
     emmCtx_newGUTI(emm, &guti);

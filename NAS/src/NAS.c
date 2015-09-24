@@ -481,7 +481,7 @@ int nas_authenticateMsg(const NAS h,
     NASHandler *n = (NASHandler*)h;
     uint8_t count[4], res = 0;
     uint32_t ncount;
-    uint8_t mac[4], mac_x[4], nas_sqn;
+    uint8_t mac[4], mac_x[4], nas_sqn, short_mac[2];
 
     nas_getHeader(buf, size, &s, NULL);
 
@@ -517,8 +517,26 @@ int nas_authenticateMsg(const NAS h,
         }
         return 1;
     case SecurityHeaderForServiceRequestMessage:
-        return 0;
         /*Non-standard L3 message*/
+
+        /*Check NAS SQN*/
+        nas_sqn = buf[1]&0x1f;
+        if((n->nas_count[direction]&0x1f) != nas_sqn){
+            return 2;
+        }
+        /*Calculate and validate MAC*/
+        memcpy(short_mac, buf+2, 2);
+        ncount = htonl(n->nas_count[direction]);
+        memcpy(count, &ncount, 4);
+        eia_cb[n->i](n->ikey, count, 0, direction, buf, 2*8, mac_x);
+
+        if(memcmp(short_mac, mac_x+2, 2) == 0 /* Integrity Verification OK*/
+           || n->i == NAS_EIA0){      /* Integrity verification is not
+                                       * applicable when EIA0 is used */
+            *isAuth = 1;
+            nas_incrementNASCount(n, NAS_UpLink);
+        }
+        return 1;
     default:
         return 0;
     }

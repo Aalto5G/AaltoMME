@@ -81,39 +81,39 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         emmChangeState(emm, EMM_Registered);
         break;
 
-    /*HACK: 2 extra cases*/
-    case AttachRequest:
-        log_msg(LOG_ALERT, 0, "Wrong State (SPI): HACK");
-        processAttach(emm, &msg);
+    /* /\*HACK: 2 extra cases*\/ */
+    /* case AttachRequest: */
+    /*     log_msg(LOG_ALERT, 0, "Wrong State (SPI): HACK"); */
+    /*     processAttach(emm, &msg); */
 
-        if(!isAuth){
-            emm_triggerAKAprocedure(emm);
-            return;
-        }
+    /*     if(!isAuth){ */
+    /*         emm_triggerAKAprocedure(emm); */
+    /*         return; */
+    /*     } */
 
-        emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink);
-        emmChangeState(emm, EMM_SpecificProcedureInitiated);
-        emm_processFirstESMmsg(emm);
-        break;
-    case TrackingAreaUpdateRequest:
-        log_msg(LOG_ALERT, 0, "Wrong State (SPI): HACK");
-        emm_processTAUReq(emm, &msg);
+    /*     emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink); */
+    /*     emmChangeState(emm, EMM_SpecificProcedureInitiated); */
+    /*     emm_processFirstESMmsg(emm); */
+    /*     break; */
+    /* case TrackingAreaUpdateRequest: */
+    /*     log_msg(LOG_ALERT, 0, "Wrong State (SPI): HACK"); */
+    /*     emm_processTAUReq(emm, &msg); */
 
-        if(!isAuth){
-            emm_triggerAKAprocedure(emm);
-            return;
-        }
-        emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink);
+    /*     if(!isAuth){ */
+    /*         emm_triggerAKAprocedure(emm); */
+    /*         return; */
+    /*     } */
+    /*     emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink); */
 
-        /* HACK: Send reject to detach user and trigger reattach*/
-        emm_sendTAUReject(emm);
-        emmChangeState(emm, EMM_Deregistered);
-        break;
-        /* End of HACK*/
+    /*     /\* HACK: Send reject to detach user and trigger reattach*\/ */
+    /*     emm_sendTAUReject(emm); */
+    /*     emmChangeState(emm, EMM_Deregistered); */
+    /*     break; */
+    /*     /\* End of HACK*\/ */
 
     default:
         log_msg(LOG_WARNING, 0,
-                "NAS Message type (%u) not recognized in this context",
+                "NAS Message type (%u) not recognized in EMM SPI",
                 msg.plain.eMM.messageType);
     }
 
@@ -144,7 +144,8 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
         nasIe_v_t1_l(&pointer,  emm->attachType);
         pointer++; /*Spare half octet*/
         /* T3412 value */
-        t3412 = 0x23; /* 3 min*/
+        t3412 = 0x21; /* 1 min*/
+        /* t3412 = 0x23; /\* 3 min*\/ */
         /* t3412 = 0x49; /\* 54 min, default *\/ */
         nasIe_v_t3(&pointer, &t3412, 1);
         /* TAI list */
@@ -192,11 +193,18 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
     ecm_sendCtxtSUReq(emm->ecm, out, len, bearers);
 }
 
+static void emm_processSrvReq(gpointer emm_h, gpointer buf, gsize len){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    log_msg(LOG_WARNING, 0, "Received Service request, not supported in EMM SPI");
+}
+
+
 void linkEMMSpecificProcedureInitiated(EMM_State* s){
     s->processMsg = emmProcessMsg;
     /* s->authInfoAvailable = emmAuthInfoAvailable; */
     s->attachAccept = emmAttachAccept;
     s->processSecMsg = emm_processSecMsg;
+    s->processSrvReq = emm_processSrvReq;
     s->sendESM = emm_internalSendESM;
 }
 

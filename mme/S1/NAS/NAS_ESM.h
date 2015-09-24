@@ -57,4 +57,6 @@ void esm_UEContextReleaseReq(ESM esm_h, void (*cb)(gpointer), gpointer args);
 
 void esm_detach(ESM esm_h, void(*cb)(gpointer), gpointer args);
 
+void esm_getSessions(ESM esm_h, GList **sessions);
+
 #endif /* NAS_ESM_H */

@@ -28,7 +28,6 @@ static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
             msg->plain.eMM.messageType);
 }
 
-
 static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
 
@@ -94,10 +93,51 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         break;
     default:
         log_msg(LOG_WARNING, 0,
-                "NAS Message type (%u) not recognized in this context",
+                "NAS Message type (%u) not recognized in EMM Registered",
                 msg.plain.eMM.messageType);
     }
 
+}
+
+static void emm_processSrvReq(gpointer emm_h, gpointer buf, gsize len){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    SecurityHeaderType_t s;
+    ProtocolDiscriminator_t p;
+    guint8 isAuth = 0, res=0;
+    GList *sessions;
+
+    nas_getHeader(buf, len, &s, &p);
+
+    if(!emm->sci){
+        g_error("Wrong state (EMM Reg) to be without a security context");
+    }
+
+    res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
+    if(res==0){
+        /* EH Send Indication Error*/
+        g_error("Received malformed NAS packet");
+    }else if(res==2){
+        /* EH trigger AKA procedure */
+        log_msg(LOG_WARNING, 0, "Wrong SQN Count");
+        return;
+    }
+
+    if(p != EPSMobilityManagementMessages){
+        log_msg(LOG_INFO, 0, "Malformed packet");
+        return;
+    }
+    emm->msg_ksi = (*((guint8*)buf+1)&0xe0)>>5;
+    if(emm->ksi != emm->msg_ksi || !isAuth){
+        log_msg(LOG_INFO, 0, "Received Message with wrong MAC");
+        /* Trigger AKA*/
+        return;
+    }
+    emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink);
+
+    emm->s1BearersActive = TRUE;
+    esm_getSessions(emm->esm, &sessions);
+    ecm_sendCtxtSUReq(emm->ecm, NULL, 0, sessions);
+    g_list_free(sessions);
 }
 
 
@@ -106,6 +146,7 @@ void linkEMMRegistered(EMM_State* s){
     /* s->authInfoAvailable = emmAuthInfoAvailable; */
     s->attachAccept = NULL;
     s->processSecMsg = emm_processSecMsg;
+    s->processSrvReq = emm_processSrvReq;
     s->sendESM = emm_internalSendESM;
 }
 

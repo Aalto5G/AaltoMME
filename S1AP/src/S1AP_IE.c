@@ -146,7 +146,7 @@ iEconstructor getconstructor[]={
         (iEconstructor)NULL, /*new_UE_associatedLogicalS1_ConnectionListResAck,*/ /* Not implemented*/
         (iEconstructor)new_E_RABSetupItemBearerSURes, /*new_E_RABToBeSwitchedULItem,*/ /* Not implemented*/
         (iEconstructor)new_E_RABSetupListBearerSURes, /*new_E_RABToBeSwitchedULList,*/ /* Not implemented*/
-        (iEconstructor)NULL, /*new_S_TMSI,*/ /* Not implemented*/
+        (iEconstructor)new_S_TMSI, /*new_S_TMSI,*/
         (iEconstructor)NULL, /*new_cdma2000OneXRAND,*/ /* Not implemented*/
         (iEconstructor)NULL, /*new_RequestType,*/ /* Not implemented*/
         (iEconstructor)new_UE_S1AP_IDs,
@@ -2748,16 +2748,16 @@ void E_RABToBeSetupListCtxtSUReq_addItem(E_RABToBeSetupListCtxtSUReq_t* c, Proto
 }
 
 void *E_RABToBeSetupListCtxtSUReq_newItem(struct E_RABToBeSetupListCtxtSUReq_c* eRABlist){
-	S1AP_PROTOCOL_IES_t* ie = newProtocolIE();
-	E_RABToBeSetupItemCtxtSUReq_t *eRABitem = new_E_RABToBeSetupItemCtxtSUReq();	
+    S1AP_PROTOCOL_IES_t* ie = newProtocolIE();
+    E_RABToBeSetupItemCtxtSUReq_t *eRABitem = new_E_RABToBeSetupItemCtxtSUReq();
     ie->value = eRABitem;
-	ie->showValue = eRABitem->showIE;
-	ie->freeValue = eRABitem->freeIE;
-	ie->id = id_E_RABToBeSetupItemCtxtSUReq;
-	ie->presence = optional;
-	ie->criticality = reject;
-	eRABlist->additem(eRABlist, ie);
-	return eRABitem;
+    ie->showValue = eRABitem->showIE;
+    ie->freeValue = eRABitem->freeIE;
+    ie->id = id_E_RABToBeSetupItemCtxtSUReq;
+    ie->presence = optional;
+    ie->criticality = reject;
+    eRABlist->additem(eRABlist, ie);
+    return eRABitem;
 }
 
 /** @brief Constructor of E_RABToBeSetupListCtxtSUReq type
@@ -4074,7 +4074,7 @@ TargeteNB_ID_t *new_TargeteNB_ID(){
 /* ********************** E_SourceeNB_ID ********************* */
 
 SourceeNB_ID_t *new_SourceeNB_ID(){
-	return (SourceeNB_ID_t *)new_TargeteNB_ID();
+    return (SourceeNB_ID_t *)new_TargeteNB_ID();
 }
 
 /* ***************************** LAI *************************** */
@@ -4830,7 +4830,53 @@ E_RABToBeSetupListHOReq_t *new_E_RABToBeSetupListHOReq(){
 }
 
 
+/* *********************** S_TMSI ************************** */
+/** @brief S_TMSI  Destructor
+ *
+ * Deallocate the S_TMSI_t structure.
+ * */
+void free_S_TMSI(void * data){
+    S_TMSI_t *self = (S_TMSI_t*)data;
+    if(!self){
+        return;
+    }
 
+    self->mMEC->freeIE(self->mMEC);
+
+    free(self);
+}
+/** @brief Show IE information
+ *
+ * Tool function to print the information on stdout
+ * */
+void show_S_TMSI(void * data){
+    S_TMSI_t *self = (S_TMSI_t*)data;
+
+    self->mMEC->showIE(self->mMEC);
+
+    printf("\t\tM-TMSI : %#.2x%.2x%.2x%.2x\n",
+                self->m_TMSI.s[0], self->m_TMSI.s[1], self->m_TMSI.s[2], self->m_TMSI.s[3]);
+}
+/** @brief Constructor of S_TMSI
+ *  @return S_TMSI_t allocated  and initialized structure
+ * */
+S_TMSI_t *new_S_TMSI(){
+    S_TMSI_t *self;
+
+    self = malloc(sizeof(S_TMSI_t));
+    if(!self){
+        s1ap_msg(ERROR, 0, "S1AP S_TMSI_t not allocated correctly");
+        return NULL;
+    }
+    memset(self, 0, sizeof(S_TMSI_t));
+
+    self->freeIE=free_S_TMSI;
+    self->showIE=show_S_TMSI;
+
+    self->mMEC = new_MME_Code();
+
+    return self;
+}
 
 
 

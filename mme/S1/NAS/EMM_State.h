@@ -36,6 +36,7 @@ typedef void (*EMM_sendESM)(gpointer, gpointer, gsize, GError **);
     EMM_event          authInfoAvailable;   /*  */ \
     EMM_sendMsg        attachAccept;         /*  */	\
     EMM_eventSecMsg    processSecMsg;        /*  */	\
+    EMM_eventSecMsg    processSrvReq;        /*  */	\
     EMM_sendESM        sendESM
 
 typedef struct{

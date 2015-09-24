@@ -34,6 +34,8 @@ static void ecm_processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
     EUTRAN_CGI_t *eCGI;
     RRC_Establishment_Cause_t *cause;
     guti_t guti;
+    S_TMSI_t *sTMSI = NULL;
+    guint32 mtmsi;
     struct mme_t * mme = s1_getMME(s1Assoc_getS1(ecm->assoc));
     memset(&guti, 0, sizeof(guti_t));
 
@@ -58,21 +60,23 @@ static void ecm_processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
             ecm->r_sid = r_sid;
         }
 
-        if(cause->cause.noext == RRC_mo_Signalling){
-            /* Attach, Detach, TAU*/
+        sTMSI = (S_TMSI_t*)s1ap_findIe(s1msg, id_S_TMSI);
+        if(sTMSI){
+            memcpy(&mtmsi, sTMSI->m_TMSI.s, 4);
+            mme_lookupEMMCtxt(mme, mtmsi, &(ecm->emm));
+        }else{
             emm_getGUTIfromMsg(nASPDU->str, nASPDU->len, &guti);
-            if(guti.mtmsi != 0 && mme_GUMMEI_IsLocal(mme, guti.tbcd_plmn, guti.mmegi, guti.mmec)){
+            if(guti.mtmsi != 0 && mme_GUMMEI_IsLocal(mme,
+                                                     guti.tbcd_plmn,
+                                                     guti.mmegi,
+                                                     guti.mmec)){
                 mme_lookupEMMCtxt(mme, guti.mtmsi, &(ecm->emm));
             }
-        }else if(cause->cause.noext == RRC_mo_Data){
-            /* Service Request: User Plane Radio, Uplink signaling
-             * Extended Service Request: CS fallback*/
-            //sTMSI = (S_TMSI_t*)s1ap_findIe(s1msg, id_S_TMSI);
-
         }
 
         if(ecm->emm == NULL){
             ecm->emm = emm_init(ecm);
+            log_msg(LOG_ALERT, 0, "New EMM created");
         }else{
             emm_registerECM(ecm->emm, ecm);
         }

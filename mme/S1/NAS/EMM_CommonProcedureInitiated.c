@@ -106,7 +106,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         processAuthFailure(emm, &msg);
         break;
     case SecurityModeReject:
-        log_msg(LOG_ERR, 0, "Received SecurityModeReject, not implemented");
+        log_msg(LOG_ERR, 0, "Received SecurityModeReject, not implemented EMM CPI");
         break;
     case SecurityModeComplete:
         if(! s == IntegrityProtectedAndCipheredWithNewEPSSecurityContext){
@@ -121,17 +121,22 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         break;
     default:
         log_msg(LOG_WARNING, 0,
-                "NAS Message type (%u) not recognized in this context",
+                "NAS Message type (%u) not recognized in EMM CPI",
                 msg.plain.eMM.messageType);
     }
 }
 
+static void emm_processSrvReq(gpointer emm_h, gpointer buf, gsize len){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    log_msg(LOG_WARNING, 0, "Received Service request, not supported in EMM CPI");
+}
 
 void linkEMMCommonProcedureInitiated(EMM_State* s){
     s->processMsg = emmProcessMsg;
     /* s->authInfoAvailable = emmAuthInfoAvailable; */
     s->attachAccept = NULL;
     s->processSecMsg = emm_processSecMsg;
+    s->processSrvReq = emm_processSrvReq;
     s->sendESM = NULL;
 }
 

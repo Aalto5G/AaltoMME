@@ -286,25 +286,20 @@ end
 /*  ********************   Tool Functions ********************   */
 
 void *s1ap_findIe(S1AP_Message_t *msg, ProtocolIE_ID_t id){
-    uint16_t i, elem ;
+    uint16_t i;
     S1AP_PROTOCOL_IES_t *ie = NULL;
 
     /* Find IE*/
     for(i = 0; i<msg->pdu->value->size ; i++){
         if( ((S1AP_PROTOCOL_IES_t*)msg->pdu->value->elem[i])->id == id){
-            elem = i;
+            ie = (S1AP_PROTOCOL_IES_t*)(msg->pdu->value->elem[i]);
+            break;
         }
     }
-    if(elem != msg->pdu->value->size){
-        ie = (S1AP_PROTOCOL_IES_t*)(msg->pdu->value->elem[elem]);
-    }
-
-
     if(ie!=NULL){
         return ie->value;
     }
     return NULL;
-
 }
 
 void *s1ap_getIe(S1AP_Message_t *msg, ProtocolIE_ID_t id){

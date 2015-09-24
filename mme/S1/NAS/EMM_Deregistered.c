@@ -111,38 +111,29 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     case AuthenticationFailure:
     case SecurityModeReject:
     case DetachAccept:
-        log_msg(LOG_INFO, 0,
-                "NAS Message type (%u) not valid in this state",
-                msg.plain.eMM.messageType);
-        break;
-    /* case TrackingAreaUpdateRequest: */
-    /*     emm_processTAUReq(emm, &msg, &msg_ksi, &msg_guti); */
-    /*     if(!isAuth){ */
-    /*         emm_triggerAKAprocedure(emm); */
-    /*         return; */
-    /*     } */
-    /*     emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink); */
-    /*     emmChangeState(emm, EMM_SpecificProcedureInitiated); */
-    /*     emm_sendTAUAccept(emm); */
-    /*     break; */
-    case TrackingAreaUpdateRequest:
     case DetachRequest:
-        log_msg(LOG_WARNING, 0,
-                "NAS Message type (%u) not supported in this context",
+    case TrackingAreaUpdateRequest:
+        log_msg(LOG_INFO, 0,
+                "NAS Message type (%u) not valid in EMM Deregistered",
                 msg.plain.eMM.messageType);
         break;
     default:
         log_msg(LOG_WARNING, 0,
-                "NAS Message type (%u) not recognized in this context",
+                "NAS Message type (%u) not recognized in EMM Deregistered",
                 msg.plain.eMM.messageType);
     }
 }
 
+static void emm_processSrvReq(gpointer emm_h, gpointer buf, gsize len){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    log_msg(LOG_WARNING, 0, "Received Service request, not supported in this context");
+}
 
 void linkEMMDeregistered(EMM_State* s){
     s->processMsg = emmProcessMsg;
     s->attachAccept = NULL;
     s->processSecMsg = emm_processSecMsg;
+    s->processSrvReq = emm_processSrvReq;
     s->sendESM = NULL;
 }
 
@@ -176,7 +167,7 @@ void processAttach(gpointer emm_h,  GenericNASMsg_t* msg){
         if(((ePSMobileId_header_t*)attachMsg->ePSMobileId.v)->parity == 1){
             mobid = mobid*10 + ((attachMsg->ePSMobileId.v[i])>>4);
         }
-        log_msg(LOG_DEBUG, 0,"Attach Received from imsi : %llu", mobid);
+        log_msg(LOG_DEBUG, 0,"Attach Received from IMSI : %llu", mobid);
         emm->imsi = mobid;
     }else if(((ePSMobileId_header_t*)attachMsg->ePSMobileId.v)->type == 6 ){    /*GUTI*/
         memcpy(&(emm->msg_guti), (guti_t *)(attachMsg->ePSMobileId.v+1), 10);

@@ -2127,6 +2127,43 @@ void dec_E_RABDataForwardingItem(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *by
 }
 
 
+S_TMSI_t *dec_S_TMSI(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
+    struct BinaryData extensions, opt;
+    uint8_t buffer[MAXDATABYTES];
+    S_TMSI_t *v;
+
+    v = new_S_TMSI();
+
+    /*Link functions*/
+    ie->showValue = v->showIE;
+    ie->freeValue = v->freeIE;
+    ie->value=v;
+
+    /*Get extension flag*/
+    getbit(bytes, &(v->ext));
+
+    /*Get optionals*/
+    getbit(bytes, &(v->opt));
+
+    /*attribute number 1 (mMEC) with type MME-Code */
+    v->mMEC = dec_MME_Code(bytes);
+
+    /*attribute number 2 (m_TMSI) with type OCTET STRING */
+    decode_octet_string(v->m_TMSI.s, bytes, 4);
+
+    /* attribute number 3 (iE-Extensions) with type (ProtocolExtensionContainer) SEQUENCE OF */
+    if(v->opt==0x01){
+        v->iEext->addIe(v->iEext, dec_protocolIEs(bytes));
+    }
+
+    /*Extensions*/
+    getextension(&extensions, bytes, v->ext);
+    skipextensions(bytes, 1, &extensions);
+
+    return v;
+}
+
+
 const getDecS1AP_IE getdec_S1AP_IE[] = {
         dec_MME_UE_S1AP_ID,/*"id-MME-UE-S1AP-ID"*/
         dec_HandoverType,/*"id-HandoverType"*/
@@ -2224,7 +2261,7 @@ const getDecS1AP_IE getdec_S1AP_IE[] = {
         NULL,/*"id-UE-associatedLogicalS1-ConnectionListResAck"*/
         dec_E_RABSetupItemBearerSURes,/*"id-E-RABToBeSwitchedULItem"*/
         dec_E_RABSetupListBearerSURes,/*"id-E-RABToBeSwitchedULList"*/
-        NULL,/*"id-S-TMSI"*/
+        dec_S_TMSI,/*"id-S-TMSI"*/
         NULL,/*"id-cdma2000OneXRAND"*/
         NULL,/*"id-RequestType"*/
         dec_UE_S1AP_IDs,/*"id-UE-S1AP-IDs"*/

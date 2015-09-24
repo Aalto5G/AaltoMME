@@ -1618,6 +1618,40 @@ void enc_E_RABDataForwardingItem(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t *
     }
 }
 
+
+void enc_S_TMSI(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
+    S_TMSI_t *v = (S_TMSI_t*)ie->value;
+
+    /*Link functions*/
+    ie->showValue = v->showIE;
+    ie->freeValue = v->freeIE;
+    ie->value=v;
+
+    /*Set extension flag*/
+    setbits(bytes, 1, v->ext);
+
+    /*Set optionals*/
+    setbits(bytes, 1, v->opt);
+
+    /*attribute number 1 (mMEC) with type MME-Code */
+    enc_MME_Code(bytes, v->mMEC);
+
+    /*attribute number 2 (m_TMSI) with type OCTET STRING */
+    encode_octet_string(bytes, v->m_TMSI.s, 4);
+
+    /* attribute number 3 (iE-Extensions) with type (ProtocolExtensionContainer) SEQUENCE OF */
+    if(v->opt==0x01){
+        enc_protocolIEs(bytes, (S1AP_PROTOCOL_IES_t*)v->iEext);
+    }
+
+    /*Extensions*/
+    if(v->ext!=0){
+        s1ap_msg(ERROR, 0, "Extensions are present, encoding not included in current version.\n");
+        /*TODO extensions encoding*/
+    }
+}
+
+
 const getEncS1AP_IE getenc_S1AP_IE[] = {
         enc_MME_UE_S1AP_ID,/*"id-MME-UE-S1AP-ID"*/
         enc_HandoverType,/*"id-HandoverType"*/
@@ -1715,7 +1749,7 @@ const getEncS1AP_IE getenc_S1AP_IE[] = {
         NULL,/*"id-UE-associatedLogicalS1-ConnectionListResAck"*/
         enc_E_RABSetupItemBearerSURes,/*"id-E-RABToBeSwitchedULItem"*/
         enc_E_RABSetupListBearerSURes,/*"id-E-RABToBeSwitchedULList"*/
-        NULL,/*"id-S-TMSI"*/
+        enc_S_TMSI,/*"id-S-TMSI"*/
         NULL,/*"id-cdma2000OneXRAND"*/
         NULL,/*"id-RequestType"*/
         enc_UE_S1AP_IDs,/*"id-UE-S1AP-IDs"*/

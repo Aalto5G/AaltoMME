@@ -2320,6 +2320,40 @@ typedef struct E_RABDataForwardingItem_c{
 E_RABDataForwardingItem_t *new_E_RABDataForwardingItem();
 
 
+/**@brief
+ *
+ * ASN.1
+ * M-TMSI			::= OCTET STRING (SIZE (4))
+ */
+typedef struct M_TMSI_c{
+    uint8_t s[4];
+}M_TMSI_t;
+
+/**@brief  S-TMSI
+ *
+ * ASN.1
+ * S-TMSI ::= SEQUENCE {
+ *	mMEC	MME-Code,
+ *	m-TMSI	M-TMSI,
+ *	iE-Extensions		ProtocolExtensionContainer { {S-TMSI-ExtIEs} } OPTIONAL,
+ *	...
+ *}
+ * */
+typedef struct S_TMSI_c{
+    void                            (*freeIE)(void *);
+    void                            (*showIE)(void *);
+    uint8_t                         ext;    /*< Extension flag*/
+    uint8_t                         opt;
+    MME_Code_t                      *mMEC;
+    M_TMSI_t                        m_TMSI;
+    ProtocolExtensionContainer_t    *iEext;
+}S_TMSI_t;
+
+/** @brief Constructor of E-RABAdmittedItem type
+ *  @return E_RABAdmittedItem_t allocated and initialized structure
+ * */
+S_TMSI_t *new_S_TMSI();
+
 
 /**@brief  SONConfigurationTransfer
  *

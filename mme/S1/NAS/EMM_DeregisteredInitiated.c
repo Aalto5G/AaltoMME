@@ -24,10 +24,15 @@ static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
 }
 
 static void emm_processSecMsg(gpointer emm_h, gpointer buff, gsize len){
-	EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
 
-	log_msg(LOG_ERR, 0, "Received unexpected NAS message with security header");
+    log_msg(LOG_ERR, 0, "Received unexpected NAS message with security header");
 
+}
+
+static void emm_processSrvReq(gpointer emm_h, gpointer buf, gsize len){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    log_msg(LOG_WARNING, 0, "Received Service request, not supported in this context");
 }
 
 void linkEMMDeregisteredInitiated(EMM_State* s){
@@ -35,5 +40,6 @@ void linkEMMDeregisteredInitiated(EMM_State* s){
     /* s->authInfoAvailable = emmAuthInfoAvailable; */
     s->attachAccept = NULL;
     s->processSecMsg = emm_processSecMsg;
+    s->processSrvReq = emm_processSrvReq;
     s->sendESM = NULL;
 }

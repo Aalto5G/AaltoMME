@@ -156,7 +156,6 @@ void ecm_sendCtxtSUReq(ECMSession h, gpointer msg, size_t len, GList *bearers){
 
 
     /* E-RABToBeSetupListCtxtSUReq*/
-    /* NAS-PDU*/
     list = s1ap_newIE(s1out, id_E_RABToBeSetupListCtxtSUReq, mandatory, reject);
     /* g_list_foreach (bearers, ecm_buildE_RABToBeSetupItemCtxtSUReq, (gpointer){self, list}); */
 
@@ -166,6 +165,7 @@ void ecm_sendCtxtSUReq(ECMSession h, gpointer msg, size_t len, GList *bearers){
     eRABitem->transportLayerAddress = new_TransportLayerAddress();
     eRABitem->eRABlevelQoSParameters->allocationRetentionPriority = new_AllocationAndRetentionPriority();
 
+    /* NAS-PDU*/
     /* NAS PDU is optional */
     if(msg && len>0){
         eRABitem->opt |=0x80;

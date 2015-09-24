@@ -152,7 +152,7 @@ void esm_UEContextReleaseReq(ESM esm_h, void (*cb)(gpointer), gpointer args){
     }
 }
 
-void esm_releaseEPSSession(EPS_Session s){
+void esm_deleteEPSSession(EPS_Session s){
     EPS_Session_t *session = (EPS_Session_t*)s;
     ESM_t *esm = (ESM_t*)session->esm;
     ESM_BearerContext bearer = ePSsession_getDefaultBearer(session);
@@ -172,8 +172,13 @@ void esm_detach(ESM esm_h, void(*cb)(gpointer), gpointer args){
     self->args = args;
     if(ls){
         session = ls->data;
-        ePSsession_detach(session, esm_releaseEPSSession, session);
+        ePSsession_detach(session, esm_deleteEPSSession, session);
     }else if(cb){
         cb(args);
     }
+}
+
+void esm_getSessions(ESM esm_h, GList **sessions){
+    ESM_t *self = (ESM_t*)esm_h;
+    *sessions = g_hash_table_get_values(self->sessions);
 }
