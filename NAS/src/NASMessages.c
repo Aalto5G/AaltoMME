@@ -18,6 +18,20 @@
 #include <string.h>
 #include <netinet/in.h>
 
+
+void dec_nonImperativeIE(union nAS_ie_member **optionals, uint8_t *buffer, uint32_t size);
+
+
+void dec_NASOpt_tlv(union nAS_ie_member *optionals, uint8_t **buffer, uint32_t *size,
+                    uint8_t *optIndex, uint32_t type);
+
+void dec_NASOpt_tv_t3(union nAS_ie_member *optionals, uint8_t **buffer, uint32_t *size,
+                      uint8_t *optIndex, uint32_t type, uint32_t len);
+
+void dec_NASOpt_tv_t1(union nAS_ie_member *optionals, uint8_t **buffer, uint32_t *size,
+                      uint8_t *optIndex, uint32_t type, uint32_t valueMask);
+
+
 /* ********************** EMM ********************** */
 void dec_IdentityResponse(IdentityResponse_t *msg, uint8_t *buffer, uint32_t size) {
     /*EPSMobileId*/
@@ -125,31 +139,35 @@ void dec_AttachReject(AttachReject_t *msg, uint8_t *buffer, uint32_t size){
 }
 
 void dec_AttachRequest(AttachRequest_t *msg, uint8_t *buffer, uint32_t size){
-
+    uint8_t numOp=0;
     nas_msg(NAS_DEBUG, 0, "Enter");
 
     /*EPSAttachType and NASKeySetId*/
     msg->ePSAttachType.v = (*buffer)&0x0F;
     msg->nASKeySetId.v = ((*buffer)&0xF0)>>4;
     buffer++;
+    size--;
     nas_msg(NAS_DEBUG, 0, "DEC : ePSAttachType = %#x, DEC : nASKeySetId = %#x", msg->ePSAttachType.v, msg->nASKeySetId.v);
 
     /*EPSMobileId*/
     msg->ePSMobileId.l = *buffer;
     memcpy(msg->ePSMobileId.v, ++buffer, msg->ePSMobileId.l);
     buffer+=msg->ePSMobileId.l;
+    size -= msg->ePSMobileId.l;
     nas_msg(NAS_DEBUG, 0, "DEC : ePSMobileId len = %u, v = %#x%x", msg->ePSMobileId.l, msg->ePSMobileId.v[0], msg->ePSMobileId.v[1]);
 
     /*UENetworkCapability*/
     msg->uENetworkCapability.l = *buffer;
     memcpy(msg->uENetworkCapability.v, ++buffer, msg->uENetworkCapability.l);
     buffer+=msg->uENetworkCapability.l;
+    size -= msg->uENetworkCapability.l;
     nas_msg(NAS_DEBUG, 0, "DEC : uENetworkCapability len = %u, v = %#x", msg->uENetworkCapability.l, msg->uENetworkCapability.v[0]);
 
     /*ESM_MessageContainer*/
     memcpy(&(msg->eSM_MessageContainer.l), buffer, 2);
     msg->eSM_MessageContainer.l = ntohs(msg->eSM_MessageContainer.l);
     buffer+=2;
+    size-=2;
     memcpy(msg->eSM_MessageContainer.v, buffer, msg->eSM_MessageContainer.l);
     buffer+=msg->eSM_MessageContainer.l;
     nas_msg(NAS_DEBUG, 0, "DEC : eSM_MessageContainer len = %u, v = %#x", msg->eSM_MessageContainer.l, msg->eSM_MessageContainer.v[0]);
@@ -157,6 +175,47 @@ void dec_AttachRequest(AttachRequest_t *msg, uint8_t *buffer, uint32_t size){
     /*Currently not working. The TV IE's are common on the NAS specifications and are not considered on 3gpp 24.007, Clause 11.2.4*/
     /*dec_nonImperativeIE(msg->optionals, buffer, size);*/
     /*union nAS_ie_member *optionals[17];*/
+
+    if(size == 0)
+        return;
+
+    /*Optionals*/
+    /* Old P-TMSI signature */
+    dec_NASOpt_tv_t3(msg->optionals, &buffer, &size, &numOp, 0x19, 4);
+    /* Additional GUTI */
+    dec_NASOpt_tlv(msg->optionals, &buffer, &size, &numOp, 0x50);
+    /* Last visited registered TAI */
+    dec_NASOpt_tv_t3(msg->optionals, &buffer, &size, &numOp, 0x52, 6);
+    /* DRX Parameter */
+    dec_NASOpt_tv_t3(msg->optionals, &buffer, &size, &numOp, 0x5C, 3);
+    /* MS Network Capability */
+    dec_NASOpt_tlv(msg->optionals, &buffer, &size, &numOp, 0x31);
+    /* Old LAI */
+    dec_NASOpt_tv_t3(msg->optionals, &buffer, &size, &numOp, 0x13, 6);
+    /* TMSI status */
+    dec_NASOpt_tv_t1(msg->optionals, &buffer, &size, &numOp, 0x9, 0x1);
+    /* MS Classmark 2 */
+    dec_NASOpt_tlv(msg->optionals, &buffer, &size, &numOp, 0x11);
+    /* MS Classmark 3 */
+    dec_NASOpt_tlv(msg->optionals, &buffer, &size, &numOp, 0x20);
+    /* Supported Codecs */
+    dec_NASOpt_tlv(msg->optionals, &buffer, &size, &numOp, 0x40);
+    /* Additional update type */
+    dec_NASOpt_tv_t1(msg->optionals, &buffer, &size, &numOp, 0xF, 0x1);
+    /* Voice Domain Preference & UE's usage setting*/
+    dec_NASOpt_tlv(msg->optionals, &buffer, &size, &numOp, 0x5D);
+    /* Device properties */
+    dec_NASOpt_tv_t1(msg->optionals, &buffer, &size, &numOp, 0xD, 0x1);
+    /* Old GUTI type */
+    dec_NASOpt_tv_t1(msg->optionals, &buffer, &size, &numOp, 0xE, 0x1);
+    /* MS network feature support */
+    dec_NASOpt_tv_t1(msg->optionals, &buffer, &size, &numOp, 0xC, 0x1);
+    /* TMSI based NRI container*/
+    dec_NASOpt_tlv(msg->optionals, &buffer, &size, &numOp, 0x10);
+    /* T3324 value*/
+    dec_NASOpt_tlv(msg->optionals, &buffer, &size, &numOp, 0x6A);
+    /* T3412 extended value*/
+    dec_NASOpt_tlv(msg->optionals, &buffer, &size, &numOp, 0x5E);
 }
 
 void dec_DetachRequestUEOrig(DetachRequestUEOrig_t *msg, uint8_t *buffer, uint32_t size){
@@ -196,18 +255,73 @@ void dec_TrackingAreaUpdateReject(TrackingAreaUpdateReject_t *msg, uint8_t *buff
 }
 
 void dec_TrackingAreaUpdateRequest(TrackingAreaUpdateRequest_t *msg, uint8_t *buffer, uint32_t size){
-
+    uint8_t numOp=0;
     /*ePSUpdateType and NASKeySetId*/
     msg->ePSUpdateType.v = (*buffer)&0x0F;
     msg->nASKeySetId.v = ((*buffer)&0xF0)>>4;
     buffer++;
-    nas_msg(NAS_DEBUG, 0, "DEC : ePSUpdateType = %#x, DEC : nASKeySetId = %#x", msg->ePSUpdateType.v, msg->nASKeySetId.v);
+    nas_msg(NAS_DEBUG, 0, "DEC : ePSUpdateType = %#x, DEC : nASKeySetId = %#x",
+            msg->ePSUpdateType.v, msg->nASKeySetId.v);
 
     /*oldGUTI - EPSMobileId*/
     msg->oldGUTI.l = *buffer;
     memcpy(msg->oldGUTI.v, ++buffer, msg->oldGUTI.l);
     buffer+=msg->oldGUTI.l;
-    nas_msg(NAS_DEBUG, 0, "DEC : oldGUTI len = %u, v = %#x%x", msg->oldGUTI.l, msg->oldGUTI.v[0], msg->oldGUTI.v[1]);
+    nas_msg(NAS_DEBUG, 0, "DEC : oldGUTI len = %u, v = %#x%x",
+            msg->oldGUTI.l, msg->oldGUTI.v[0], msg->oldGUTI.v[1]);
+
+    if(size == 0)
+        return;
+
+    /*Optionals*/
+    /* Non-current native NAS key set identifier */
+    dec_NASOpt_tv_t1(msg->optionals, &buffer, &size, &numOp, 0xB, 0xF);
+    /* GPRS ciphering key sequence number*/
+    dec_NASOpt_tv_t1(msg->optionals, &buffer, &size, &numOp, 0x8, 0x7);
+    /* Old P-TMSI signature*/
+    dec_NASOpt_tv_t3(msg->optionals, &buffer, &size, &numOp, 0x19, 4);
+    /* Additional GUTI */
+    dec_NASOpt_tlv(msg->optionals, &buffer, &size, &numOp, 0x50);
+    /* Nonce UE*/
+    dec_NASOpt_tv_t3(msg->optionals, &buffer, &size, &numOp, 0x55, 5);
+    /* UE network Capability*/
+    dec_NASOpt_tlv(msg->optionals, &buffer, &size, &numOp, 0x58);
+    /* Last visited registered TAI */
+    dec_NASOpt_tv_t3(msg->optionals, &buffer, &size, &numOp, 0x52, 6);
+    /* DRX Parameter */
+    dec_NASOpt_tv_t3(msg->optionals, &buffer, &size, &numOp, 0x5C, 3);
+    /* UE radio capability information update needed */
+    dec_NASOpt_tv_t1(msg->optionals, &buffer, &size, &numOp, 0xA, 0x1);
+    /* EPS bearer context status*/
+    dec_NASOpt_tlv(msg->optionals, &buffer, &size, &numOp, 0x57);
+    /* MS Network Capability */
+    dec_NASOpt_tlv(msg->optionals, &buffer, &size, &numOp, 0x31);
+    /* Old LAI */
+    dec_NASOpt_tv_t3(msg->optionals, &buffer, &size, &numOp, 0x13, 6);
+    /* TMSI status */
+    dec_NASOpt_tv_t1(msg->optionals, &buffer, &size, &numOp, 0x9, 0x1);
+    /* MS Classmark 2 */
+    dec_NASOpt_tlv(msg->optionals, &buffer, &size, &numOp, 0x11);
+    /* MS Classmark 3 */
+    dec_NASOpt_tlv(msg->optionals, &buffer, &size, &numOp, 0x20);
+    /* Supported Codecs */
+    dec_NASOpt_tlv(msg->optionals, &buffer, &size, &numOp, 0x40);
+    /* Additional update type */
+    dec_NASOpt_tv_t1(msg->optionals, &buffer, &size, &numOp, 0xF, 0x1);
+    /* Voice Domain Preference & UE's usage setting*/
+    dec_NASOpt_tlv(msg->optionals, &buffer, &size, &numOp, 0x5D);
+    /* Old GUTI type */
+    dec_NASOpt_tv_t1(msg->optionals, &buffer, &size, &numOp, 0xE, 0x1);
+    /* Device properties */
+    dec_NASOpt_tv_t1(msg->optionals, &buffer, &size, &numOp, 0xD, 0x1);
+    /* MS network feature support */
+    dec_NASOpt_tv_t1(msg->optionals, &buffer, &size, &numOp, 0xC, 0x1);
+    /* TMSI based NRI container*/
+    dec_NASOpt_tlv(msg->optionals, &buffer, &size, &numOp, 0x10);
+    /* T3324 value*/
+    dec_NASOpt_tlv(msg->optionals, &buffer, &size, &numOp, 0x6A);
+    /* T3412 extended value*/
+    dec_NASOpt_tlv(msg->optionals, &buffer, &size, &numOp, 0x5E);
 }
 
 /* ******************** end EMM ******************** */
@@ -316,61 +430,27 @@ void dec_PDNConnectivityReject(PDNConnectivityReject_t *msg, uint8_t *buffer, ui
 
 void dec_PDNConnectivityRequest(PDNConnectivityRequest_t *msg, uint8_t *buffer, uint32_t size){
     uint8_t  opT, numOp=0;
-    ie_tlv_t4_t *temp;
-    /*EPSAttachType and NASKeySetId*/
+    /*Request type*/
     msg->requestType.v = (*buffer)&0x0F;
+    /* PDN type*/
     msg->PDNType.v = ((*buffer)&0xF0)>>4;
     buffer++;
-    nas_msg(NAS_DEBUG, 0, "DEC : requestType = %#x, DEC : PDNType = %#x", msg->requestType.v, msg->PDNType.v);
-
     size--;
+    nas_msg(NAS_DEBUG, 0, "DEC : requestType = %#x, DEC : PDNType = %#x",
+            msg->requestType.v, msg->PDNType.v);
+
     if(size == 0)
         return;
 
     /*Optionals*/
-    opT = *buffer;
-    if((opT&0xF0) == 0xD0){
-        /*ESM information transfer flag*/
-	    msg->optionals[numOp].v_t1_h.v = (opT&0xF0)>>4;
-	    msg->optionals[numOp].v_t1_l.v = opT&0x01;
-        buffer++;
-        size--;
-        numOp++;
-        if(size == 0)
-            return;
-        opT = *buffer;
-    }
-    if(opT == 0x28){
-	    /*Access point name*/
-	    temp = (ie_tlv_t4_t *)buffer;
-	    memcpy( msg->optionals +numOp, temp, temp->l+2);
-	    buffer += temp->l;
-	    size -= 2;
-	    size -= temp->l;
-	    numOp++;
-	    if(size == 0)
-		    return;
-	    opT = *buffer;
-    }
-    if(opT == 0x27){
-	    /*Protocol configuration options*/
-	    temp = (ie_tlv_t4_t *)buffer;
-	    memcpy( msg->optionals +numOp, temp, temp->l+2);
-
-	    buffer += temp->l;
-	    size -= 2;
-	    size -= temp->l;
-	    numOp++;
-	    if(size == 0)
-		    return;
-	    opT = *buffer;
-    }
-    if((opT&0xF0) == 0x0C0){
-	    /*Device properties*/
-	    numOp++;
-	    buffer++;
-	    size--;
-    }
+    /*ESM information transfer flag*/
+    dec_NASOpt_tv_t1(msg->optionals, &buffer, &size, &numOp, 0xD, 0x1);
+    /*Access point name*/
+    dec_NASOpt_tlv(msg->optionals, &buffer, &size, &numOp, 0x28);
+    /*Protocol configuration options*/
+    dec_NASOpt_tlv(msg->optionals, &buffer, &size, &numOp, 0x27);
+    /* Device properties */
+    dec_NASOpt_tv_t1(msg->optionals, &buffer, &size, &numOp, 0xC, 0x1);
 }
 
 
@@ -470,3 +550,48 @@ void dec_nonImperativeIE(union nAS_ie_member ** optionals, uint8_t *buffer, uint
     }
 
 };
+
+void dec_NASOpt_tlv(union nAS_ie_member *optionals, uint8_t **buffer, uint32_t *size,
+                        uint8_t *optIndex, uint32_t type){
+    ie_tlv_t4_t *temp;
+    uint8_t opT = **buffer;
+    if(*size==0){
+        return;
+    }
+    if(opT == type){
+        temp = (ie_tlv_t4_t *)*buffer;
+        memcpy(optionals + *optIndex, temp, temp->l+2);
+        (*buffer) += temp->l;
+        (*size) -= 2;
+        (*size) -= temp->l;
+        (*optIndex)++;
+    }
+}
+
+void dec_NASOpt_tv_t3(union nAS_ie_member *optionals, uint8_t **buffer, uint32_t *size,
+                          uint8_t *optIndex, uint32_t type, uint32_t len){
+    uint8_t opT = **buffer;
+    if(*size==0){
+        return;
+    }
+    if(opT == type){
+        memcpy(optionals + *optIndex, *buffer, len);
+        (*buffer)+=len;
+        (*size)-=len;
+        (*optIndex)++;
+    }
+}
+
+void dec_NASOpt_tv_t1(union nAS_ie_member *optionals, uint8_t **buffer, uint32_t *size,
+                          uint8_t *optIndex, uint32_t type, uint32_t valueMask){
+    uint8_t opT = **buffer;
+    if(*size==0){
+        return;
+    }
+    if((opT&0xF0) == (type<<4)){
+        optionals[*optIndex].iei = opT&(0xF0|valueMask);
+        (*buffer)++;
+        (*size)--;
+        (*optIndex)++;
+    }
+}

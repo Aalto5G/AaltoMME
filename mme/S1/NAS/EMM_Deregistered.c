@@ -146,10 +146,11 @@ void processAttach(gpointer emm_h,  GenericNASMsg_t* msg){
     uint64_t mobid=0ULL;
     GByteArray *esmRaw;
     guint16 cap;
+    union nAS_ie_member const *optIE=NULL;
 
     attachMsg = (AttachRequest_t*)&(msg->plain.eMM);
     emm->attachStarted = TRUE;
-    emm->attachType = attachMsg->ePSAttachType.v;
+    emm->msg_attachType = attachMsg->ePSAttachType.v;
     emm->msg_ksi = attachMsg->nASKeySetId.v & 0x07;
 
     esmRaw = g_byte_array_new();
@@ -177,6 +178,13 @@ void processAttach(gpointer emm_h,  GenericNASMsg_t* msg){
            attachMsg->uENetworkCapability.v,
            attachMsg->uENetworkCapability.l);
     emm->ueCapabilitiesLen = attachMsg->uENetworkCapability.l;
+
+    /*Optionals*/
+    /* Last visited registered TAI: 0x52*/
+    nas_NASOpt_lookup(attachMsg->optionals, 17, 0x52, &optIE);
+    if(optIE){
+        /* optIE->tv_t3_l.v; */
+    }
 }
 
 void attachContinuationSwitch(gpointer emm_h, guint8 ksi_msg){

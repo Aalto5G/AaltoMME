@@ -48,7 +48,6 @@ typedef struct{
     guint64      imsi;
     guint64      msisdn;
     guint64      imeisv;
-    guti_t       msg_guti;
     guti_t       guti;
 
     Subscription subs;
@@ -59,6 +58,11 @@ typedef struct{
     gboolean     s1BearersActive;
     guint8       attachType;
     GPtrArray    *pendingESMmsg;
+    /* Message processing helpers */
+    guint8       msg_attachType;
+    guint8       msg_detachType;
+    guint8       msg_ksi;
+    guti_t       msg_guti;
 
     /* **** Start of MM context **** */
     guint8       type;          /**< MM type */
@@ -68,7 +72,6 @@ typedef struct{
     gboolean     uambri;        /**< Used AMBR Indicator */
     gboolean     sambri;        /**< Subscribed AMBR Indicator */
     gboolean     osci;          /**< Old Security Context indicator */
-    guint8       msg_ksi;
     guint8       ksi;
     guint8       nasIntAlg;
     guint8       nasCipAlg;

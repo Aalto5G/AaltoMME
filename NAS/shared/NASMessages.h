@@ -55,7 +55,7 @@ typedef struct SecurityProtectedMsg_c{
     ie_v_t3_t       messageAuthCode;
     uint8_t         sequenceNum;
     uint8_t         *msg;
-	uint32_t        len;
+    uint32_t        len;
 }SecurityProtectedMsg_t;
 
 /** Structure defining the generic NAS message, plain or ciphered*/
@@ -67,31 +67,31 @@ typedef union GenericNASMsg_c{
 
 /**Identity Response : UE to nework : dual*/
 typedef struct IdentityResponse_c{
-	ie_v_t1_l_t protocolDiscriminator;
-	ie_v_t1_h_t	securityHeaderType;
-	ie_t_t2_t	messageType;
-	ie_lv_t4_t 	mobileId;
+    ie_v_t1_l_t protocolDiscriminator;
+    ie_v_t1_h_t	securityHeaderType;
+    ie_t_t2_t	messageType;
+    ie_lv_t4_t  mobileId;
 }IdentityResponse_t;
 
 void dec_IdentityResponse(IdentityResponse_t *msg, uint8_t *buffer, uint32_t size);
 
 /** Authentication Response : UE to network : dual*/
 typedef struct AuthenticationResponse_c{
-	ie_v_t1_l_t protocolDiscriminator;
-	ie_v_t1_h_t	securityHeaderType;
-	ie_t_t2_t	messageType;
-	ie_lv_t4_t 	authParam;
+    ie_v_t1_l_t protocolDiscriminator;
+    ie_v_t1_h_t	securityHeaderType;
+    ie_t_t2_t	messageType;
+    ie_lv_t4_t  authParam;
 }AuthenticationResponse_t;
 
 void dec_AuthenticationResponse(AuthenticationResponse_t *msg, uint8_t *buffer, uint32_t size);
 
 /** Authentication Failure : UE to network : dual*/
 typedef struct AuthenticationFailure_c{
-	ie_v_t1_l_t protocolDiscriminator;
-	ie_v_t1_h_t	securityHeaderType;
-	ie_t_t2_t	messageType;
-	uint8_t 	eMMCause;
-	union nAS_ie_member optionals[1];
+    ie_v_t1_l_t protocolDiscriminator;
+    ie_v_t1_h_t	securityHeaderType;
+    ie_t_t2_t	messageType;
+    uint8_t     eMMCause;
+    union nAS_ie_member optionals[1];
 }AuthenticationFailure_t;
 
 void dec_AuthenticationFailure(AuthenticationFailure_t *msg, uint8_t *buffer, uint32_t size);
@@ -101,14 +101,14 @@ void dec_AuthenticationFailure(AuthenticationFailure_t *msg, uint8_t *buffer, ui
 
 /**ATTACH ACCEPT : network to UE : dual*/
 typedef struct AttachAccept_c{
-	ie_v_t1_l_t protocolDiscriminator;
-	ie_v_t1_h_t	securityHeaderType;
-	ie_t_t2_t	messageType;
-	ie_v_t1_l_t ePSAttachResult;
-	ie_v_t3_t 	t3412;
-	ie_lv_t4_t	tAI_list;
-	ie_lv_t6_t	eSM_MessageContainer;
-	union nAS_ie_member *optionals[11];
+    ie_v_t1_l_t protocolDiscriminator;
+    ie_v_t1_h_t	securityHeaderType;
+    ie_t_t2_t	messageType;
+    ie_v_t1_l_t ePSAttachResult;
+    ie_v_t3_t   t3412;
+    ie_lv_t4_t	tAI_list;
+    ie_lv_t6_t	eSM_MessageContainer;
+    union nAS_ie_member *optionals[11];
 }AttachAccept_t;
 
 void dec_AttachAccept(AttachAccept_t *msg, uint8_t *buffer, uint32_t size);
@@ -116,37 +116,37 @@ void dec_AttachAccept(AttachAccept_t *msg, uint8_t *buffer, uint32_t size);
 
 /** ATTACH COMPLETE : UE to network : dual*/
 typedef struct AttachComplete_c{
-	ie_v_t1_l_t protocolDiscriminator;
-	ie_v_t1_h_t	securityHeaderType;
-	ie_t_t2_t	messageType;
-	ie_lv_t6_t	eSM_MessageContainer;
+    ie_v_t1_l_t protocolDiscriminator;
+    ie_v_t1_h_t	securityHeaderType;
+    ie_t_t2_t	messageType;
+    ie_lv_t6_t	eSM_MessageContainer;
 }AttachComplete_t;
 
 void dec_AttachComplete(AttachComplete_t *msg, uint8_t *buffer, uint32_t size);
 
-/** ATTACH REJECT 	: network to UE : dual*/
+/** ATTACH REJECT   : network to UE : dual*/
 typedef struct AttachReject_c{
-	ie_v_t1_l_t protocolDiscriminator;
-	ie_v_t1_h_t	securityHeaderType;
-	ie_t_t2_t	messageType;
-	uint8_t 	eMMCause;
-	union nAS_ie_member optionals[3];
+    ie_v_t1_l_t protocolDiscriminator;
+    ie_v_t1_h_t	securityHeaderType;
+    ie_t_t2_t	messageType;
+    uint8_t     eMMCause;
+    union nAS_ie_member optionals[3];
 }AttachReject_t;
 
 void dec_AttachReject(AttachReject_t *msg, uint8_t *buffer, uint32_t size);
 
 
-/** ATTACH REQUEST 	: UE to network : dual*/
+/** ATTACH REQUEST  : UE to network : dual*/
 typedef struct AttachRequest_c{
-	ie_v_t1_l_t protocolDiscriminator;
-	ie_v_t1_h_t	securityHeaderType;
-	ie_t_t2_t	messageType;
-	ie_v_t1_l_t ePSAttachType;
-	ie_v_t1_h_t nASKeySetId;
-	ie_lv_t4_t 	ePSMobileId;
-	ie_lv_t4_t	uENetworkCapability;
-	ie_lv_t6_t	eSM_MessageContainer;
-	union nAS_ie_member optionals[17];
+    ie_v_t1_l_t protocolDiscriminator;
+    ie_v_t1_h_t	securityHeaderType;
+    ie_t_t2_t	messageType;
+    ie_v_t1_l_t ePSAttachType;
+    ie_v_t1_h_t nASKeySetId;
+    ie_lv_t4_t  ePSMobileId;
+    ie_lv_t4_t	uENetworkCapability;
+    ie_lv_t6_t	eSM_MessageContainer;
+    union nAS_ie_member optionals[17];
 }AttachRequest_t;
 
 void dec_AttachRequest(AttachRequest_t *msg, uint8_t *buffer, uint32_t size);
@@ -211,7 +211,7 @@ typedef struct TrackingAreaUpdateReject_c{
     ie_v_t1_l_t protocolDiscriminator;
     ie_v_t1_h_t securityHeaderType;
     ie_t_t2_t   messageType;
-	uint8_t     eMMCause;
+    uint8_t     eMMCause;
     union nAS_ie_member optionals[1];
 }TrackingAreaUpdateReject_t;
 
@@ -472,7 +472,5 @@ typedef struct BearerResourceModificationRequest_c{
 
 void dec_BearerResourceModificationRequest(BearerResourceModificationRequest_t *msg, uint8_t *buffer, uint32_t size);
 
-
-void dec_nonImperativeIE(union nAS_ie_member **optionals, uint8_t *buffer, uint32_t size);
 
 #endif  /* !_NAS_MESSAGES_H */

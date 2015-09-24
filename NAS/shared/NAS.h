@@ -237,5 +237,21 @@ void encaps_EMM(uint8_t **curpos,
  */
 uint8_t nas_isAuthRequired(NASMessageType_t messageType);
 
+/**
+ * @brief get Optional IE
+ * @param [in]  optionals   NAS optional IE array
+ * @param [in]  maxOpts     Maximum number of optional IE in the array
+ * @param [in]  iei         IE Identifier
+ * @param [out] ie          IE found
+ *
+ * This function points the ie to the optional IE found in the optionals list.
+ * If an IE with the specified IE ID is not found, NULL is returned
+ *
+ * The function returns on the first IEI 0 or if the maxOpts is reached
+ */
+void nas_NASOpt_lookup(const union nAS_ie_member *optionals,
+                       const uint8_t maxOpts,
+                       const uint8_t iei,
+                       union nAS_ie_member const **ie);
 
 #endif  /* !_NAS_H */

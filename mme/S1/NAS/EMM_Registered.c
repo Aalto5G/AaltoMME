@@ -21,6 +21,7 @@
 #include "NAS_EMM_priv.h"
 
 static void processDetachReq(EMMCtx_t *emm, GenericNASMsg_t *msg);
+static void emm_detach(EMMCtx_t *emm);
 
 static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
     log_msg(LOG_WARNING, 0,
@@ -73,6 +74,11 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     case DetachRequest:
         log_msg(LOG_DEBUG, 0, "Received DetachRequest");
         processDetachReq(emm, &msg);
+        if(emm->ksi != emm->msg_ksi){
+            log_msg(LOG_ALERT, 0, "DetachRequest, ksi mismatch");
+            return;
+        }
+        esm_detach(emm->esm, emm_detach, emm);
         break;
     case TrackingAreaUpdateRequest:
         emm_processTAUReq(emm, &msg);
@@ -83,11 +89,6 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         }
         emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink);
 
-        /* /\* HACK: Send reject to detach user and trigger reattach*\/ */
-        /* emm_sendTAUReject(emm); */
-        /* emmChangeState(emm, EMM_Deregistered); */
-
-        /* Normal processing*/
         emm_sendTAUAccept(emm);
         emmChangeState(emm, EMM_SpecificProcedureInitiated);
         break;
@@ -154,19 +155,16 @@ static void emm_detach(EMMCtx_t *emm){
     uint8_t *pointer, buffer[150];
 
     emm->s1BearersActive = FALSE;
-    /* Forge Detach Accept*/
-    pointer = buffer;
-    newNASMsg_EMM(&pointer, EPSMobilityManagementMessages, PlainNAS);
-    encaps_EMM(&pointer, DetachAccept);
+    if((emm->msg_detachType&0x8)!=0x8){
+        /* Build Detach Accept when not switchoff*/
+        pointer = buffer;
+        newNASMsg_EMM(&pointer, EPSMobilityManagementMessages, PlainNAS);
+        encaps_EMM(&pointer, DetachAccept);
 
-    ecm_send(emm->ecm, buffer, pointer-buffer);
+        ecm_send(emm->ecm, buffer, pointer-buffer);
+    }
+
     log_msg(LOG_INFO, 0, "UE (IMSI: %llu) NAS Detach", emm->imsi);
-    emmChangeState(emm, EMM_Deregistered);
-    ecm_sendUEContextReleaseCommand(emm->ecm, CauseNas, CauseNas_detach);
-}
-
-static void emm_detach_switchoff(EMMCtx_t *emm){
-    log_msg(LOG_INFO, 0, "UE (IMSI: %llu) NAS Detach Switch-off", emm->imsi);
     emmChangeState(emm, EMM_Deregistered);
     ecm_sendUEContextReleaseCommand(emm->ecm, CauseNas, CauseNas_detach);
 }
@@ -180,14 +178,10 @@ static void processDetachReq(EMMCtx_t *emm, GenericNASMsg_t *msg){
     /*ePSAttachType*/
     gboolean switchoff;
     guint8 detachType;
-    detachType = detachMsg->detachType.v&0x07;
-    switchoff = (gboolean)(detachMsg->detachType.v&0x08)>>3;
+    emm->msg_detachType = detachMsg->detachType.v;
 
     /*nASKeySetId*/
-    /*if(detachMsg->nASKeySetId.v != PDATA->user_ctx->ksi.id){
-        log_msg(LOG_ERR, 0, "Incorrect KSI: %u Ignoring detach", detachMsg->nASKeySetId.v);
-        return 1;
-     }*/
+    emm->msg_ksi = detachMsg->nASKeySetId.v;
 
     /*EPSMobileId*/
     if(((ePSMobileId_header_t*)detachMsg->ePSMobileId.v)->type == 1 ){  /* IMSI*/
@@ -209,9 +203,5 @@ static void processDetachReq(EMMCtx_t *emm, GenericNASMsg_t *msg){
             return;
         }
     }
-    if(switchoff){
-        esm_detach(emm->esm, emm_detach_switchoff, emm);
-    }else{
-        esm_detach(emm->esm, emm_detach, emm);
-    }
+
 }

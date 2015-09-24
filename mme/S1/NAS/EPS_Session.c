@@ -52,34 +52,29 @@ void ePSsession_free(EPS_Session s){
     g_free(self);
 }
 
-void ePSsession_parsePDNConnectivityRequest(EPS_Session s, ESM_Message_t *msg, gboolean *infoTxRequired){
+void ePSsession_parsePDNConnectivityRequest(EPS_Session s, ESM_Message_t *msg,
+                                            gboolean *infoTxRequired){
     uint8_t  *pointer, numOp=0;
     ie_tlv_t4_t *temp;
     EPS_Session_t *self = (EPS_Session_t*)s;
     PDNConnectivityRequest_t *pdnReq = (PDNConnectivityRequest_t*)msg;
+    union nAS_ie_member const *optIE=NULL;
 
     *infoTxRequired = FALSE;
     self->current_pti = msg->procedureTransactionIdentity;
     /*Optionals*/
-    if((pdnReq->optionals[numOp].iei&0xF0) == 0xD0){
-        /*ESM information transfer flag*/
-        *infoTxRequired = (gboolean)pdnReq->optionals[numOp].v_t1_l.v;
-        numOp++;
+    /* ESM information transfer flag: 0xD*/
+    nas_NASOpt_lookup(pdnReq->optionals, 4, 0xD, &optIE);
+    if(optIE){
+        *infoTxRequired = (gboolean)optIE->v_t1_l.v;
     }
-    if(pdnReq->optionals[numOp].iei == 0x28){
-        /*Access point name*/
-        numOp++;
+    /*Access point name: 0x28*/
+    /*Protocol configuration options: 0x27*/
+    nas_NASOpt_lookup(pdnReq->optionals, 4, 0xD, &optIE);
+    if(optIE){
+        memcpy(self->pco, &(optIE->tlv_t4), optIE->tlv_t4.l+2);
     }
-    if(pdnReq->optionals[numOp].iei == 0x27){
-        /*Protocol configuration options*/
-        temp =  &(pdnReq->optionals[numOp].tlv_t4);
-        memcpy(self->pco, temp, temp->l+2);
-        numOp++;
-    }
-    if((pdnReq->optionals[numOp].iei&0xF0) == 0xC0){
-        /*Device properties*/
-        numOp++;
-    }
+    /*Device properties: 0xC*/
 }
 
 void ePSsession_sendActivateDefaultEPSBearerCtxtReq(EPS_Session s){
@@ -100,7 +95,8 @@ void ePSsession_sendActivateDefaultEPSBearerCtxtReq(EPS_Session s){
     newNASMsg_ESM(&pointer,
                   EPSSessionManagementMessages,
                   esm_bc_getEBI(self->defaultBearer));
-    encaps_ESM(&pointer, self->current_pti, ActivateDefaultEPSBearerContextRequest);
+    encaps_ESM(&pointer, self->current_pti,
+               ActivateDefaultEPSBearerContextRequest);
 
     /* /\* EPS QoS *\/ */
     subs_cpyQoS_GTP(self->subs, &qos);
@@ -179,8 +175,10 @@ void ePSsession_activateDefault(EPS_Session s, gboolean infoTxRequired){
     EPS_Session_t *self = (EPS_Session_t*)s;
     guint8 *pointer, buf[100];
     if(!infoTxRequired){
-        self->s11 = S11_newUserAttach(esm_getS11iface(self->esm), self->esm->emm, self,
-                                      ePSsession_sendActivateDefaultEPSBearerCtxtReq, self);
+        self->s11 = S11_newUserAttach(esm_getS11iface(self->esm),
+                                      self->esm->emm, self,
+                                      ePSsession_sendActivateDefaultEPSBearerCtxtReq,
+                                      self);
     }else{
         pointer = buf;
         newNASMsg_ESM(&pointer,

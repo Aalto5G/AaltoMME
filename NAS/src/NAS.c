@@ -217,6 +217,8 @@ int dec_NAS(GenericNASMsg_t *msg, const uint8_t *buf, const uint32_t size){
     ProtocolDiscriminator_t p;
     SecurityHeaderType_t s;
 
+    memset(msg, 0, sizeof(GenericNASMsg_t));
+
     if(!nas_getHeader(buf, size, &s, &p))
         return 0;
 
@@ -552,6 +554,8 @@ int dec_secNAS(const NAS h,
     size_t len;
     uint32_t ncount;
 
+    memset(msg, 0, sizeof(GenericNASMsg_t));
+
     nas_getHeader(buf, size, &s, NULL);
 
     if(s ==  IntegrityProtected){
@@ -600,4 +604,30 @@ uint8_t nas_isAuthRequired(NASMessageType_t messageType){
         break;
     }
     return res;
+}
+
+void nas_NASOpt_lookup(const union nAS_ie_member *optionals,
+                       const uint8_t maxOpts,
+                       const uint8_t iei,
+                       union nAS_ie_member const **ie){
+    uint8_t i;
+    *ie = NULL;
+    for(i=0; i<maxOpts; i++){
+        if(optionals[i].iei==0){
+            return;
+        }
+        if((iei&0xF8) == 0x08){
+            /*IEI half byte*/
+            if(optionals[i].v_t1_h.v == iei){
+                *ie = optionals + i;
+                return;
+            }
+        }else{
+            /*IEI full byte*/
+            if(optionals[i].iei == iei){
+                *ie = optionals + i;
+                return;
+            }
+        }
+    }
 }

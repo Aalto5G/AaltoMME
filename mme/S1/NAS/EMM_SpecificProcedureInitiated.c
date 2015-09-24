@@ -141,7 +141,7 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
 
         /* EPS attach result.*/
         /* nasIe_v_t1_l(&pointer,  1); /\* EPS only*\/ */
-        nasIe_v_t1_l(&pointer,  emm->attachType);
+        nasIe_v_t1_l(&pointer,  emm->msg_attachType);
         pointer++; /*Spare half octet*/
         /* T3412 value */
         t3412 = 0x21; /* 1 min*/
@@ -163,7 +163,7 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
         /* EMM cause if the attach type is different
          * This version only accepts EPS services, the combined attach
          * is not supported*/
-        if(emm->attachType == 2){
+        if(emm->msg_attachType == 2){
         /*     cause = EMM_CSDomainNotAvailable; */
         /*     nasIe_tv_t3(&pointer, 0x53, (uint8_t*)&cause, 1); */
             /* LAI list HACK */
