@@ -409,8 +409,9 @@ void emm_sendTAUAccept(EMMCtx emm_h){
     nasIe_v_t1_l(&pointer, emm->updateResult);
     pointer++;
 
+    /* Optionals */
     /* T3412 value */
-    nasIe_v_t3(&pointer, &(emm->t3412), 1);
+    nasIe_tv_t3(&pointer, 0x5A, &(emm->t3412), 1);
     /* GUTI */
     emmCtx_newGUTI(emm, &guti);
     guti_b[0]=0xF6;   /*1111 0 110 - spare, odd/even , GUTI id*/
@@ -444,16 +445,18 @@ void emm_sendTAUAccept(EMMCtx emm_h){
                 addRes = 2;  /*SMS only*/
             }
             nasIe_v_t1_l(&pointer, addRes);
-            nasIe_v_t1_h(&pointer, 0xf);
+            nasIe_v_t1_h(&pointer, 0xF);
         }
-    }else if(emm->attachResult == 1 &&
-             emm->msg_attachType == 2 &&
-             !emm->msg_additionalUpdateType){
-        cause = EMM_CSDomainNotAvailable;
-        nasIe_tv_t3(&pointer, 0x53, (uint8_t*)&cause, 1);
-        log_msg(LOG_WARNING, 0, "Attach with non EPS service requested. "
-                "CS Fallback not supported");
     }
+    /*CHECK order*/
+    /* else if(emm->updateResult == 1 && */
+    /*          emm->msg_updateType == 2 && */
+    /*          !emm->msg_additionalUpdateType){ */
+    /*     cause = EMM_CSDomainNotAvailable; */
+    /*     nasIe_tv_t3(&pointer, 0x53, (uint8_t*)&cause, 1); */
+    /*     log_msg(LOG_WARNING, 0, "Attach with non EPS service requested. " */
+    /*             "CS Fallback not supported"); */
+    /* } */
 
     newNASMsg_sec(emm->parser, out, &len,
                   EPSMobilityManagementMessages,

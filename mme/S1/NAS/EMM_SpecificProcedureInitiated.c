@@ -179,14 +179,16 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
                 nasIe_v_t1_l(&pointer, addRes);
                 nasIe_v_t1_h(&pointer, 0xf);
             }
-        }else if(emm->attachResult == 1 &&
-                 emm->msg_attachType == 2 &&
-                 !emm->msg_additionalUpdateType){
-            cause = EMM_CSDomainNotAvailable;
-            nasIe_tv_t3(&pointer, 0x53, (uint8_t*)&cause, 1);
-            log_msg(LOG_WARNING, 0, "Attach with non EPS service requested. "
-                    "CS Fallback not supported");
         }
+        /*CHECK order*/
+        /* else if(emm->attachResult == 1 && */
+        /*          emm->msg_attachType == 2 && */
+        /*          !emm->msg_additionalUpdateType){ */
+        /*     cause = EMM_CSDomainNotAvailable; */
+        /*     nasIe_tv_t3(&pointer, 0x53, (uint8_t*)&cause, 1); */
+        /*     log_msg(LOG_WARNING, 0, "Attach with non EPS service requested. " */
+        /*             "CS Fallback not supported"); */
+        /* } */
 
         newNASMsg_sec(emm->parser, out, &len,
                       EPSMobilityManagementMessages,
