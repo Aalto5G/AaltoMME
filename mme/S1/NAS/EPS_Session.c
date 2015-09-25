@@ -70,9 +70,9 @@ void ePSsession_parsePDNConnectivityRequest(EPS_Session s, ESM_Message_t *msg,
     }
     /*Access point name: 0x28*/
     /*Protocol configuration options: 0x27*/
-    nas_NASOpt_lookup(pdnReq->optionals, 4, 0xD, &optIE);
+    nas_NASOpt_lookup(pdnReq->optionals, 4, 0x27, &optIE);
     if(optIE){
-        memcpy(self->pco, &(optIE->tlv_t4), optIE->tlv_t4.l+2);
+        ePSsession_setPCO(self, &(optIE->tlv_t4), optIE->tlv_t4.l+2);
     }
     /*Device properties: 0xC*/
 }
@@ -131,7 +131,7 @@ void ePSsession_sendActivateDefaultEPSBearerCtxtReq(EPS_Session s){
     }
     nasIe_lv_t4(&pointer, (uint8_t*)&paa, len);
 
-    /* /\*Optionals *\/ */
+    /*Optionals */
     ePSsession_getPCO(self, pco);
     /* Protocol Configuration Options*/
     if(pco[0]==0x27){
