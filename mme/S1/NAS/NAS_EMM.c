@@ -348,26 +348,40 @@ void emm_processTAUReq(EMMCtx emm_h, GenericNASMsg_t *msg){
     uint8_t mobId[20];
     uint32_t esmSize, i;
     uint64_t mobid=0ULL;
+    union nAS_ie_member const *optIE=NULL;
 
     TrackingAreaUpdateRequest_t *tau_msg = (TrackingAreaUpdateRequest_t*)&(msg->plain.eMM);
 
-    log_msg(LOG_DEBUG, 0, "Enter");
+    /* EPS update type */
+    emm->msg_updateType = (tau_msg->ePSUpdateType.v&0x07);
+    emm->msg_activeFlag = (gboolean)(tau_msg->ePSUpdateType.v&0x08)>>3;
 
-    /*EPS update type */
-    /* if((tau_msg->ePSUpdateType.v &0x07) != 0){ */
-    /*     log_msg(LOG_WARNING, 0, "Not a TA update, ignoring. (ePSUpdateType = %u)", */
-    /*             tau_msg->ePSUpdateType.v); */
-    /*     return; */
-    /* } */
-
-    /* Update type for T3412 expiration on the UE, periodic updating (0)*/
-
-    /*nASKeySetId*/
+    /* nASKeySetId */
     emm->msg_ksi = tau_msg->nASKeySetId.v & 0x07;
 
-    /*EPSMobileId*/
+    /* Old GUTI - EPSMobileId*/
     if(((ePSMobileId_header_t*)tau_msg->oldGUTI.v)->type == 6 ){    /*GUTI*/
         memcpy(&(emm->msg_guti), (guti_t *)(tau_msg->oldGUTI.v+1), 10);
+    }
+
+    /*Optionals*/
+    /*UE network capability: 0x58*/
+    nas_NASOpt_lookup(tau_msg->optionals, 22, 0x58, &optIE);
+    if(optIE){
+        memcpy(emm->ueCapabilities, optIE->tlv_t4.v, optIE->tlv_t4.l);
+        emm->ueCapabilitiesLen = optIE->tlv_t4.l;
+    }
+    /*MS network capability: 0x58*/
+    nas_NASOpt_lookup(tau_msg->optionals, 22, 0x31, &optIE);
+    if(optIE){
+        memcpy(emm->msNetCap, optIE->tlv_t4.v, optIE->tlv_t4.l);
+        emm->msNetCapLen = optIE->tlv_t4.l;
+    }
+    /* Additional Update type: 0xF*/
+    nas_NASOpt_lookup(tau_msg->optionals, 22, 0xF, &optIE);
+    if(optIE){
+        emm->msg_additionalUpdateType = TRUE;
+        emm->msg_smsOnly = (gboolean)optIE->v_t1_l.v;
     }
 }
 
@@ -380,6 +394,7 @@ void emm_sendTAUAccept(EMMCtx emm_h){
     NAS_tai_list_t tAIl;
     guti_t guti;
     uint8_t lAI[5], addRes;
+    Cause_t *cause;
 
     memset(out, 0, 156);
     memset(plain, 0, 150);
@@ -391,14 +406,11 @@ void emm_sendTAUAccept(EMMCtx emm_h){
     encaps_EMM(&pointer, TrackingAreaUpdateAccept);
 
     /*EPS update result*/
-    /* nasIe_v_t1_l(&pointer, 1); /\* Combined TA/LA updated, HACK*\/ */
-    nasIe_v_t1_l(&pointer, 0); /* TA updated */
+    nasIe_v_t1_l(&pointer, emm->updateResult);
     pointer++;
 
     /* T3412 value */
-    /* t3412 = 0x23; */
-    t3412 = 0x21;
-    nasIe_tv_t3(&pointer, 0x5A, &t3412, 1); /*  */
+    nasIe_v_t3(&pointer, &(emm->t3412), 1);
     /* GUTI */
     emmCtx_newGUTI(emm, &guti);
     guti_b[0]=0xF6;   /*1111 0 110 - spare, odd/even , GUTI id*/
@@ -415,21 +427,32 @@ void emm_sendTAUAccept(EMMCtx emm_h){
     /* EMM cause if the attach type is different
      * This version only accepts EPS services, the combined attach
      * is not supported*/
-    if(emm->attachType == 2){
-        /*     cause = EMM_CSDomainNotAvailable; */
-        /*     nasIe_tv_t3(&pointer, 0x53, (uint8_t*)&cause, 1); */
-        /* LAI list HACK */
-        memcpy(lAI, &(tAIl.list), 5);
-        nasIe_tv_t3(&pointer, 0x13, lAI, 5);
-        /* MS identity : TMSI*/
-        tmsi[0]=0xf4;
-        memcpy(tmsi+1, &(guti.mtmsi), 4);
-        nasIe_tlv_t4(&pointer, 0x23, tmsi, 5);
+    if(emm->updateResult == 1 ||
+       emm->updateResult == 5){
+        /* /\* LAI list HACK *\/ */
+        /* memcpy(lAI, &(tAIl.list), 5); */
+        /* nasIe_tv_t3(&pointer, 0x13, lAI, 5); */
+        /* /\* MS identity : TMSI*\/ */
+        /* tmsi[0]=0xf4; */
+        /* memcpy(tmsi+1, &(guti.mtmsi), 4); */
+        /* nasIe_tlv_t4(&pointer, 0x23, tmsi, 5); */
 
-        /* Additional Update Result*/
-        addRes = 2; /*SMS only*/
-        nasIe_v_t1_l(&pointer, addRes);
-        nasIe_v_t1_h(&pointer, 0xf);
+        if(emm->msg_additionalUpdateType){
+            /* Additional Update Result*/
+            addRes = 0; /*No Additional Information*/
+            if(emm->msg_smsOnly){
+                addRes = 2;  /*SMS only*/
+            }
+            nasIe_v_t1_l(&pointer, addRes);
+            nasIe_v_t1_h(&pointer, 0xf);
+        }
+    }else if(emm->attachResult == 1 &&
+             emm->msg_attachType == 2 &&
+             !emm->msg_additionalUpdateType){
+        cause = EMM_CSDomainNotAvailable;
+        nasIe_tv_t3(&pointer, 0x53, (uint8_t*)&cause, 1);
+        log_msg(LOG_WARNING, 0, "Attach with non EPS service requested. "
+                "CS Fallback not supported");
     }
 
     newNASMsg_sec(emm->parser, out, &len,

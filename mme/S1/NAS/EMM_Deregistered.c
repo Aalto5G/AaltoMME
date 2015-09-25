@@ -29,6 +29,8 @@
 void processAttach(gpointer emm_h,  GenericNASMsg_t* msg);
 void attachContinuationSwitch(gpointer emm_h, guint8 ksi_msg);
 void emm_AuthInfoAvailable(gpointer emm_h);
+static int emm_selectAttachType(EMMCtx_t *emm);
+
 
 static void emmProcessMsg(gpointer emm_h,  GenericNASMsg_t* msg){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
@@ -43,6 +45,9 @@ static void emmProcessMsg(gpointer emm_h,  GenericNASMsg_t* msg){
 
     case AttachRequest:
         processAttach(emm, msg);
+        if(!emm_selectAttachType(emm)){
+            return;
+        }
         emm_triggerAKAprocedure(emm);
         break;
     default:
@@ -96,6 +101,10 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     switch(msg.plain.eMM.messageType){
     case AttachRequest:
         processAttach(emm, &msg);
+        /* Check last TAI and trigger S6a if different from current*/
+        if(!emm_selectAttachType(emm)){
+            return;
+        }
 
         if(!isAuth || TRUE){
             emm_triggerAKAprocedure(emm);
@@ -138,6 +147,38 @@ void linkEMMDeregistered(EMM_State* s){
 }
 
 
+static int emm_selectAttachType(EMMCtx_t * emm){
+    switch(emm->msg_attachType){
+    case 2:
+        /*Combined EPS/IMSI attach*/
+        if(emm->msg_additionalUpdateType && emm->msg_smsOnly){
+            emm->attachResult = 2;
+            return 1;
+        }else{
+            /*Reject*/
+            log_msg(LOG_ERR, 0,
+                    "Combined EPS/IMSI attach not supported");
+            return 0;
+        }
+    case 4:
+        /*EPS emergency attach */
+        /*Reject*/
+        log_msg(LOG_ERR, 0,
+                "Emergency attach not supported");
+        return 0;
+    case 7:
+        /*Reserved*/
+        /*Reject*/
+        log_msg(LOG_ERR, 0,
+                "Reserved attach type received");
+        return 0;
+    case 1:
+    default:
+        /*EPS attach*/
+        emm->attachResult = 1;
+        return 1;
+    }
+}
 
 void processAttach(gpointer emm_h,  GenericNASMsg_t* msg){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
@@ -184,6 +225,18 @@ void processAttach(gpointer emm_h,  GenericNASMsg_t* msg){
     nas_NASOpt_lookup(attachMsg->optionals, 17, 0x52, &optIE);
     if(optIE){
         /* optIE->tv_t3_l.v; */
+    }
+    /*MS network capability: 0x58*/
+    nas_NASOpt_lookup(attachMsg->optionals, 17, 0x31, &optIE);
+    if(optIE){
+        memcpy(emm->msNetCap, optIE->tlv_t4.v, optIE->tlv_t4.l);
+        emm->msNetCapLen = optIE->tlv_t4.l;
+    }
+    /* Additional Update type: 0xF*/
+    nas_NASOpt_lookup(attachMsg->optionals, 17, 0xF, &optIE);
+    if(optIE){
+        emm->msg_additionalUpdateType = TRUE;
+        emm->msg_smsOnly = (gboolean)optIE->v_t1_l.v;
     }
 }
 

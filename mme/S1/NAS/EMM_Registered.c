@@ -20,6 +20,7 @@
 #include "NAS.h"
 #include "NAS_EMM_priv.h"
 
+static int emm_selectUpdateType(EMMCtx_t * emm);
 static void processDetachReq(EMMCtx_t *emm, GenericNASMsg_t *msg);
 static void emm_detach(EMMCtx_t *emm);
 
@@ -82,11 +83,15 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         break;
     case TrackingAreaUpdateRequest:
         emm_processTAUReq(emm, &msg);
+        if(!emm_selectUpdateType(emm)){
+            return;
+        }
 
         if(!isAuth){
             emm_triggerAKAprocedure(emm);
             return;
         }
+
         emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink);
 
         emm_sendTAUAccept(emm);
@@ -168,6 +173,53 @@ static void emm_detach(EMMCtx_t *emm){
     emmChangeState(emm, EMM_Deregistered);
     ecm_sendUEContextReleaseCommand(emm->ecm, CauseNas, CauseNas_detach);
 }
+
+static int emm_selectUpdateType(EMMCtx_t * emm){
+    switch(emm->msg_updateType){
+    case 0:
+    case 4:
+    case 5:
+        /* TA updating */
+        emm->updateResult = 0;
+        /* emm->updateResult = 4; if ISR*/
+        return 1;
+    case 1:
+        /* Combined TA/LA updating*/
+        if(emm->msg_additionalUpdateType && emm->msg_smsOnly){
+            emm->updateResult = 1;
+        }else{
+            log_msg(LOG_ALERT, 0,
+                    "Answering Combined TA/LA updating with TA updated");
+            emm->updateResult = 0;
+        }
+        /* emm->updateResult = 5; if ISR*/
+        return 1;
+    case 2:
+        /* Combined TA/LA updating with IMSI attach*/
+        if(emm->msg_additionalUpdateType && emm->msg_smsOnly){
+            emm->updateResult = 1;
+        }else{
+            log_msg(LOG_ALERT, 0,
+                    "Answering Combined TA/LA updating with IMSI attach "
+                    "with TA updated");
+            emm->updateResult = 0;
+        }
+        /* emm->updateResult = 5; if ISR*/
+        return 1;
+    case 3:
+        /* Periodic Updating*/
+        emm->updateResult = 0;
+        /* emm->updateResult = 4; if ISR*/
+        return 1;
+    default:
+        /*Reserved*/
+        /*Reject*/
+        log_msg(LOG_ERR, 0,
+                "Reserved Updating type received");
+        return 0;
+    }
+}
+
 
 static void processDetachReq(EMMCtx_t *emm, GenericNASMsg_t *msg){
     uint64_t mobid=0ULL;

@@ -140,14 +140,10 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
         encaps_EMM(&pointer, AttachAccept);
 
         /* EPS attach result.*/
-        /* nasIe_v_t1_l(&pointer,  1); /\* EPS only*\/ */
-        nasIe_v_t1_l(&pointer,  emm->msg_attachType);
+        nasIe_v_t1_l(&pointer,  emm->attachResult);
         pointer++; /*Spare half octet*/
         /* T3412 value */
-        t3412 = 0x21; /* 1 min*/
-        /* t3412 = 0x23; /\* 3 min*\/ */
-        /* t3412 = 0x49; /\* 54 min, default *\/ */
-        nasIe_v_t3(&pointer, &t3412, 1);
+        nasIe_v_t3(&pointer, &(emm->t3412), 1);
         /* TAI list */
         ecmSession_getTAIlist(emm->ecm, &tAIl, &tlen);
         nasIe_lv_t4(&pointer, (uint8_t*)&tAIl, tlen);
@@ -161,23 +157,35 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
         nasIe_tlv_t4(&pointer, 0x50, guti_b, 11);
 
         /* EMM cause if the attach type is different
-         * This version only accepts EPS services, the combined attach
-         * is not supported*/
-        if(emm->msg_attachType == 2){
-        /*     cause = EMM_CSDomainNotAvailable; */
-        /*     nasIe_tv_t3(&pointer, 0x53, (uint8_t*)&cause, 1); */
-            /* LAI list HACK */
-            memcpy(lAI, &(tAIl.list), 5);
-            nasIe_tv_t3(&pointer, 0x13, lAI, 5);
-            /* MS identity : TMSI*/
-            tmsi[0]=0xf4;
-            memcpy(tmsi+1, &(guti.mtmsi), 4);
-            nasIe_tlv_t4(&pointer, 0x23, tmsi, 5);
+         * This version only accepts EPS services or Combined attach with SMS
+         * only, the combined attach of EPS services and non EPS serivces is not
+         * supported
+         */
+        if(emm->attachResult == 2){
+            /* /\* LAI list HACK *\/ */
+            /* memcpy(lAI, &(tAIl.list), 5); */
+            /* nasIe_tv_t3(&pointer, 0x13, lAI, 5); */
+            /* /\* MS identity : TMSI*\/ */
+            /* tmsi[0]=0xf4; */
+            /* memcpy(tmsi+1, &(guti.mtmsi), 4); */
+            /* nasIe_tlv_t4(&pointer, 0x23, tmsi, 5); */
 
-            /* Additional Update Result*/
-            addRes = 2; /*SMS only*/
-            nasIe_v_t1_l(&pointer, addRes);
-            nasIe_v_t1_h(&pointer, 0xf);
+            if(emm->msg_additionalUpdateType){
+                /* Additional Update Result*/
+                addRes = 0; /*No Additional Information*/
+                if(emm->msg_smsOnly){
+                    addRes = 2;  /*SMS only*/
+                }
+                nasIe_v_t1_l(&pointer, addRes);
+                nasIe_v_t1_h(&pointer, 0xf);
+            }
+        }else if(emm->attachResult == 1 &&
+                 emm->msg_attachType == 2 &&
+                 !emm->msg_additionalUpdateType){
+            cause = EMM_CSDomainNotAvailable;
+            nasIe_tv_t3(&pointer, 0x53, (uint8_t*)&cause, 1);
+            log_msg(LOG_WARNING, 0, "Attach with non EPS service requested. "
+                    "CS Fallback not supported");
         }
 
         newNASMsg_sec(emm->parser, out, &len,

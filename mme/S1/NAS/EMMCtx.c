@@ -42,6 +42,11 @@ EMMCtx emmCtx_init(){
     self->ksi = 7;
     self->msg_ksi = 1;
 
+    self->t3412 = 0x0A; /* 20 seg*/
+    /* t3412 = 0x21; /\* 1 min*\/ */
+    /* t3412 = 0x23; /\* 3 min*\/ */
+    /* t3412 = 0x49; /\* 54 min, default *\/ */
+
     return self;
 }
 
@@ -131,7 +136,7 @@ void emmCtx_replaceEMM(EMMCtx_t **emm, EMMCtx_t *old_emm){
     *emm = old_emm;
 
     old_emm->attachStarted = temp->attachStarted;
-    old_emm->attachType =  temp->attachType;
+    old_emm->attachResult =  temp->attachResult;
 
     tmp = old_emm->pendingESMmsg;
     old_emm->pendingESMmsg = temp->pendingESMmsg;

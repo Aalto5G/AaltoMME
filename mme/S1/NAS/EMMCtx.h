@@ -54,15 +54,23 @@ typedef struct{
 
     gpointer     s11;
 
+    /*Timers*/
+    guint8       t3412;
+
     gboolean     attachStarted;
     gboolean     s1BearersActive;
-    guint8       attachType;
+    guint8       attachResult;
+    guint8       updateResult;
     GPtrArray    *pendingESMmsg;
     /* Message processing helpers */
     guint8       msg_attachType;
     guint8       msg_detachType;
+    guint        msg_updateType;
+    gboolean     msg_activeFlag;
     guint8       msg_ksi;
     guti_t       msg_guti;
+    gboolean     msg_additionalUpdateType;
+    gboolean     msg_smsOnly;
 
     /* **** Start of MM context **** */
     guint8       type;          /**< MM type */
@@ -97,6 +105,8 @@ typedef struct{
     gsize        ueCapabilitiesLen;
     guint8       ueCapabilities[15];
     /* MS Network Capability */
+    gsize        msNetCapLen;
+    guint8       msNetCap[10];
     /* MEI*/
 
     gboolean     hnna;          /**< HO-To-Non-3GPPAccess Not Allowed */
