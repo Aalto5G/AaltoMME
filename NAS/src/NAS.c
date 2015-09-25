@@ -21,6 +21,178 @@
 #include <arpa/inet.h>     /*htonl*/
 #include <openssl/hmac.h>
 
+/* ************************************************** */
+/*                  Internal Functions                */
+/* ************************************************** */
+
+/**
+ * @brief Increment the NAS Counter
+ * @param [in]  h           NAS handler
+ * @param [in]  direction   0 for uplink, 1 for downlink
+ * @return 1 on success, 0 if overflow
+ *
+ * It increments the NAS counter depending on the direction provided,
+ * if an overflow is about to occur (5 counts before), returns 0
+ */
+static int nas_incrementNASCount(const NAS h, const NAS_Direction direction){
+    NASHandler *n = (NASHandler*)h;
+
+    /* NAS COUNT structure:
+     * 1 Byte    NAS Sequence (8 least significant bits)
+     * 2 Bytes   NAS overflow counter
+     * 1 Byte    Zeros
+     */
+    nas_msg(NAS_DEBUG, 0, "Increment counter for direction %u from %u",
+            direction,
+            n->nas_count[direction]);
+
+    n->nas_count[direction]++;
+
+    if(n->nas_count[direction] > 0xffffff-5){
+        return 0;
+    }
+    return 1;
+}
+
+/**
+ * @brief Set the NAS Counter
+ * @param [in]  h           NAS handler
+ * @param [in]  direction   0 for uplink, 1 for downlink
+ * @return 1 on success, 0 if overflow
+ *
+ * It increments the NAS counter depending on the direction provided,
+ * if an overflow is about to occur (5 counts before), returns 0
+ */
+static int nas_setCOUNT(const NAS h, const NAS_Direction direction, const uint8_t recv){
+    NASHandler *n = (NASHandler*)h;
+
+    /* NAS COUNT structure:
+     * 1 Byte    NAS Sequence (8 least significant bits)
+     * 2 Bytes   NAS overflow counter
+     * 1 Byte    Zeros
+     */
+    nas_msg(NAS_DEBUG, 0, "Increment counter for direction %u from %u",
+            direction,
+            n->nas_count[direction]);
+
+    if((n->nas_count[direction]&0xFF)>recv){
+        n->nas_count[direction] += 0x100;
+    }
+    n->nas_count[direction] = n->nas_count[direction]&0xFFFF00 | (recv+1);
+
+    if(n->nas_count[direction] > 0xffffff-5){
+        return 0;
+    }
+    return 1;
+}
+
+/**
+ * @brief Set the NAS Counter short
+ * @param [in]  h           NAS handler
+ * @param [in]  direction   0 for uplink, 1 for downlink
+ * @return 1 on success, 0 if overflow
+ *
+ * It increments the NAS counter depending on the direction provided,
+ * if an overflow is about to occur (5 counts before), returns 0
+ */
+static int nas_setCOUNTshort(const NAS h, const NAS_Direction direction, const uint8_t recv){
+    NASHandler *n = (NASHandler*)h;
+
+    /* NAS COUNT structure:
+     * 1 Byte    NAS Sequence (8 least significant bits)
+     * 2 Bytes   NAS overflow counter
+     * 1 Byte    Zeros
+     */
+    nas_msg(NAS_DEBUG, 0, "Increment counter for direction %u from %u",
+            direction,
+            n->nas_count[direction]);
+
+    if((n->nas_count[direction]&0x1F)>recv &&
+       (n->nas_count[direction]&0xE0)==0xE0){
+        n->nas_count[direction] += 0x100;
+    }
+    n->nas_count[direction] = n->nas_count[direction]&0xFFFFE0 | (recv+1);
+
+    if(n->nas_count[direction] > 0xffffff-5){
+        return 0;
+    }
+    return 1;
+}
+
+/**
+ * @brief Check received NAS Sequence number (SN) with NAS COUNT
+ * @param [in] last   Last accepted COUNT
+ * @param [in] recv   Received NAS SN
+ * @return 1 if ok, 0 retransmission
+ */
+static int nas_checkCOUNT(const uint32_t last, const uint8_t recv){
+    if((recv-last&0xFF) <  NAS_COUNT_THRESHOLD){
+        return 1;
+    }
+    return 0;
+}
+
+/**
+ * @brief Check received NAS Sequence number (SN) short with NAS COUNT
+ * @param [in] last   Last accepted COUNT
+ * @param [in] recv   Received NAS SN
+ * @return 1 if ok, 0 retransmission
+ */
+static int nas_checkCOUNTshort(const uint32_t last, const uint8_t recv){
+    if((recv-last&0x1F) <  NAS_COUNT_THRESHOLD){
+        return 1;
+    }
+    return 0;
+}
+
+
+static void hmac_sha256(const unsigned char *key, unsigned int key_size,
+                        const unsigned char *message, unsigned int message_len,
+                        unsigned char *mac, unsigned mac_size){
+    uint8_t res[EVP_MAX_MD_SIZE];
+    uint32_t len;
+    HMAC_CTX ctx;
+
+    HMAC_CTX_init(&ctx);
+    HMAC_Init_ex(&ctx, key, key_size, EVP_sha256(), NULL);
+    HMAC_Update(&ctx, message, message_len);
+    HMAC_Final(&ctx, res, &len);
+    HMAC_CTX_cleanup(&ctx);
+    /* Use least significant bits */
+    memcpy(mac, res + len - mac_size, mac_size);
+}
+
+/**
+ * @brief Key derivation function
+ * @param [in]  kasme          derived key - 256 bits
+ * @param [in]  distinguisher  Algorithm distinguisher
+ * @param [in]  algId          Algorithm identity
+ * @param [out] k              Derived Key - 128 bits
+ */
+static void kdf(const uint8_t *kasme,
+                const uint8_t distinguisher, const uint8_t algId,
+                uint8_t *k){
+
+    /*
+    FC = 0x15,
+    P0 = algorithm type distinguisher,
+    L0 = length of algorithm type distinguisher (i.e. 0x00 0x01)
+    P1 = algorithm identity
+    L1 = length of algorithm identity (i.e. 0x00 0x01)
+     */
+    uint8_t s[7];
+    s[0]=0x15;
+    s[1]=distinguisher;
+    s[2]=0x00;
+    s[3]=0x01;
+    s[4]=algId;
+    s[5]=0x00;
+    s[6]=0x01;
+
+    hmac_sha256(kasme, 32, s, 7, k, 16);
+}
+
+
 /* ***** Decoding functions ***** */
 
 
@@ -357,52 +529,6 @@ void nas_freeHandler(NAS h){
     return;
 }
 
-static void hmac_sha256(const unsigned char *key, unsigned int key_size,
-                        const unsigned char *message, unsigned int message_len,
-                        unsigned char *mac, unsigned mac_size)
-{
-    uint8_t res[EVP_MAX_MD_SIZE];
-    uint32_t len;
-    HMAC_CTX ctx;
-
-    HMAC_CTX_init(&ctx);
-    HMAC_Init_ex(&ctx, key, key_size, EVP_sha256(), NULL);
-    HMAC_Update(&ctx, message, message_len);
-    HMAC_Final(&ctx, res, &len);
-    HMAC_CTX_cleanup(&ctx);
-    /* Use least significant bits */
-    memcpy(mac, res + len - mac_size, mac_size);
-}
-
-/**
- * @brief Key derivation function
- * @param [in]  kasme          derived key - 256 bits
- * @param [in]  distinguisher  Algorithm distinguisher
- * @param [in]  algId          Algorithm identity
- * @param [out] k              Derived Key - 128 bits
- */
-static void kdf(const uint8_t *kasme,
-                const uint8_t distinguisher, const uint8_t algId,
-                uint8_t *k){
-
-    /*
-    FC = 0x15,
-    P0 = algorithm type distinguisher,
-    L0 = length of algorithm type distinguisher (i.e. 0x00 0x01)
-    P1 = algorithm identity
-    L1 = length of algorithm identity (i.e. 0x00 0x01)
-     */
-    uint8_t s[7];
-    s[0]=0x15;
-    s[1]=distinguisher;
-    s[2]=0x00;
-    s[3]=0x01;
-    s[4]=algId;
-    s[5]=0x00;
-    s[6]=0x01;
-
-    hmac_sha256(kasme, 32, s, 7, k, 16);
-}
 
 void nas_setSecurity(NAS h, const NAS_EIA i, const NAS_EEA e,
                      const uint8_t *kasme){
@@ -440,42 +566,6 @@ const uint32_t nas_getLastCount(const NAS h, const NAS_Direction direction){
     return n->nas_count[direction]-1;
 }
 
-
-/**
- * @brief Increment the NAS Counter
- * @param [in]  h           NAS handler
- * @param [in]  direction   0 for uplink, 1 for downlink
- * @return 1 on success, 0 if overflow
- *
- * It increments the NAS counter depending on the direction provided,
- * if an overflow is about to occur (5 counts before), returns 0
- */
-int nas_incrementNASCount(const NAS h, const NAS_Direction direction){
-    NASHandler *n = (NASHandler*)h;
-
-    /* NAS COUNT structure:
-     * 1 Byte    NAS Sequence (8 least significant bits)
-     * 2 Bytes   NAS overflow counter
-     * 1 Byte    Zeros
-     */
-    nas_msg(NAS_DEBUG, 0, "Increment counter for direction %u from %u",
-            direction,
-            n->nas_count[direction]);
-
-    n->nas_count[direction]++;
-
-    if((n->nas_count[direction]&0xff) == 0){
-        /* NAS sequence (8bits) overflow, increasing both NAS sequence
-         * and NAS overflow counter (next 16 bits)*/
-        n->nas_count[direction]++;
-    }
-
-    if(n->nas_count[direction] > 0xffffff-5){
-        return 0;
-    }
-    return 1;
-}
-
 int nas_authenticateMsg(const NAS h,
                         const uint8_t *buf, const uint32_t size,
                         const NAS_Direction direction, uint8_t *isAuth){
@@ -502,7 +592,8 @@ int nas_authenticateMsg(const NAS h,
     case IntegrityProtectedAndCipheredWithNewEPSSecurityContext:
         /*Check NAS SQN*/
         nas_sqn = buf[5];
-        if((n->nas_count[direction]&0xff) != nas_sqn){
+
+        if(!nas_checkCOUNT(n->nas_count[direction], nas_sqn)){
             return 2;
         }
         /*Calculate and validate MAC*/
@@ -515,15 +606,15 @@ int nas_authenticateMsg(const NAS h,
            || n->i == NAS_EIA0){      /* Integrity verification is not
                                        * applicable when EIA0 is used */
             *isAuth = 1;
-            nas_incrementNASCount(n, NAS_UpLink);
+            nas_setCOUNT(n, direction, nas_sqn);
         }
         return 1;
     case SecurityHeaderForServiceRequestMessage:
         /*Non-standard L3 message*/
 
         /*Check NAS SQN*/
-        nas_sqn = buf[1]&0x1f;
-        if((n->nas_count[direction]&0x1f) != nas_sqn){
+        nas_sqn = buf[1]&0x1F;
+        if(!nas_checkCOUNTshort(n->nas_count[direction], nas_sqn)){
             return 2;
         }
         /*Calculate and validate MAC*/
@@ -536,7 +627,7 @@ int nas_authenticateMsg(const NAS h,
            || n->i == NAS_EIA0){      /* Integrity verification is not
                                        * applicable when EIA0 is used */
             *isAuth = 1;
-            nas_incrementNASCount(n, NAS_UpLink);
+            nas_setCOUNTshort(n, direction, nas_sqn);
         }
         return 1;
     default:

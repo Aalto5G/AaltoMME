@@ -19,6 +19,8 @@
 #include "NASMessages.h"
 #include "NASConstants.h"
 
+#define NAS_COUNT_THRESHOLD (10)
+
 typedef void* NAS;
 
 typedef enum{

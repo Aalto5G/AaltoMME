@@ -220,31 +220,31 @@ void dec_AttachRequest(AttachRequest_t *msg, uint8_t *buffer, uint32_t size){
 
 void dec_DetachRequestUEOrig(DetachRequestUEOrig_t *msg, uint8_t *buffer, uint32_t size){
     /*detachType and NASKeySetId*/
-     msg->detachType.v = (*buffer)&0x0F;
-     msg->nASKeySetId.v = ((*buffer)&0xF0)>>4;
-     buffer++;
-     nas_msg(NAS_DEBUG, 0, "DEC : detachType = %#x", msg->detachType.v);
+    msg->detachType.v = (*buffer)&0x0F;
+    msg->nASKeySetId.v = ((*buffer)&0xF0)>>4;
+    buffer++;
+    nas_msg(NAS_DEBUG, 0, "DEC : detachType = %#x", msg->detachType.v);
 
-     /*EPSMobileId*/
-     msg->ePSMobileId.l = *buffer;
-     memcpy(msg->ePSMobileId.v, ++buffer, msg->ePSMobileId.l);
-     buffer+=msg->ePSMobileId.l;
-     nas_msg(NAS_DEBUG, 0, "DEC : ePSMobileId len = %u, v = %#x%x", msg->ePSMobileId.l, msg->ePSMobileId.v[0], msg->ePSMobileId.v[1]);
+    /*EPSMobileId*/
+    msg->ePSMobileId.l = *buffer;
+    memcpy(msg->ePSMobileId.v, ++buffer, msg->ePSMobileId.l);
+    buffer+=msg->ePSMobileId.l;
+    nas_msg(NAS_DEBUG, 0, "DEC : ePSMobileId len = %u, v = %#x%x", msg->ePSMobileId.l, msg->ePSMobileId.v[0], msg->ePSMobileId.v[1]);
 
 }
 
 void dec_DetachRequestUETerm(DetachRequestUETerm_t *msg, uint8_t *buffer, uint32_t size){
     /*detachType and spare*/
-     msg->detachType.v = (*buffer)&0x0F;
-     buffer++;
-     nas_msg(NAS_DEBUG, 0, "DEC : detachType = %#x", msg->detachType.v);
+    msg->detachType.v = (*buffer)&0x0F;
+    buffer++;
+    nas_msg(NAS_DEBUG, 0, "DEC : detachType = %#x", msg->detachType.v);
 }
 
 void dec_TrackingAreaUpdateAccept(TrackingAreaUpdateAccept_t *msg, uint8_t *buffer, uint32_t size){
     /*detachType and spare*/
-     msg->ePSUpdateResult.v = (*buffer)&0x0F;
-     buffer++;
-     nas_msg(NAS_DEBUG, 0, "DEC : ePSUpdateResult = %#x", msg->ePSUpdateResult.v);
+    msg->ePSUpdateResult.v = (*buffer)&0x0F;
+    buffer++;
+    nas_msg(NAS_DEBUG, 0, "DEC : ePSUpdateResult = %#x", msg->ePSUpdateResult.v);
 }
 
 void dec_TrackingAreaUpdateReject(TrackingAreaUpdateReject_t *msg, uint8_t *buffer, uint32_t size){
@@ -552,7 +552,7 @@ void dec_nonImperativeIE(union nAS_ie_member ** optionals, uint8_t *buffer, uint
 };
 
 void dec_NASOpt_tlv(union nAS_ie_member *optionals, uint8_t **buffer, uint32_t *size,
-                        uint8_t *optIndex, uint32_t type){
+                    uint8_t *optIndex, uint32_t type){
     ie_tlv_t4_t *temp;
     uint8_t opT = **buffer;
     if(*size==0){
@@ -561,15 +561,14 @@ void dec_NASOpt_tlv(union nAS_ie_member *optionals, uint8_t **buffer, uint32_t *
     if(opT == type){
         temp = (ie_tlv_t4_t *)*buffer;
         memcpy(optionals + *optIndex, temp, temp->l+2);
-        (*buffer) += temp->l;
-        (*size) -= 2;
-        (*size) -= temp->l;
+        (*buffer) += (temp->l+2);
+        (*size)   -= (temp->l+2);
         (*optIndex)++;
     }
 }
 
 void dec_NASOpt_tv_t3(union nAS_ie_member *optionals, uint8_t **buffer, uint32_t *size,
-                          uint8_t *optIndex, uint32_t type, uint32_t len){
+                      uint8_t *optIndex, uint32_t type, uint32_t len){
     uint8_t opT = **buffer;
     if(*size==0){
         return;
@@ -583,7 +582,7 @@ void dec_NASOpt_tv_t3(union nAS_ie_member *optionals, uint8_t **buffer, uint32_t
 }
 
 void dec_NASOpt_tv_t1(union nAS_ie_member *optionals, uint8_t **buffer, uint32_t *size,
-                          uint8_t *optIndex, uint32_t type, uint32_t valueMask){
+                      uint8_t *optIndex, uint32_t type, uint32_t valueMask){
     uint8_t opT = **buffer;
     if(*size==0){
         return;
