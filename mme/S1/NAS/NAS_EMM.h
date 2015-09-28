@@ -20,7 +20,7 @@
 
 #include "MME.h"
 #include "S1AP.h"
-
+#include "ECMSession_priv.h"
 #include <glib.h>
 
 /**
@@ -61,16 +61,31 @@ void emm_getGUTIfromMsg(gpointer buffer, gsize len, guti_t* guti);
  */
 void emm_getKeNB(const EMMCtx emm, uint8_t *keNB);
 
+/**
+ * @brief get Next Hop
+ * @param [in]   emm_h EMM Stack handler
+ * @param [out]  nh    Next Hop derived key - 256 bits
+ * @param [out]  ncc   Next Hop Chaining Count - 3 bits
+ */
+void emm_getNH(const EMMCtx emm, guint8 *nh, guint8 *ncc);
+
 void emm_getUESecurityCapabilities(const EMMCtx emm, UESecurityCapabilities_t *cap);
 
 void emm_getUEAMBR(const EMMCtx emm, UEAggregateMaximumBitrate_t *ambr);
 
-void emm_setE_RABSetupuListCtxtSURes(EMMCtx emm, E_RABSetupListCtxtSURes_t* l);
+void emm_modifyE_RABList(EMMCtx emm,  E_RABsToBeModified_t* l,
+                         void (*cb)(gpointer), gpointer args);
+
+/* void emm_setE_RABSetupuListCtxtSURes(EMMCtx emm, E_RABSetupListCtxtSURes_t* l); */
+
+/* void emm_setE_RABToBeSwitchedDLList(EMMCtx emm, E_RABToBeSwitchedDLList_t* l); */
 
 void emm_UEContextReleaseReq(EMMCtx emm, void (*cb)(gpointer), gpointer args);
 
 guint32 *emm_getM_TMSI_p(EMMCtx emm);
 
 void emm_triggerAKAprocedure(EMMCtx emm_h);
+
+void emm_getBearers(EMMCtx emm_h, GList **bearers);
 
 #endif /* NAS_EMM_H */

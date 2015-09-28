@@ -129,17 +129,17 @@ uint32_t esm_getDNSsrv(ESM esm_h){
     return mme->uE_DNS;
 }
 
-void esm_setE_RABSetupuListCtxtSURes(ESM esm_h, E_RABSetupListCtxtSURes_t* l){
+void esm_modifyE_RABList(ESM esm_h,  E_RABsToBeModified_t* l,
+                         void (*cb)(gpointer), gpointer args){
     GList *ls;
     ESM_t *self = (ESM_t*)esm_h;
     EPS_Session_t *session;
     ls = g_hash_table_get_values (self->sessions);
     if(ls){
         session = ls->data;
-        ePSsession_setE_RABSetupuListCtxtSURes(session, l);
+        ePSsession_modifyE_RABList(session, l, cb, args);
     }
 }
-
 
 void esm_UEContextReleaseReq(ESM esm_h, void (*cb)(gpointer), gpointer args){
     ESM_t *self = (ESM_t*)esm_h;
@@ -181,4 +181,9 @@ void esm_detach(ESM esm_h, void(*cb)(gpointer), gpointer args){
 void esm_getSessions(ESM esm_h, GList **sessions){
     ESM_t *self = (ESM_t*)esm_h;
     *sessions = g_hash_table_get_values(self->sessions);
+}
+
+void esm_getBearers(ESM esm_h, GList **bearers){
+    ESM_t *self = (ESM_t*)esm_h;
+    *bearers = g_hash_table_get_values(self->bearers);
 }

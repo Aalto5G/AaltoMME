@@ -40,7 +40,7 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid, GError
             log_msg(LOG_WARNING, 0, "Received Reset");
         }else if(s1msg->pdu->procedureCode == id_initialUEMessage &&
                  s1msg->choice == initiating_message){
-	        ecm = ecmSession_init(assoc, s1msg, r_sid);
+            ecm = ecmSession_init(assoc, s1msg, r_sid);
         }else if(s1msg->pdu->procedureCode == id_ErrorIndication &&
                  s1msg->choice == initiating_message){
             log_msg(LOG_WARNING, 0, "Received Error Indication");
@@ -54,6 +54,9 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid, GError
         }else if(s1msg->pdu->procedureCode == id_PathSwitchRequest &&
                  s1msg->choice == initiating_message){
             log_msg(LOG_WARNING, 0, "Received Path Switch Request");
+            mme_id = s1ap_findIe(s1msg, id_SourceMME_UE_S1AP_ID);
+            mme_lookupECM(mme, mme_id->mme_id, ecm);
+            ecmSession_pathSwitchReq(ecm, assoc, s1msg, r_sid);
         }else if(s1msg->pdu->procedureCode == id_WriteReplaceWarning &&
                  s1msg->choice == successful_outcome){
             log_msg(LOG_WARNING, 0, "Received Write ReplaceWarning Response");
@@ -87,8 +90,8 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid, GError
     }
 }
 
-static sendReset(gpointer _assoc){
-	S1AP_Message_t *s1msg;
+static void sendReset(gpointer _assoc){
+    S1AP_Message_t *s1msg;
     S1AP_PROTOCOL_IES_t* ie;
     Cause_t *c;
     /* ResetType_t *t; */
@@ -126,7 +129,7 @@ static void disconnect(gpointer _assoc, void (*cb)(gpointer), gpointer args){
     /*s1_deregisterAssoc(self->s1, self);*/
     /* Use this instead of hack*/
     //sendReset(assoc);
-    
+
     /* HACK*/
     cb(args);
 }

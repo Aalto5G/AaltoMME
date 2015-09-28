@@ -267,7 +267,8 @@ void ePSsession_test(EPS_Session s){
     log_msg(LOG_DEBUG, 0, "Activate Default EPS Bearer Context Accept");
 }
 
-void ePSsession_setE_RABSetupuListCtxtSURes(EPS_Session s, E_RABSetupListCtxtSURes_t* l){
+void ePSsession_modifyE_RABList(EPS_Session s, E_RABsToBeModified_t* l,
+                                void (*cb)(gpointer), gpointer args){
     ESM_BearerContext bearer;
     E_RABSetupItemCtxtSURes_t *item;
     struct fteid_t fteid;
@@ -285,14 +286,15 @@ void ePSsession_setE_RABSetupuListCtxtSURes(EPS_Session s, E_RABSetupListCtxtSUR
         fteid.ipv4=1;
         memcpy(&(fteid.addr.addrv4), &(item->transportLayerAddress->addr), 4);
     }else{
-        log_msg(LOG_ERR, 0, "Only IPv4 implemented, len %u, %x", item->transportLayerAddress->len);
+        log_msg(LOG_ERR, 0, "Only IPv4 implemented, len %u, %x",
+                item->transportLayerAddress->len);
     }
     fteid.iface = hton8(S1U_eNB);
     esm_bc_setS1ueNBfteid(bearer, &fteid);
 
     S11_Attach_ModifyBearerReq(self->s11,
-                               (void(*)(gpointer)) ePSsession_test,
-                               (gpointer)self);
+                               (void(*)(gpointer)) cb,
+                               (gpointer)args);
 }
 
 void ePSsession_UEContextReleaseReq(EPS_Session s,

@@ -32,6 +32,11 @@ ECMSession ecmSession_init(S1Assoc s1, S1AP_Message_t *s1msg, int r_sid);
 
 void ecmSession_free(ECMSession h);
 
+S1Assoc ecmSession_getS1Assoc(ECMSession h);
+
+void ecmSession_pathSwitchReq(ECMSession h, S1Assoc newAssoc,
+                           S1AP_Message_t *s1msg, int r_sid);
+
 void ecmSession_processMsg(ECMSession h, S1AP_Message_t *s1msg, int r_sid);
 
 const guint32 ecmSession_getMMEUEID(const ECMSession h);

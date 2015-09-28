@@ -183,7 +183,9 @@ static void s11_send(S11_user_t* self){
 
 void returnControl(gpointer u){
     S11_user_t *self = (S11_user_t*)u;
-    self->cb(self->args);
+    if(self->cb){
+        self->cb(self->args);
+    }
 }
 
 void returnControlAndRemoveSession(gpointer u){
@@ -193,7 +195,9 @@ void returnControlAndRemoveSession(gpointer u){
     cb = self->cb;
     args = self->args;
     s11_deleteSession(self->s11, self);
-    cb(args);
+    if(cb){
+        cb(args);
+    }
 }
 
 void parseIEs(gpointer u){

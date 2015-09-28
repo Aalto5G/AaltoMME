@@ -287,6 +287,38 @@ void emm_getKeNB(const EMMCtx emm, uint8_t *keNB){
     generate_KeNB(self->kasme, self->nasUlCountForSC, keNB);
 }
 
+void emm_getNH(const EMMCtx emm, guint8 *nh, guint8 *ncc){
+    EMMCtx_t *self = (EMMCtx_t*)emm;
+    /*
+    -    FC = 0x12
+    -    P0 = SYNC-input
+    -    L0 = length of SYNC-input (i.e. 0x00 0x20)
+    The SYNC-input parameter shall be the newly derived K eNB  for the initial
+    NH derivation, and the previous NH for all subsequent derivations. This
+    results in a NH chain, where the next NH is always fresh and derived from
+    the previous NH.
+    */
+
+    uint8_t s[35], zero[32], keNB[32];
+    memset(zero, 0, 32);
+
+    s[0]=0x12;
+    if(memcmp(self->nh, zero, 32)==0){
+        /*First hop*/
+        emm_getKeNB(self, keNB);
+        memcpy(s+1, keNB, 32);
+    }else{
+        memcpy(s+1, self->nh, 32);
+        self->ncc++;
+    }
+    s[33]=0;
+    s[34]=0x20;
+
+    hmac_sha256(self->kasme, 32, s, 35, self->nh, 32);
+    *ncc = self->ncc;
+}
+
+
 void emm_getUESecurityCapabilities(const EMMCtx emm, UESecurityCapabilities_t *cap){
     EMMCtx_t *self = (EMMCtx_t*)emm;
     cap->encryptionAlgorithms.v = self->ueCapabilities[0] <<8 | 0x0;
@@ -326,11 +358,11 @@ void emm_internalSendESM(const EMMCtx emm, const gpointer msg, const gsize len, 
     /* nas_incrementNASCount(self->parser, NAS_DownLink); */
 }
 
-void emm_setE_RABSetupuListCtxtSURes(EMMCtx emm, E_RABSetupListCtxtSURes_t* l){
+void emm_modifyE_RABList(EMMCtx emm,  E_RABsToBeModified_t* l,
+                         void (*cb)(gpointer), gpointer args){
     EMMCtx_t *self = (EMMCtx_t*)emm;
-    esm_setE_RABSetupuListCtxtSURes(self->esm, l);
+    esm_modifyE_RABList(self->esm, l, cb, args);
 }
-
 
 void emm_UEContextReleaseReq(EMMCtx emm, void (*cb)(gpointer), gpointer args){
     EMMCtx_t *self = (EMMCtx_t*)emm;
@@ -596,4 +628,9 @@ void emm_sendIdentityReq(EMMCtx emm_h){
     pointer++; /*Spare half octet*/
 
     ecm_send(emm->ecm, buffer, pointer-buffer);
+}
+
+void emm_getBearers(EMMCtx emm_h, GList **bearers){
+    EMMCtx_t *self = (EMMCtx_t*)emm_h;
+    esm_getBearers(self->esm, bearers);
 }

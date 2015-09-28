@@ -57,15 +57,15 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid, GError
     CHECKIEPRESENCE(assoc->supportedTAs);
 
     mme_registerS1Assoc(mme, assoc);
-    
+
     if(!mme_containsSupportedTAs(mme, assoc->supportedTAs)){
-	    sendS1SetupReject_UnknownPLMN(assoc);
-	    log_msg(LOG_INFO, 0, "S1-Setup Rejected: %s - Unknown PLMN", assoc->eNBname->str);
-	    g_set_error(err,
-	                1,//s1Assoc_quark(),   // error domain
-	                1,                 // error code
-	                "Received Supported PLMN not available in this MME");
-	    return;
+        sendS1SetupReject_UnknownPLMN(assoc);
+        log_msg(LOG_INFO, 0, "S1-Setup Rejected: %s - Unknown PLMN", assoc->eNBname->str);
+        g_set_error(err,
+                    1,//s1Assoc_quark(),   // error domain
+                    1,                 // error code
+                    "Received Supported PLMN not available in this MME");
+        return;
     }
 
     log_msg(LOG_INFO, 0, "S1-Setup : new eNB \"%s\", connection added", assoc->eNBname->str);
@@ -74,7 +74,7 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid, GError
 }
 
 static void disconnect(gpointer _assoc, void (*cb)(gpointer), gpointer args){
-	cb(args);
+    cb(args);
     return;
 }
 
@@ -100,8 +100,8 @@ static void sendS1SetupResponse(S1Assoc_t *assoc){
 
     /* MME Name (optional)*/
     if(mme->name != NULL){
-	    name = s1ap_newIE(s1msg, id_MMEname, mandatory, reject);
-	    memcpy(name->name, mme->name->name, strlen(mme->name->name));
+        name = s1ap_newIE(s1msg, id_MMEname, optional, ignore);
+        memcpy(name->name, mme->name->name, strlen(mme->name->name));
     }
 
     /* Served GUMMEIs*/

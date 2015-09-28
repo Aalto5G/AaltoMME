@@ -48,6 +48,7 @@ ECMSession ecmSession_init(S1Assoc s1, S1AP_Message_t *s1msg, int r_sid){
 
     s1Assoc_registerECMSession(s1, self);
 
+    mme_registerECM(mme, self);
     return self;
 }
 
@@ -60,6 +61,11 @@ void ecmSession_free(ECMSession h){
     g_free(self);
 }
 
+S1Assoc ecmSession_getS1Assoc(ECMSession h){
+    ECMSession_t *self = (ECMSession_t *)h;
+    return self->assoc;
+}
+
 void ecmSession_setEMM(ECMSession h, gpointer emm){
     ECMSession_t *self = (ECMSession_t *)h;
     self->emm = emm;
@@ -68,6 +74,97 @@ void ecmSession_setEMM(ECMSession h, gpointer emm){
 void ecmSession_processMsg(ECMSession h, S1AP_Message_t *s1msg, int r_sid){
     ECMSession_t *self = (ECMSession_t *)h;
     self->state->processMsg(self, s1msg, r_sid);
+}
+
+static void ecmSession_sendPathSwitchReqAck(ECMSession h){
+    ECMSession_t *self = (ECMSession_t *)h;
+
+    S1AP_Message_t *s1out;
+    UEAggregateMaximumBitrate_t *ambr;
+    MME_UE_S1AP_ID_t *mmeUEId;
+    ENB_UE_S1AP_ID_t *eNBUEId;
+    E_RABToBeSetupListCtxtSUReq_t *eRABlist;
+    E_RABToBeSetupItemCtxtSUReq_t *eRABitem;
+    SecurityContext_t *sec;
+    GList *first;
+    GList *bearers;
+    ESM_BearerContext bearer;
+    EPS_Session session;
+
+    struct fteid_t fteid;
+    gsize fteid_size=0;
+    guint8 ncc;
+
+    /*Build PatchSwitch Req Ack*/
+    s1out = S1AP_newMsg();
+    s1out->choice = successful_outcome;
+    s1out->pdu->procedureCode = id_PathSwitchRequest;
+    s1out->pdu->criticality = reject;
+
+    /* MME-UE-S1AP-ID*/
+    mmeUEId = s1ap_newIE(s1out, id_MME_UE_S1AP_ID, mandatory, reject);
+    mmeUEId->mme_id = self->mmeUEId;
+
+    /* eNB-UE-S1AP-ID*/
+    eNBUEId = s1ap_newIE(s1out, id_eNB_UE_S1AP_ID, mandatory, reject);
+    eNBUEId->eNB_id = self->eNBUEId;
+
+    /* uEaggregateMaximumBitrate*/
+    ambr = s1ap_newIE(s1out, id_uEaggregateMaximumBitrate, optional, ignore);
+    emm_getUEAMBR(self->emm, ambr);
+
+    /* E-RAB To Be Switched in Uplink List */
+    eRABlist = s1ap_newIE(s1out, id_E_RABToBeSwitchedULList, mandatory, ignore);
+    eRABitem = eRABlist->newItem(eRABlist);
+
+    eRABitem->transportLayerAddress = new_TransportLayerAddress();
+
+    emm_getBearers(self->emm, &bearers);
+    first = g_list_first(bearers);
+    session = (EPS_Session)first->data;
+    bearer = ePSsession_getDefaultBearer(session);
+
+    eRABitem->eRAB_ID.id = esm_bc_getEBI(bearer);
+
+    esm_bc_getS1uSGWfteid(bearer, &fteid, &fteid_size);
+    memcpy(eRABitem->transportLayerAddress->addr, (uint8_t*)&(fteid.addr), fteid_size-5);
+    eRABitem->transportLayerAddress->len = (fteid_size - 5)*8;
+    memcpy(eRABitem->gTP_TEID.teid, &(fteid.teid), sizeof(uint32_t));
+
+    /*id-SecurityContext */
+    sec = s1ap_newIE(s1out, id_SecurityContext, mandatory, reject);
+    sec->nextHopParameter = new_SecurityKey();
+    emm_getNH(self->emm, sec->nextHopParameter->key, &ncc);
+    sec->nextHopChainingCount = ncc;
+
+    /* Send Response*/
+    /*s1out->showmsg(s1out);*/
+    s1Assoc_send(self->assoc, self->l_sid, s1out);
+    s1out->freemsg(s1out);
+}
+
+void ecmSession_pathSwitchReq(ECMSession h, S1Assoc newAssoc,
+                           S1AP_Message_t *s1msg, int r_sid){
+    ECMSession_t *self = (ECMSession_t *)h;
+    TAI_t *tAI;
+    EUTRAN_CGI_t *eCGI;
+    E_RABsToBeModified_t *list;
+
+    s1Assoc_deregisterECMSession(ecmSession_getS1Assoc(self), self);
+    s1Assoc_registerECMSession(newAssoc, self);
+    self->assoc = newAssoc;
+    self->r_sid = r_sid;
+    /*Update TAI*/
+    tAI = (TAI_t*)s1ap_findIe(s1msg, id_TAI);
+    memcpy(self->tAI.sn, tAI->pLMNidentity->tbc.s, 3);
+    memcpy(&(self->tAI.tAC), tAI->tAC->s, 2);
+    /*Update E-CGI*/
+    eCGI = (EUTRAN_CGI_t*)s1ap_findIe(s1msg, id_EUTRAN_CGI);
+    self->eCGI.cellID = eCGI->cell_ID.id;
+    /* UE Security Capabilities*/
+
+    list = s1ap_findIe(s1msg, id_E_RABToBeSwitchedDLList);
+    emm_modifyE_RABList(self->emm, list, ecmSession_sendPathSwitchReqAck, self);
 }
 
 void ecmSession_setState(ECMSession ecm, ECMSession_State *s){

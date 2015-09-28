@@ -235,7 +235,8 @@ struct mme_t{
     gpointer                sdnCtrl;
     GHashTable              *s1_by_GeNBid;                   /**< S1 Associations By GlobaleNBid */
     GHashTable              *s1_localIDs;                    /**< Used MME UE S1AP IDs */
-    GHashTable              *emm_sessions;                   /**< Store all ECM session of the MME */
+    GHashTable              *emm_sessions;                   /**< Store all EMM session of the MME */
+    GHashTable              *ecm_sessions_by_localID;        /**< Store all ECM session of the MME */
 
     /* uint32_t                nums1conn;                      /\*< Number of S1 Connections*\/ */
     struct SessionStruct_t  *s1apUsersbyLocalID[MAX_UE];    /*< UE MME ID to session relation vector*/
@@ -322,17 +323,27 @@ void mme_deregisterRead(struct mme_t *self, int fd);
 
 struct event_base *mme_getEventBase(struct mme_t *self);
 
+
 void mme_registerS1Assoc(struct mme_t *self, gpointer assoc);
 
 void mme_deregisterS1Assoc(struct mme_t *self, gpointer assoc);
 
 void mme_lookupS1Assoc(struct mme_t *self, gconstpointer geNBid, gpointer *assoc);
 
+
 void mme_registerEMMCtxt(struct mme_t *self, gpointer emm);
 
 void mme_deregisterEMMCtxt(struct mme_t *self, gpointer emm);
 
 void mme_lookupEMMCtxt(struct mme_t *self, const guint32 m_tmsi, gpointer *emm);
+
+
+void mme_registerECM(struct mme_t *self, gpointer ecm);
+
+void mme_deregisterECM(struct mme_t *self, gpointer ecm);
+
+void mme_lookupECM(struct mme_t *self, const guint32 id, gpointer *ecm);
+
 
 gpointer mme_getS6a(struct mme_t *self);
 

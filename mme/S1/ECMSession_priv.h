@@ -23,6 +23,9 @@
 #include "ECMSession.h"
 #include "ECMSession_State.h"
 
+/*API HACK*/
+typedef  E_RABSetupListCtxtSURes_t E_RABsToBeModified_t;
+
 typedef struct{
     S1Assoc          assoc;        /**< Lower layer*/
     gpointer         emm;          /**< Higher layer*/

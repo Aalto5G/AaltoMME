@@ -52,7 +52,7 @@ static void emmProcessMsg(gpointer emm_h,  GenericNASMsg_t* msg){
         break;
     default:
         log_msg(LOG_WARNING, 0,
-                "NAS Message type (%u) not recognized in this context",
+                "NAS Message type (%x) not recognized in this context",
                 msg->plain.eMM.messageType);
     }
 }

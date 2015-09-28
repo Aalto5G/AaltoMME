@@ -121,7 +121,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         break;
     default:
         log_msg(LOG_WARNING, 0,
-                "NAS Message type (%u) not recognized in EMM CPI",
+                "NAS Message type (%x) not recognized in EMM CPI",
                 msg.plain.eMM.messageType);
     }
 }

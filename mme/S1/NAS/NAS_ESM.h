@@ -19,6 +19,7 @@
 #define NAS_ESM_H
 
 #include "MME.h"
+#include "ECMSession_priv.h"
 #include "ESM_State.h"
 
 #include <stdint.h>
@@ -51,12 +52,16 @@ void esm_free(ESM esm_h);
 
 void esm_processMsg(gpointer esm_h, ESM_Message_t* msg);
 
-void esm_setE_RABSetupuListCtxtSURes(ESM esm, E_RABSetupListCtxtSURes_t* l);
+void esm_modifyE_RABList(ESM esm_h,  E_RABsToBeModified_t* l,
+                         void (*cb)(gpointer), gpointer args);
 
 void esm_UEContextReleaseReq(ESM esm_h, void (*cb)(gpointer), gpointer args);
 
 void esm_detach(ESM esm_h, void(*cb)(gpointer), gpointer args);
 
 void esm_getSessions(ESM esm_h, GList **sessions);
+
+void esm_getBearers(ESM esm_h, GList **bearers);
+
 
 #endif /* NAS_ESM_H */

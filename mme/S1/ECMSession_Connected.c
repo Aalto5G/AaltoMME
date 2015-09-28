@@ -31,6 +31,7 @@ static void processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
     Unconstrained_Octed_String_t *nASPDU;
     E_RABSetupListCtxtSURes_t *list;
     Cause_t *c;
+    struct mme_t * mme;
 
     if(r_sid != ecm->r_sid && ecm->r_sid_valid){
         log_msg(LOG_ERR, 0,
@@ -66,6 +67,8 @@ static void processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
             ecm->causeRelease=NULL;
         }
         s1Assoc_deregisterECMSession(ecm->assoc, ecm);
+        /* mme = s1_getMME(s1Assoc_getS1(ecm->assoc)); */
+        /* mme_deregisterECM(mme, ecm); */
     }else if(s1msg->pdu->procedureCode ==  id_InitialContextSetup &&
              s1msg->choice == successful_outcome){
         mme_id = (MME_UE_S1AP_ID_t*)s1ap_findIe(s1msg, id_MME_UE_S1AP_ID);
@@ -77,7 +80,7 @@ static void processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
         }
         log_msg(LOG_DEBUG, 0, "Received InitialContextSetupResponse");
         list = s1ap_findIe(s1msg, id_E_RABSetupListCtxtSURes);
-        emm_setE_RABSetupuListCtxtSURes(ecm->emm, list);
+        emm_modifyE_RABList(ecm->emm, list, NULL, NULL);
     }else if(s1msg->pdu->procedureCode ==  id_InitialContextSetup &&
              s1msg->choice == unsuccessful_outcome){
         log_msg(LOG_WARNING, 0, "Received InitialContextSetupFailure");

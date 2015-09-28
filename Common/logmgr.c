@@ -110,21 +110,22 @@ void log_msg_(int pri, char *fn, const char *func, int ln, int en, char *fmt, ..
   va_end(args);
   buf[SYSERR_MSGSIZE-1] = 0; /* Make sure it is null terminated */
 
-  if(logger.priority >= LOG_DEBUG){
-	  if (en)
-		  syslog(pri, "[%s] %s - %d (%s) %s <%s, %s(), %d>",
-		         timeStr, logLevelStr[pri], en, strerror(en), buf,
-		         fn, func, ln);
-	  else
-		  syslog(pri, "[%s] %s - %s <%s, %s(), %d>",
-		         timeStr, logLevelStr[pri], buf,
-		         fn, func, ln);
+  /* if(logger.priority >= LOG_DEBUG){ */
+  if(1){
+      if (en)
+          syslog(pri, "[%s] %s - %d (%s) %s <%s, %s(), %d>",
+                 timeStr, logLevelStr[pri], en, strerror(en), buf,
+                 fn, func, ln);
+      else
+          syslog(pri, "[%s] %s - %s <%s, %s(), %d>",
+                 timeStr, logLevelStr[pri], buf,
+                 fn, func, ln);
   }else{
-	  if (en)
-		  syslog(pri, "[%s] %s - %d (%s) %s",
-		         timeStr, logLevelStr[pri], en, strerror(en), buf);
-	  else
-		  syslog(pri, "[%s] %s - %s", timeStr, logLevelStr[pri], buf);
+      if (en)
+          syslog(pri, "[%s] %s - %d (%s) %s",
+                 timeStr, logLevelStr[pri], en, strerror(en), buf);
+      else
+          syslog(pri, "[%s] %s - %s", timeStr, logLevelStr[pri], buf);
   }
 }
 

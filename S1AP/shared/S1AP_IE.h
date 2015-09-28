@@ -1881,6 +1881,9 @@ typedef E_RABSetupItemBearerSURes_t E_RABSetupItemCtxtSURes_t;
 typedef E_RABSetupListBearerSURes_t E_RABSetupListCtxtSURes_t;
 #define new_E_RABSetupListCtxtSURes new_E_RABSetupListBearerSURes
 
+/* typedef E_RABSetupListBearerSURes_t E_RABToBeSwitchedDLList_t; */
+/* #define new_E_RABSetupListCtxtSURes new_E_RABToBeSwitchedDLList */
+
 /**@brief HandoverType
  *
  * ASN.1

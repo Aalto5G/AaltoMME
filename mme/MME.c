@@ -259,6 +259,11 @@ int mme_run(struct mme_t *self){
                                               g_free,
                                               NULL);
 
+    self->ecm_sessions_by_localID = g_hash_table_new_full(g_int_hash,
+                                                          g_int_equal,
+                                                          NULL,
+                                                          (GDestroyNotify)ecmSession_free);
+
     self->emm_sessions = g_hash_table_new_full(g_int_hash,
                                                g_int_equal,
                                                NULL,
@@ -296,6 +301,8 @@ int mme_run(struct mme_t *self){
     g_hash_table_destroy(self->s1_by_GeNBid);
 
     g_hash_table_destroy(self->emm_sessions);
+
+    g_hash_table_destroy(self->ecm_sessions_by_localID);
 
     g_hash_table_destroy(self->s1_localIDs);
 
@@ -529,12 +536,29 @@ void mme_registerEMMCtxt(struct mme_t *self, gpointer emm){
 
 void mme_deregisterEMMCtxt(struct mme_t *self, gpointer emm){
     if(g_hash_table_remove(self->emm_sessions, emm_getM_TMSI_p(emm)) != TRUE){
-        log_msg(LOG_ERR, 0, "Unable to find ECM session");
+        log_msg(LOG_ERR, 0, "Unable to find EMM session");
     }
 }
 
 void mme_lookupEMMCtxt(struct mme_t *self, const guint32 m_tmsi, gpointer *emm){
     *emm = g_hash_table_lookup(self->emm_sessions, &m_tmsi);
+}
+
+void mme_registerECM(struct mme_t *self, gpointer ecm){
+    g_hash_table_insert(self->ecm_sessions_by_localID,
+                        ecmSession_getMMEUEID_p(ecm),
+                        ecm);
+}
+
+void mme_deregisterECM(struct mme_t *self, gpointer ecm){
+    if(g_hash_table_remove(self->ecm_sessions_by_localID,
+                           ecmSession_getMMEUEID_p(ecm)) != TRUE){
+        log_msg(LOG_ERR, 0, "Unable to find ECM session");
+    }
+}
+
+void mme_lookupECM(struct mme_t *self, const guint32 id, gpointer *ecm){
+    *ecm = g_hash_table_lookup(self->ecm_sessions_by_localID, &id);
 }
 
 GList *mme_getS1Assocs(struct mme_t *self){

@@ -41,13 +41,26 @@ S1Assoc s1Assoc_init(S1 s1){
     self->ecm_sessions = g_hash_table_new_full(g_int_hash,
                                                g_int_equal,
                                                NULL,
-                                               (GDestroyNotify)ecmSession_free);
+                                               NULL);
     s1ChangeState(self, NotConfigured);
     return self;
 }
 
+static gboolean s1Assoc_free_deleteECM(gpointer key,
+                                       gpointer value,
+                                       gpointer user_data){
+    S1Assoc_t *self = (S1Assoc_t *)user_data;
+    struct mme_t * mme = s1_getMME(self->s1);
+
+    mme_deregisterECM(mme, value);
+    ecmSession_free(value);
+    return TRUE;
+}
+
 static void s1Assoc_free_cb(gpointer h){
     S1Assoc_t *self = (S1Assoc_t *)h;
+
+    g_hash_table_foreach_remove(self->ecm_sessions, s1Assoc_free_deleteECM, self);
 
     if(self->ecm_sessions)
         g_hash_table_destroy(self->ecm_sessions);

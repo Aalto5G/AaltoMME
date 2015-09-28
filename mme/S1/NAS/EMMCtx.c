@@ -42,7 +42,8 @@ EMMCtx emmCtx_init(){
     self->ksi = 7;
     self->msg_ksi = 1;
 
-    self->t3412 = 0x0A; /* 20 seg*/
+    self->t3412 = 0x06; /* 12 seg*/
+    /* self->t3412 = 0x0A; /\* 20 seg*\/ */
     /* t3412 = 0x21; /\* 1 min*\/ */
     /* t3412 = 0x23; /\* 3 min*\/ */
     /* t3412 = 0x49; /\* 54 min, default *\/ */
