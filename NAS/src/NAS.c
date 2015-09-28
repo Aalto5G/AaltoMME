@@ -75,12 +75,12 @@ static int nas_setCOUNT(const NAS h, const NAS_Direction direction, const uint8_
             direction,
             n->nas_count[direction]);
 
-    if((n->nas_count[direction]&0xFF)>recv){
+    if((n->nas_count[direction]&0xFF)>(uint8_t)(recv+1)){
         n->nas_count[direction] += 0x100;
     }
-    n->nas_count[direction] = n->nas_count[direction]&0xFFFF00 | (recv+1);
+    n->nas_count[direction] = n->nas_count[direction]&0xFFFF00 | (uint8_t)(recv+1);
 
-    if(n->nas_count[direction] > 0xffffff-5){
+    if(n->nas_count[direction] > 0xFFFFFF-5){
         return 0;
     }
     return 1;
@@ -107,13 +107,13 @@ static int nas_setCOUNTshort(const NAS h, const NAS_Direction direction, const u
             direction,
             n->nas_count[direction]);
 
-    if((n->nas_count[direction]&0x1F)>recv &&
+    if((n->nas_count[direction]&0x1F)> (uint8_t)(recv+1) &&
        (n->nas_count[direction]&0xE0)==0xE0){
         n->nas_count[direction] += 0x100;
     }
-    n->nas_count[direction] = n->nas_count[direction]&0xFFFFE0 | (recv+1);
+    n->nas_count[direction] = n->nas_count[direction]&0xFFFFE0 | (uint8_t)(recv+1);
 
-    if(n->nas_count[direction] > 0xffffff-5){
+    if(n->nas_count[direction] > 0xFFFFFF-5){
         return 0;
     }
     return 1;
