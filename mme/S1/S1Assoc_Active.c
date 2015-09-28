@@ -74,6 +74,15 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid, GError
         /*         Setup of new UE associated signaling       */
         /* ************************************************** */
         ecm = ecmSession_init(assoc, s1msg, r_sid);
+    }else if(s1msg->pdu->procedureCode == id_PathSwitchRequest &&
+                 s1msg->choice == initiating_message){
+        /* ************************************************** */
+        /*                 Path Switch Request                */
+        /* ************************************************** */
+	    log_msg(LOG_DEBUG, 0, "Received Path Switch Request");
+	    mme_id = s1ap_findIe(s1msg, id_SourceMME_UE_S1AP_ID);
+	    mme_lookupECM(mme, mme_id->mme_id, &ecm);
+	    ecmSession_pathSwitchReq(ecm, assoc, s1msg, r_sid);
     }else{
         /* ************************************************** */
         /*               UE associated signaling              */

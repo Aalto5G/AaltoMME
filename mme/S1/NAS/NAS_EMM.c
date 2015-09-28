@@ -634,3 +634,8 @@ void emm_getBearers(EMMCtx emm_h, GList **bearers){
     EMMCtx_t *self = (EMMCtx_t*)emm_h;
     esm_getBearers(self->esm, bearers);
 }
+
+const guint64 emm_getIMSI(const EMMCtx emm_h){
+	EMMCtx_t *self = (EMMCtx_t*)emm_h;
+	return emmCtx_getIMSI(self);
+}

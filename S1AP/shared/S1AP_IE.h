@@ -1865,6 +1865,7 @@ typedef struct E_RABSetupListBearerSURes_c{
     void                                (*freeIE)(void *);
     void                                (*showIE)(void *);
     void                                (*additem)(struct E_RABSetupListBearerSURes_c*, ProtocolIE_SingleContainer_t* ie);
+	void                                *(*newItem)(struct E_RABSetupListBearerSURes_c*);
     uint8_t                             size;               /*<Number of items*/
     ProtocolIE_SingleContainer_t        **item;             /*<Item Array */
 }E_RABSetupListBearerSURes_t;
@@ -1881,8 +1882,12 @@ typedef E_RABSetupItemBearerSURes_t E_RABSetupItemCtxtSURes_t;
 typedef E_RABSetupListBearerSURes_t E_RABSetupListCtxtSURes_t;
 #define new_E_RABSetupListCtxtSURes new_E_RABSetupListBearerSURes
 
-/* typedef E_RABSetupListBearerSURes_t E_RABToBeSwitchedDLList_t; */
-/* #define new_E_RABSetupListCtxtSURes new_E_RABToBeSwitchedDLList */
+typedef E_RABSetupItemBearerSURes_t E_RABToBeSwitchedULItem_t;
+#define new_E_RABToBeSwitchedULItem new_E_RABSetupItemBearerSURes
+
+typedef E_RABSetupListBearerSURes_t E_RABToBeSwitchedULList_t;
+
+E_RABToBeSwitchedULList_t *new_E_RABToBeSwitchedULList();
 
 /**@brief HandoverType
  *

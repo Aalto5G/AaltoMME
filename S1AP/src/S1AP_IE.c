@@ -145,7 +145,7 @@ iEconstructor getconstructor[]={
         (iEconstructor)NULL, /* new_ResetType,*/ /* Not implemented*/
         (iEconstructor)NULL, /*new_UE_associatedLogicalS1_ConnectionListResAck,*/ /* Not implemented*/
         (iEconstructor)new_E_RABSetupItemBearerSURes, /*new_E_RABToBeSwitchedULItem,*/ /* Not implemented*/
-        (iEconstructor)new_E_RABSetupListBearerSURes, /*new_E_RABToBeSwitchedULList,*/ /* Not implemented*/
+        (iEconstructor)new_E_RABToBeSwitchedULList, /*new_E_RABToBeSwitchedULList,*/ /* Not implemented*/
         (iEconstructor)new_S_TMSI, /*new_S_TMSI,*/
         (iEconstructor)NULL, /*new_cdma2000OneXRAND,*/ /* Not implemented*/
         (iEconstructor)NULL, /*new_RequestType,*/ /* Not implemented*/
@@ -3938,6 +3938,20 @@ void E_RABSetupListBearerSURes_addItem(E_RABSetupListBearerSURes_t* c, ProtocolI
     }
 }
 
+void *E_RABSetupListBearerSURes_newItem(struct E_RABSetupListBearerSURes_c* eRABlist){
+    S1AP_PROTOCOL_IES_t* ie = newProtocolIE();
+    E_RABSetupItemBearerSURes_t *eRABitem = new_E_RABSetupItemBearerSURes();
+    ie->value = eRABitem;
+    ie->showValue = eRABitem->showIE;
+    ie->freeValue = eRABitem->freeIE;
+    ie->id = id_E_RABSetupItemBearerSURes;
+    ie->presence = optional;
+    ie->criticality = reject;
+    eRABlist->additem(eRABlist, ie);
+    return eRABitem;
+}
+
+
 /** @brief Constructor of E_RABSetupListBearerSUReq type
  *  @return E_RABSetupListBearerSUReq_t allocated  and initialized structure
  * */
@@ -3954,6 +3968,7 @@ E_RABSetupListBearerSURes_t *new_E_RABSetupListBearerSURes(){
     self->freeIE=free_E_RABSetupListBearerSURes;
     self->showIE=show_E_RABSetupListBearerSURes;
     self->additem=E_RABSetupListBearerSURes_addItem;
+    self->newItem=E_RABSetupListBearerSURes_newItem;
 
     return self;
 }
@@ -4879,6 +4894,104 @@ S_TMSI_t *new_S_TMSI(){
 }
 
 
+/* ************** E_RABToBeSwitchedULList ************** */
+/** @brief E_RABSetupListBearerSUReq Destructor
+ *
+ * Deallocate the E_RABToBeSwitchedULList_t structure.
+ * */
+void free_E_RABToBeSwitchedULList(void * data){
+    uint16_t i;
+    E_RABToBeSwitchedULList_t *self = (E_RABToBeSwitchedULList_t*)data;
+    if(!self){
+        return;
+    }
+
+    for(i=0; i<self->size;i++){
+        if(self->item[i]->freeIE){
+            self->item[i]->freeIE(self->item[i]);
+        }
+    }
+    free(self->item);
+    free(self);
+}
+
+/** @brief Show IE information
+ *
+ * Tool function to print the information on stdout
+ * */
+void show_E_RABToBeSwitchedULList(void * data){
+    E_RABToBeSwitchedULList_t *self = (E_RABToBeSwitchedULList_t*)data;
+    uint16_t i;
+
+    for(i=0; i < self->size; i++){
+        if(&(self->item[i]) == NULL){
+            printf("\t\t\t(*ie_item)_t Item #%u not found\n", i);
+            continue;
+        }
+        if(self->item[i]->showIE){
+            self->item[i]->showIE(self->item[i]);
+        }else{
+            printf("\t\t\t(*ie_item)_t Item #%u: show function not found\n", i);
+        }
+    }
+
+}
+
+void E_RABToBeSwitchedULList_addItem(E_RABToBeSwitchedULList_t* c, ProtocolIE_SingleContainer_t* item){
+    ProtocolIE_SingleContainer_t** vector;
+    if(c->size+1==maxnoofGroupIDs){
+        s1ap_msg(ERROR, 0, "maxnoofGroupIDs reached");
+        return;
+    }
+
+    c->size++;
+    vector = (ProtocolIE_SingleContainer_t**) realloc (c->item, c->size * sizeof(ProtocolIE_SingleContainer_t*));
+
+    /*Error Check*/
+    if (vector!=NULL) {
+        c->item=vector;
+        c->item[c->size-1]=item;
+    }
+    else {
+        free (c->item);
+        s1ap_msg(ERROR, 0, "Error (re)allocating memory");
+    }
+}
+
+void *E_RABToBeSwitchedULList_newItem(E_RABToBeSwitchedULList_t* eRABlist){
+    S1AP_PROTOCOL_IES_t* ie = newProtocolIE();
+    E_RABToBeSwitchedULItem_t *eRABitem = new_E_RABToBeSwitchedULItem();
+    ie->value = eRABitem;
+    ie->showValue = eRABitem->showIE;
+    ie->freeValue = eRABitem->freeIE;
+    ie->id = id_E_RABToBeSwitchedULItem;
+    ie->presence = optional;
+    ie->criticality = reject;
+    eRABlist->additem(eRABlist, ie);
+    return eRABitem;
+}
+
+
+/** @brief Constructor of E_RABSetupListBearerSUReq type
+ *  @return E_RABSetupListBearerSUReq_t allocated  and initialized structure
+ * */
+E_RABToBeSwitchedULList_t *new_E_RABToBeSwitchedULList(){
+    E_RABToBeSwitchedULList_t *self;
+
+    self = malloc(sizeof(E_RABToBeSwitchedULList_t));
+    if(!self){
+        s1ap_msg(ERROR, 0, "S1AP E_RABToBeSwitchedULList_t not allocated correctly");
+        return NULL;
+    }
+    memset(self, 0, sizeof(E_RABToBeSwitchedULList_t));
+
+    self->freeIE=free_E_RABToBeSwitchedULList;
+    self->showIE=show_E_RABToBeSwitchedULList;
+    self->additem=E_RABToBeSwitchedULList_addItem;
+    self->newItem=E_RABToBeSwitchedULList_newItem;
+
+    return self;
+}
 
 /* ********************** Generic Template ********************* */
 /** @brief (*ie_name)  Destructor

@@ -88,4 +88,6 @@ void emm_triggerAKAprocedure(EMMCtx emm_h);
 
 void emm_getBearers(EMMCtx emm_h, GList **bearers);
 
+const guint64 emm_getIMSI(const EMMCtx emm_h);
+
 #endif /* NAS_EMM_H */
