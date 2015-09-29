@@ -403,7 +403,7 @@ void emm_processTAUReq(EMMCtx emm_h, GenericNASMsg_t *msg){
         memcpy(emm->ueCapabilities, optIE->tlv_t4.v, optIE->tlv_t4.l);
         emm->ueCapabilitiesLen = optIE->tlv_t4.l;
     }
-    /*MS network capability: 0x58*/
+    /*MS network capability: 0x31*/
     nas_NASOpt_lookup(tau_msg->optionals, 22, 0x31, &optIE);
     if(optIE){
         memcpy(emm->msNetCap, optIE->tlv_t4.v, optIE->tlv_t4.l);

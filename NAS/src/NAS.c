@@ -598,7 +598,7 @@ int nas_authenticateMsg(const NAS h,
         }
         /*Calculate and validate MAC*/
         memcpy(mac, buf+1, 4);
-        ncount = htonl(n->nas_count[direction]);
+        ncount = htonl((n->nas_count[direction]&0xFFFF00) | nas_sqn);
         memcpy(count, &ncount, 4);
         eia_cb[n->i](n->ikey, count, 0, direction, buf+5, (size-5)*8, mac_x);
 
@@ -619,13 +619,13 @@ int nas_authenticateMsg(const NAS h,
         }
         /*Calculate and validate MAC*/
         memcpy(short_mac, buf+2, 2);
-        ncount = htonl(n->nas_count[direction]);
+        ncount = htonl((n->nas_count[direction]&0xFFFFE0) | nas_sqn);
         memcpy(count, &ncount, 4);
         eia_cb[n->i](n->ikey, count, 0, direction, buf, 2*8, mac_x);
 
         if(memcmp(short_mac, mac_x+2, 2) == 0 /* Integrity Verification OK*/
-           || n->i == NAS_EIA0){      /* Integrity verification is not
-                                       * applicable when EIA0 is used */
+           || n->i == NAS_EIA0){              /* Integrity verification is not
+                                               * applicable when EIA0 is used */
             *isAuth = 1;
             nas_setCOUNTshort(n, direction, nas_sqn);
         }
