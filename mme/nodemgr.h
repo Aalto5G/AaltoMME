@@ -34,7 +34,7 @@ enum nodeStatus{
 /*Node type enum*/
 enum nodeType{
     invalid = -1,
-    MME,
+    node_MME,
     eNB,
     SGW,
     PGW,

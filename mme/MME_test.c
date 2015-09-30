@@ -15,13 +15,6 @@
 
 int main(int argc, char* argv[])
 {
-
-
     mme_main();
-
-
-
-
-
-	return 0;
+    return 0;
 }

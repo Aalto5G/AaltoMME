@@ -42,7 +42,6 @@
 
 int mme_run_flag=0;
 
-
 void free_ep(gpointer data){
     struct EndpointStruct_t* ep = (struct EndpointStruct_t*)data;
     if (ep->info)
@@ -216,149 +215,6 @@ struct event_base *mme_getEventBase(struct mme_t *self){
     return self->evbase;
 }
 
-
-/**@brief Initialize mme structure
- */
-int mme_run(struct mme_t *self){
-
-    struct event_base       *base;                          /*< libevent base loop*/
-    struct event            *kill_event;                    /*< Kill Posix signal event*/
-
-    int allocated = 0;
-
-    if(self==NULL){
-        self = malloc(sizeof(struct mme_t));
-        if(self==NULL){
-            return 1;
-        }
-        allocated = 1;
-        memset(self, 0, sizeof(struct mme_t));
-        self->run = &mme_run_flag;
-    }
-
-    /*NULL initizalization required on hash table*/
-    self->sessionht_byTEID = NULL;
-    self->sessionht_byS1APID = NULL;
-
-    /*Init user storage*/
-    init_storage_system();
-
-    /*Init node manager*/
-    init_nodemgr();
-
-    /*Load MME information from config file*/
-    loadMMEinfo(self);
-
-    self->ev_readers = g_hash_table_new_full( g_int_hash,
-                                              g_int_equal,
-                                              g_free,
-                                              (GDestroyNotify) event_free);
-
-    self->s1_localIDs = g_hash_table_new_full(g_int_hash,
-                                              g_int_equal,
-                                              g_free,
-                                              NULL);
-
-    self->ecm_sessions_by_localID = g_hash_table_new_full(g_int_hash,
-                                                          g_int_equal,
-                                                          NULL,
-                                                          (GDestroyNotify)ecmSession_free);
-
-    self->emm_sessions = g_hash_table_new_full(g_int_hash,
-                                               g_int_equal,
-                                               NULL,
-                                               (GDestroyNotify) emm_free);
-
-    self->s1_by_GeNBid = g_hash_table_new_full( (GHashFunc)  globaleNBID_Hash,
-                                                (GEqualFunc) globaleNBID_Equal,
-                                                NULL,
-                                                NULL);
-
-    /*Create event base structure*/
-    self->evbase = event_base_new();
-    if (!self->evbase){
-        log_msg(LOG_ERR, 0, "Failed to create libevent event-base");
-        if(allocated==1)
-            free(self);
-        return 1;
-    }
-
-    mme_init_ifaces(self);
-
-    /*Create event for processing SIGINT*/
-    kill_event = evsignal_new(self->evbase, SIGINT, kill_handler, self);
-    event_add(kill_event, NULL);
-
-
-    /* Loop blocking*/
-    engine_main(self);
-
-    mme_close_ifaces(self);
-
-    event_free(kill_event);
-    event_base_free(self->evbase);
-
-    g_hash_table_destroy(self->s1_by_GeNBid);
-
-    g_hash_table_destroy(self->emm_sessions);
-
-    g_hash_table_destroy(self->ecm_sessions_by_localID);
-
-    g_hash_table_destroy(self->s1_localIDs);
-
-    g_hash_table_destroy(self->ev_readers);
-
-    freeMMEinfo(self);
-
-    free_nodemgr();
-
-    free_storage_system();
-
-    if(allocated==1){
-        free(self);
-    }
-
-    return 0;
-}
-
-int mme_main(){
-
-    struct mme_t *mme;
-    struct sigaction new_action, old_action;
-
-    /*Init syslog entity*/
-    init_logger("MME", LOG_INFO);
-
-    mme = malloc(sizeof(struct mme_t));
-    memset(mme, 0, sizeof(struct mme_t));
-
-    mme->run = &mme_run_flag;
-
-    mme_run_flag = 1;
-
-    /* Configure SIGINT */
-    /*new_action.sa_handler = termination_handler;
-    sigemptyset (&new_action.sa_mask);
-    new_action.sa_flags = 0;
-
-    sigaction (SIGINT, NULL, &old_action);
-    if (old_action.sa_handler != SIG_IGN){
-        sigaction (SIGINT, &new_action, NULL);
-    }*/
-
-    /* run MME*/
-    mme_run(mme);
-
-    /*Close syslog entity*/
-    close_logger();
-
-    free(mme);
-
-    mme_run_flag=0;
-
-    return 0;
-}
-
 struct t_message *newMsg(){
     struct t_message *msg;
     msg = malloc(sizeof(struct t_message));
@@ -368,18 +224,6 @@ struct t_message *newMsg(){
 
 void freeMsg(void *msg){
     free((struct t_message *)msg);
-}
-
-void kill_handler(evutil_socket_t listener, short event, void *arg){
-  struct mme_t *mme = (struct mme_t *)arg;
-
-  if(mme_run!=NULL){
-    mme_run_flag=0;
-    log_msg(LOG_INFO, 0, "SIGINT detected. Closing MME");
-  }else{
-    log_msg(LOG_INFO, 0, "SIGINT detected.");
-    exit(0);
-  }
 }
 
 int addToPendingResponse(struct SessionStruct_t *session){
@@ -580,7 +424,6 @@ gboolean mme_GUMMEI_IsLocal(const struct mme_t *self,
     return TRUE;
 }
 
-
 gboolean mme_containsSupportedTAs(const struct mme_t *self, SupportedTAs_t *tas){
     int i, j, k, l;
     BPLMNs_t *bc_l;
@@ -608,4 +451,124 @@ gboolean mme_containsSupportedTAs(const struct mme_t *self, SupportedTAs_t *tas)
         }
     }
     return FALSE;
+}
+
+
+
+void kill_handler(evutil_socket_t listener, short event, void *arg){
+    struct mme_t *mme = (struct mme_t *)arg;
+    log_msg(LOG_INFO, 0, "SIGINT detected. Closing MME");
+    mme_stop(mme);
+}
+
+MME *mme_init(){
+    struct mme_t *self;
+
+    self = malloc(sizeof(struct mme_t));
+    if(self==NULL){
+        g_error("Unable to allocate MME memory");
+        return 1;
+    }
+    memset(self, 0, sizeof(struct mme_t));
+    self->run = &mme_run_flag;
+
+    /*Create event base structure*/
+    self->evbase = event_base_new();
+    if (!self->evbase){
+        log_msg(LOG_ERR, 0, "Failed to create libevent event-base");
+        free(self);
+        return NULL;
+    }
+    /*Create event for processing SIGINT*/
+    self->kill_event = evsignal_new(self->evbase, SIGINT, kill_handler, self);
+    event_add(self->kill_event, NULL);
+
+    /*Init user storage*/
+    init_storage_system();
+
+    /*Init node manager*/
+    init_nodemgr();
+
+    /*Load MME information from config file*/
+    loadMMEinfo(self);
+
+    self->ev_readers =
+        g_hash_table_new_full(g_int_hash,
+                              g_int_equal,
+                              g_free,
+                              (GDestroyNotify) event_free);
+    self->s1_localIDs =
+        g_hash_table_new_full(g_int_hash,
+                              g_int_equal,
+                              g_free,
+                              NULL);
+    self->ecm_sessions_by_localID =
+        g_hash_table_new_full(g_int_hash,
+                              g_int_equal,
+                              NULL,
+                              (GDestroyNotify)ecmSession_free);
+    self->emm_sessions =
+        g_hash_table_new_full(g_int_hash,
+                              g_int_equal,
+                              NULL,
+                              (GDestroyNotify) emm_free);
+    self->s1_by_GeNBid =
+        g_hash_table_new_full((GHashFunc)  globaleNBID_Hash,
+                              (GEqualFunc) globaleNBID_Equal,
+                              NULL,
+                              NULL);
+    mme_init_ifaces(self);
+    return self;
+}
+
+void mme_free(MME mme){
+    struct mme_t *self = (struct mme_t *)mme;
+    mme_close_ifaces(self);
+
+    event_free(self->kill_event);
+    event_base_free(self->evbase);
+
+    g_hash_table_destroy(self->s1_by_GeNBid);
+    g_hash_table_destroy(self->emm_sessions);
+    g_hash_table_destroy(self->ecm_sessions_by_localID);
+    g_hash_table_destroy(self->s1_localIDs);
+    g_hash_table_destroy(self->ev_readers);
+
+    freeMMEinfo(self);
+    free_nodemgr();
+    free_storage_system();
+
+    free(self);
+}
+
+void mme_run(MME mme){
+    struct mme_t *self = (struct mme_t *)mme;
+    event_base_dispatch(self->evbase);
+}
+
+void mme_stop(MME mme){
+    struct mme_t *self = (struct mme_t *)mme;
+    struct timeval exit_time;
+
+    /* exit_time.tv_sec = 5; */
+    /* exit_time.tv_usec = 0; */
+    /* event_base_loopexit(self->evbase, &exit_time); */
+
+    event_base_loopbreak(self->evbase);
+}
+
+void mme_main(){
+
+    /*Init syslog entity*/
+    init_logger("MME", LOG_INFO);
+
+    MME mme = mme_init();
+    if(!mme){
+        g_error("MME structure not created!");
+    }
+    mme_run(mme);
+    mme_free(mme);
+
+    /*Close syslog entity*/
+    close_logger();
 }

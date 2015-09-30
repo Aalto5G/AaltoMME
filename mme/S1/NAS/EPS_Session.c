@@ -240,6 +240,11 @@ const char* ePSsession_getPDNAddrStr(EPS_Session s, gpointer str, gsize maxlen){
     }
 }
 
+const guint8 ePSsession_getPDNType(EPS_Session s){
+    EPS_Session_t *self = (EPS_Session_t*)s;
+    return self->pdn_addr_type;
+}
+
 
 void ePSsession_getPDNAddr(const EPS_Session s, TransportLayerAddress_t* addr){
     EPS_Session_t *self = (EPS_Session_t*)s;
@@ -261,10 +266,6 @@ void ePSsession_getPDNAddr(const EPS_Session s, TransportLayerAddress_t* addr){
         /* strncpy(s, "Unknown AF", maxlen); */
         g_error("PDN Addr not valid in EPS Session");
     }
-}
-
-void ePSsession_test(EPS_Session s){
-    log_msg(LOG_DEBUG, 0, "Activate Default EPS Bearer Context Accept");
 }
 
 void ePSsession_modifyE_RABList(EPS_Session s, E_RABsToBeModified_t* l,
@@ -307,4 +308,11 @@ void ePSsession_UEContextReleaseReq(EPS_Session s,
 void ePSsession_detach(EPS_Session s, void(*cb)(gpointer), gpointer args){
     EPS_Session_t *self = (EPS_Session_t*)s;
     S11_dettach(self->s11, cb, args);
+}
+
+void ePSsession_errorESM(EPS_Session s){
+    EPS_Session_t *self = (EPS_Session_t*)s;
+    log_msg(LOG_ERR, 0, "ESM Error indication, deleting Session");
+    self->esm=NULL;
+    S11_dettach(self->s11, NULL, NULL);
 }

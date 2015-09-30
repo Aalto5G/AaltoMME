@@ -46,6 +46,18 @@
 #define SELF_ON_SIG signal->processTo->engine->mme
 
 /* ====================================================================== */
+
+typedef gpointer MME;
+
+extern void mme_main();
+
+extern MME *mme_init();
+
+extern void mme_free(MME mme);
+
+extern void mme_run(MME mme);
+
+
 enum port_state
 {
     closed      = 0,
@@ -221,12 +233,12 @@ struct mme_t{
     int                     *run;
     struct t_engine_data    *engine;                /*Multiple engines on the future?*/
     struct event_base       *evbase;
+    struct event            *kill_event;                     /*< Kill Posix signal event*/
     MMEname_t               *name;
     char                    ipv4[INET_ADDRSTRLEN];
     char                    ipv6[INET6_ADDRSTRLEN]; /* Not used*/
     ServedGUMMEIs_t         *servedGUMMEIs;
     RelativeMMECapacity_t   *relativeCapacity;
-    struct EndpointStruct_t ctrl;                            /*< Server endpoint*/
     GHashTable              *ev_readers;                     /*< Listener events accessed by socket*/
     gpointer                s6a;
     gpointer                s11;
@@ -238,7 +250,6 @@ struct mme_t{
     GHashTable              *emm_sessions;                   /**< Store all EMM session of the MME */
     GHashTable              *ecm_sessions_by_localID;        /**< Store all ECM session of the MME */
 
-    /* uint32_t                nums1conn;                      /\*< Number of S1 Connections*\/ */
     struct SessionStruct_t  *s1apUsersbyLocalID[MAX_UE];    /*< UE MME ID to session relation vector*/
     struct SessionStruct_t  *sessionht_byTEID;    /*Session Hash table to store the processes waiting for a response, */
     struct SessionStruct_t  *sessionht_byS1APID;  /*Session Hash table to store the processes waiting for a response, */
@@ -261,8 +272,6 @@ struct mme_t{
 extern int init_udp_srv(const char* src, int port);
 
 extern int init_sctp_srv(const char *src, int port);
-
-extern int mme_run();
 
 extern struct t_message *newMsg();
 extern void freeMsg( void *msg);

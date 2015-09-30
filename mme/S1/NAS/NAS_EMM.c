@@ -630,12 +630,17 @@ void emm_sendIdentityReq(EMMCtx emm_h){
     ecm_send(emm->ecm, buffer, pointer-buffer);
 }
 
+void emm_getEPSSessions(EMMCtx emm_h, GList **sessions){
+    EMMCtx_t *self = (EMMCtx_t*)emm_h;
+    esm_getSessions(self->esm, sessions);
+}
+
 void emm_getBearers(EMMCtx emm_h, GList **bearers){
     EMMCtx_t *self = (EMMCtx_t*)emm_h;
     esm_getBearers(self->esm, bearers);
 }
 
 const guint64 emm_getIMSI(const EMMCtx emm_h){
-	EMMCtx_t *self = (EMMCtx_t*)emm_h;
-	return emmCtx_getIMSI(self);
+    EMMCtx_t *self = (EMMCtx_t*)emm_h;
+    return emmCtx_getIMSI(self);
 }

@@ -42,6 +42,8 @@ gpointer esm_init(gpointer emm);
  */
 void esm_free(ESM esm_h);
 
+void esm_errorEMM(gpointer esm_h);
+
 /**
  * @brief NAS processing function
  * @param [in]  esm_h ESM Stack handler
@@ -49,7 +51,6 @@ void esm_free(ESM esm_h);
  *
  *  Function to process the ESM message. Used by the lower layer EMM.
  */
-
 void esm_processMsg(gpointer esm_h, ESM_Message_t* msg);
 
 void esm_modifyE_RABList(ESM esm_h,  E_RABsToBeModified_t* l,

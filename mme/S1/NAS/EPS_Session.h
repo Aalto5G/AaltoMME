@@ -53,5 +53,7 @@ void ePSsession_UEContextReleaseReq(EPS_Session s,
 
 void ePSsession_detach(EPS_Session s, void(*cb)(gpointer), gpointer args);
 
+void ePSsession_errorESM(EPS_Session s);
+
 
 #endif /* EPS_SESSION_H*/

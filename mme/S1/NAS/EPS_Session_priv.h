@@ -28,11 +28,11 @@
 
 
 typedef struct{
-	ESM_BearerContext      defaultBearer;
-	ESM_t                  *esm;
-	gpointer               s11;
+    ESM_BearerContext      defaultBearer;
+    ESM_t                  *esm;
+    gpointer               s11;
 
-	Subscription           subs;  /**< Subscription information*/
+    Subscription           subs;  /**< Subscription information*/
     GString                *APN;
     /* apn_restriction; */
     GString                *subscribedAPN;
@@ -58,6 +58,9 @@ void ePSsession_setPCO(EPS_Session s, gconstpointer pco, gsize len);
 void ePSsession_setPDNAddress(EPS_Session s, gpointer paa, gsize len);
 
 const char* ePSsession_getPDNAddrStr(EPS_Session s, gpointer str, gsize maxlen);
+
+const guint8 ePSsession_getPDNType(EPS_Session s);
+
 
 
 

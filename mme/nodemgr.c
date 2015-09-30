@@ -61,7 +61,7 @@ void getNode(struct nodeinfo_t *node, const enum nodeType type, Subscription sub
     const char *name, *ip4, *ip6, *status;
 
     switch(type){
-    case MME:
+    case node_MME:
         node->type = invalid;
         nodes = config_lookup(&cfg, "nodes.mme");
         nodecfg = config_setting_get_elem(nodes, imme);

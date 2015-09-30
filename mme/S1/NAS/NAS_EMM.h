@@ -86,6 +86,8 @@ guint32 *emm_getM_TMSI_p(EMMCtx emm);
 
 void emm_triggerAKAprocedure(EMMCtx emm_h);
 
+void emm_getEPSSessions(EMMCtx emm_h, GList **sessions);
+
 void emm_getBearers(EMMCtx emm_h, GList **bearers);
 
 const guint64 emm_getIMSI(const EMMCtx emm_h);

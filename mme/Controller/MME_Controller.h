@@ -26,7 +26,7 @@
 /**@brief Create SDN interface
  * @param [in]  mme reference to the mme
  * @return the reference to the sdn ctrl interface
- * 
+ *
  * The returned reference will be used in the calls to this API. Remember to
  * free the reference after use with sdnCtrl_free
  */
@@ -47,7 +47,7 @@ void sdnCtrl_free(gpointer ctrl_h);
  *
  * Used to pass the session to the Controller State machine.
  */
-void Controller_newAttach(gpointer ctrl, struct user_ctx_t *user);
+void Controller_newAttach(gpointer ctrl, gpointer emm);
 
 /**@brief Detach UE event
  * @param [in]  ctrl pointer to the SDN controller interface
@@ -55,7 +55,7 @@ void Controller_newAttach(gpointer ctrl, struct user_ctx_t *user);
  *
  * Used to pass the session to the Controller State machine.
  */
-void Controller_newDetach(gpointer ctrl, struct user_ctx_t *user);
+void Controller_newDetach(gpointer ctrl, gpointer emm);
 
 /**@brief Handover UE from one src eNB to dest eNB event
  * @param [in]  ctrl pointer to the SDN controller interface
@@ -63,6 +63,6 @@ void Controller_newDetach(gpointer ctrl, struct user_ctx_t *user);
  *
  * Used to pass the session to the Controller State machine.
  */
-void Controller_newHandover(gpointer ctrl, struct user_ctx_t *user);
+void Controller_newHandover(gpointer ctrl, gpointer emm);
 
 #endif /* MME_CONTROLLER_HFILE */

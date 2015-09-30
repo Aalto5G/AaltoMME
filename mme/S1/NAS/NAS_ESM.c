@@ -53,6 +53,24 @@ void esm_free(gpointer esm_h){
     g_free(self);
 }
 
+static gboolean esm_errorEMMToSessions(gpointer unused,
+                                   gpointer session,
+                                   gpointer esm_h){
+    ePSsession_errorESM(session);
+    /*Return True to remove the EPS session*/
+    return TRUE;
+}
+
+void esm_errorEMM(gpointer esm_h){
+    ESM_t *self = (ESM_t*)esm_h;
+
+    self->emm = NULL;
+    log_msg(LOG_ERR, 0, "EMM Error indication, deleting ESM");
+    g_hash_table_foreach_remove(self->sessions, esm_errorEMMToSessions, self);
+    /* Loyer layer will free this?*/
+    /* esm_free(self); */
+}
+
 gpointer esm_getS11iface(ESM esm_h){
     ESM_t *self = (ESM_t*)esm_h;
     return self->s11_iface;
