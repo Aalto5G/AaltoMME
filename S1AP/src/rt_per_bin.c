@@ -707,6 +707,7 @@ void decode_known_multiplier_string_PrintableString_withExt(uint8_t *str, struct
 
     }else{
         printf("decode_known_multiplier_string_PrintableString_ext(): Error");
+        return;
         /*ERROR */
     }
     for(i=0;i<len;i++){
@@ -853,7 +854,7 @@ void setbits(struct BinaryData *bytes, uint32_t numbits, uint32_t val){
 
     if ( (numbits+bytes->pos)<=8 ){
         /*Set bits only on the current octet*/
-        byte = val & (0xFF >> (8-numbits));
+        byte = val & (0xFF >> (8-numbits)%8);
         bytes->offset[0] |= (byte<<((8-numbits-bytes->pos)%8));
     }else if (bytes->pos==0){
         /*Aligned bits*/
@@ -1005,7 +1006,7 @@ void encode_constrained_number(struct BinaryData *bytes, uint64_t Val, uint32_t 
         encode_constrained_number(bytes, len, 1,4);
         setoctets(bytes, len, byte);
     }else if(range<=0x10000000000){
-	    eint(byte, Val, &len);
+        eint(byte, Val, &len);
         encode_constrained_number(bytes, len, 1,5);
         setoctets(bytes, len, byte);
 
@@ -1199,5 +1200,3 @@ encode_small_number(Val) when Val =< 63 ->
 encode_small_number(Val) ->
     [{bits,1,1},encode_semi_constrained_number(0,Val)].*/
 }
-
-

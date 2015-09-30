@@ -787,6 +787,7 @@ SupportedTAs_Item_t *new_SupportedTAs_Item(){
     self->tAC = malloc(sizeof(TAC_t));
     if(!self->tAC){
         s1ap_msg(ERROR, 0, "S1AP TAC_t not allocated correctly");
+        free(self);
         return NULL;
     }
     memset(self, 0, sizeof(TAC_t));
@@ -2188,9 +2189,10 @@ TAI_t *new_TAI(){
     self->tAC = malloc(sizeof(TAC_t));
     if(!self->tAC){
         s1ap_msg(ERROR, 0, "S1AP TAC_t not allocated correctly");
+        free(self);
         return NULL;
     }
-    memset(self, 0, sizeof(TAC_t));
+    memset(self->tAC, 0, sizeof(TAC_t));
 
     self->iEext=NULL;
 

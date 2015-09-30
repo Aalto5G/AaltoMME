@@ -650,7 +650,7 @@ int dec_secNAS(const NAS h,
     nas_getHeader(buf, size, &s, NULL);
 
     if(s ==  IntegrityProtected){
-        dec_NAS(msg, buf+6, len-6);
+        dec_NAS(msg, buf+6, size-6);
         return 1;
     }else if( ! (s == IntegrityProtectedAndCiphered ||
                  s == IntegrityProtectedAndCipheredWithNewEPSSecurityContext ||
