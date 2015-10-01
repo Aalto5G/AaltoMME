@@ -73,15 +73,9 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid, GError
     s1ChangeState(assoc, Active);
 }
 
-static void disconnect(gpointer _assoc, void (*cb)(gpointer), gpointer args){
-    cb(args);
-    return;
-}
-
 
 void linkS1AssocNotConfigured(S1Assoc_State* s){
     s->processMsg = processMsg;
-    s->disconnect = disconnect;
 }
 
 static void sendS1SetupResponse(S1Assoc_t *assoc){

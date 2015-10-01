@@ -79,10 +79,10 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid, GError
         /* ************************************************** */
         /*                 Path Switch Request                */
         /* ************************************************** */
-	    log_msg(LOG_DEBUG, 0, "Received Path Switch Request");
-	    mme_id = s1ap_findIe(s1msg, id_SourceMME_UE_S1AP_ID);
-	    mme_lookupECM(mme, mme_id->mme_id, &ecm);
-	    ecmSession_pathSwitchReq(ecm, assoc, s1msg, r_sid);
+        log_msg(LOG_DEBUG, 0, "Received Path Switch Request");
+        mme_id = s1ap_findIe(s1msg, id_SourceMME_UE_S1AP_ID);
+        mme_lookupECM(mme, mme_id->mme_id, &ecm);
+        ecmSession_pathSwitchReq(ecm, assoc, s1msg, r_sid);
     }else{
         /* ************************************************** */
         /*               UE associated signaling              */
@@ -128,24 +128,8 @@ static void sendReset(gpointer _assoc){
 
 }
 
-static void disconnect(gpointer _assoc, void (*cb)(gpointer), gpointer args){
-    S1Assoc_t *assoc = (S1Assoc_t *)_assoc;
-    struct mme_t * mme = s1_getMME(assoc->s1);
-
-    assoc->cb = cb;
-    assoc->args = args;
-    mme_deregisterS1Assoc(mme, assoc);
-    /*s1_deregisterAssoc(self->s1, self);*/
-    /* Use this instead of hack*/
-    //sendReset(assoc);
-
-    /* HACK*/
-    cb(args);
-}
-
 void linkS1AssocActive(S1Assoc_State* s){
     s->processMsg = processMsg;
-    s->disconnect = disconnect;
 }
 
 static void process_eNBConfigurationTransfer(S1Assoc_t *assoc,  S1AP_Message_t *s1msg){

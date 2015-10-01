@@ -546,15 +546,35 @@ void mme_run(MME mme){
     event_base_dispatch(self->evbase);
 }
 
+static void mme_stopEMM(gpointer mtmsi,
+                            gpointer emm,
+                            gpointer mme){
+    struct mme_t *self = (struct mme_t *)mme;
+    log_msg(LOG_DEBUG, 0, "Stoping EMM");
+    emm_stop(emm);
+}
+
+static gboolean mme_disconnectAssoc(gpointer geNBid,
+                                    gpointer assoc,
+                                    gpointer mme){
+    struct mme_t *self = (struct mme_t *)mme;
+    log_msg(LOG_INFO, 0, "Removing S1 Association with eNB %s",
+            s1Assoc_getName(assoc));
+    mme_deregisterRead(mme, s1Assoc_getfd(assoc));
+    s1Assoc_disconnect(assoc);
+    return TRUE;
+}
+
 void mme_stop(MME mme){
     struct mme_t *self = (struct mme_t *)mme;
     struct timeval exit_time;
 
+    g_hash_table_foreach(self->emm_sessions, mme_stopEMM, self);
+    g_hash_table_foreach_remove(self->s1_by_GeNBid, mme_disconnectAssoc, self);
+    event_base_loopbreak(self->evbase);
     /* exit_time.tv_sec = 5; */
     /* exit_time.tv_usec = 0; */
     /* event_base_loopexit(self->evbase, &exit_time); */
-
-    event_base_loopbreak(self->evbase);
 }
 
 void mme_main(){

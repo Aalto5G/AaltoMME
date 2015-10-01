@@ -45,6 +45,8 @@ void s1Assoc_free(gpointer h);
  */
 void s1Assoc_accept(S1Assoc h, int ss);
 
+void s1Assoc_disconnect(S1Assoc h);
+
 void s1Assoc_registerECMSession(S1Assoc h, gpointer ecm);
 
 void s1Assoc_deregisterECMSession(S1Assoc h, gpointer ecm);

@@ -57,9 +57,9 @@ static gboolean s1Assoc_free_deleteECM(gpointer key,
     return TRUE;
 }
 
-static void s1Assoc_free_cb(gpointer h){
+void s1Assoc_free(gpointer h){
     S1Assoc_t *self = (S1Assoc_t *)h;
-
+    log_msg(LOG_DEBUG, 0, "Enter");
     g_hash_table_foreach_remove(self->ecm_sessions, s1Assoc_free_deleteECM, self);
 
     if(self->ecm_sessions)
@@ -86,12 +86,6 @@ static void s1Assoc_free_cb(gpointer h){
     g_free(self);
 }
 
-void s1Assoc_free(gpointer h){
-    S1Assoc_t *self = (S1Assoc_t *)h;
-    log_msg(LOG_DEBUG, 0, "Enter");
-    self->state->disconnect(self, s1Assoc_free_cb, h);
-}
-
 /** S1 Accept function callback*/
 static void s1_accept(evutil_socket_t fd, short event, void *arg){
 
@@ -106,6 +100,7 @@ static void s1_accept(evutil_socket_t fd, short event, void *arg){
 
     S1AP_Message_t *s1msg;
     GError *error = NULL;
+    struct mme_t * mme = s1_getMME(self->s1);
 
     memset(&sndrcvinfo, 0, sizeof(struct sctp_sndrcvinfo));
 
@@ -136,6 +131,8 @@ static void s1_accept(evutil_socket_t fd, short event, void *arg){
 
     /*Check errors*/
     if (msg->length <= 0) {
+        mme_deregisterRead(mme, s1Assoc_getfd(self));
+        mme_deregisterS1Assoc(mme, self);
         s1_deregisterAssoc(self->s1, self);
         log_msg(LOG_DEBUG, 0, "Connection closed");
         freeMsg(msg);
@@ -157,6 +154,8 @@ static void s1_accept(evutil_socket_t fd, short event, void *arg){
     /* Process message*/
     self->state->processMsg(self, s1msg, sndrcvinfo.sinfo_stream, &error);
     if (error != NULL){
+        mme_deregisterRead(mme, s1Assoc_getfd(self));
+        mme_deregisterS1Assoc(mme, self);
         s1_deregisterAssoc(self->s1, self);
     }
 
@@ -173,6 +172,7 @@ void s1Assoc_accept(S1Assoc h, int ss){
     /*SCTP structures*/
     struct sctp_event_subscribe events;
     int optval, on;
+    struct mme_t * mme = s1_getMME(self->s1);
 
     self->socklen = sizeof(struct sockaddr);
 
@@ -205,7 +205,13 @@ void s1Assoc_accept(S1Assoc h, int ss){
     /* setsockopt(self->fd, IPPROTO_SCTP, SCTP_RECVRCVINFO, */
     /*                &on, sizeof(on)); */
 
-    s1_registerAssoc(self->s1, self, self->fd, s1_accept);
+    mme_registerRead(mme, self->fd, s1_accept, self);
+    s1_registerAssoc(self->s1, self);
+}
+
+void s1Assoc_disconnect(S1Assoc h){
+    S1Assoc_t *self = (S1Assoc_t *)h;
+    s1_deregisterAssoc(self->s1, self);
 }
 
 

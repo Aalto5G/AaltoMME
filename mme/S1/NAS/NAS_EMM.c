@@ -54,6 +54,12 @@ void emm_deregister(EMMCtx emm_h){
     self->ecm = NULL;
 }
 
+void emm_stop(EMMCtx emm_h){
+    EMMCtx_t *self = (EMMCtx_t*)emm_h;
+    esm_errorEMM(self->esm);
+    emmChangeState(self, EMM_Deregistered);
+}
+
 gpointer emm_getS11(gpointer emm_h){
     EMMCtx_t *self = (EMMCtx_t*)emm_h;
     return ecmSession_getS11(self->ecm);

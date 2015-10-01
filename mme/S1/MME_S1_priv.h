@@ -40,13 +40,10 @@ typedef struct{
 /**@brief S1 Register eNB
  * @param [in] s1_h    Destination EndPoint information
  * @param [in] assoc   Association to be registered in S1
- * @param [in] fd      File descriptor to read from association
- * @param [in] cb      Read callback
  *
- * This function registers a new S1 association to the S1 interface and
- * the read callback to be used
+ * This function registers a new S1 association to the S1 interface
  * */
-void s1_registerAssoc(S1 s1_h, gpointer assoc, int fd, event_callback_fn cb);
+void s1_registerAssoc(S1 s1_h, gpointer assoc);
 
 struct mme_t *s1_getMME(S1_t *self);
 

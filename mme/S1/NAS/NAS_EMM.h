@@ -42,6 +42,18 @@ void emm_free(gpointer emm_h);
 void emm_registerECM(EMMCtx emm_h, gpointer ecm);
 
 void emm_deregister(EMMCtx emm_h);
+
+
+/**
+ * @brief Stops EMM
+ * @param [in]  emm_h EMM stack handler.
+ *
+ * This function is used by the lower layers to change the EMM to Deregitered.
+ * Used for resets or lower layer errors, it detaches the user without signaling and
+ * forwards the error to ESM layer
+ */
+void emm_stop(EMMCtx emm_h);
+
 /**
  * @brief NAS processing function
  * @param [in]  emm_h EMM Stack handler
