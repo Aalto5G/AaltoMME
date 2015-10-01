@@ -14,9 +14,10 @@
  *
  */
 
-#include "S1Assoc.h"
+#include "S1Assoc_priv.h"
 #include "S1Assoc_FSMConfig.h"
 #include "ECMSession_FSMConfig.h"
+#include "ECMSession_priv.h"
 
 /* Include States*/
 #include "S1Assoc_NotConfigured.h"

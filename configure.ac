@@ -18,13 +18,14 @@ AM_PROG_AR
 dnl Initialize Libtool
 LT_INIT
 dnl Check if Libtool is present
-dnl Libtool is used for building share libraries 
+dnl Libtool is used for building share libraries
 AC_PROG_LIBTOOL
 
 # Checks for libraries.
 #AC_SEARCH_LIBS([config_error_file],[config],, AC_MSG_ERROR([libconfig not found.]))
 AC_SEARCH_LIBS([event_base_loop],[event],, AC_MSG_ERROR([libevent not found.]))
 AC_SEARCH_LIBS([sctp_sendmsg], [sctp],, AC_MSG_ERROR([libsctp not found.]))
+AC_CHECK_LIB(ssl, SSL_library_init)
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.4],, AC_MSG_WARN([Check test framework not found.]))
 PKG_CHECK_MODULES([LIBCONFIG], [libconfig >= 1.3.2],, AC_MSG_ERROR([libconfig 1.3.2 or newer not found.]) )
 PKG_CHECK_MODULES([GLIB], [glib-2.0 > 2.19.0],, AC_MSG_ERROR([glib 2.19.0 or newer not found.]) )
@@ -55,12 +56,13 @@ AC_FUNC_REALLOC
 AC_CHECK_FUNCS([bzero gettimeofday inet_ntoa memmove memset socket strdup strerror strtoull])
 
 dnl Initialize automake
-AM_INIT_AUTOMAKE([1.11 -Wall -Werror foreign subdir-objects])
+AM_INIT_AUTOMAKE([1.11 -Wall -Werror foreign subdir-objects silent-rules])
+AM_SILENT_RULES([yes])
 
 WITH_MYSQL()
 
 dnl this allows us specify individual liking flags for each target
-dnl AM_PROG_CC_C_O 
+dnl AM_PROG_CC_C_O
 
 dnl dnl remove optimization flags
 dnl changequote({,})
@@ -87,8 +89,8 @@ dnl CFLAGS="$DEBUG_CFLAGS"
 ###########################
 
 AC_ARG_ENABLE(gcov,
-	AS_HELP_STRING([--enable-gcov], [enable coverage testing with gcov]),
-	[use_gcov=yes], [use_gcov=no])
+    AS_HELP_STRING([--enable-gcov], [enable coverage testing with gcov]),
+    [use_gcov=yes], [use_gcov=no])
 
 AM_CONDITIONAL(HAVE_GCOV, test "x$use_gcov" = "xyes")
 
@@ -101,7 +103,7 @@ fi
 
 # Add the special gcc flags
 #COVERAGE_CFLAGS="--coverage"
-#COVERAGE_CXXFLAGS="--coverage"	
+#COVERAGE_CXXFLAGS="--coverage"
 #COVERAGE_LDFLAGS="-lgcov"
 COVERAGE_CFLAGS="-O0 -fprofile-arcs -ftest-coverage"
 COVERAGE_CXXFLAGS="-O0 -fprofile-arcs -ftest-coverage"
@@ -124,5 +126,5 @@ AC_CONFIG_FILES(Makefile
                 NAS/src/Makefile
                 NAS/testApp/Makefile
                 mme/Makefile)
-                
+
 AC_OUTPUT

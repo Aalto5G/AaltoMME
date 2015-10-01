@@ -67,6 +67,8 @@ void sendModifyBearerReq(gpointer u);
 
 void sendDeleteSessionReq(gpointer u);
 
+void sendReleaseAccessBearersReq(gpointer u);
+
 
 const gboolean accepted(gpointer u);
 

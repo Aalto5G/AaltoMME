@@ -142,6 +142,8 @@ void emmCtx_freeAuthQuadruplet(EMMCtx emm);
 
 const guint8 *emmCtx_getServingNetwork_TBCD(const EMMCtx emm);
 
+void emmCtx_setMSISDN(EMMCtx emm, guint64 msisdn);
+
 Subscription emmCtx_getSubscription(const EMMCtx emm);
 
 void emmCtx_newGUTI(EMMCtx emm, guti_t *guti);

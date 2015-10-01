@@ -2127,7 +2127,7 @@ void dec_E_RABDataForwardingItem(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *by
 }
 
 
-S_TMSI_t *dec_S_TMSI(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
+void dec_S_TMSI(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
     struct BinaryData extensions, opt;
     uint8_t buffer[MAXDATABYTES];
     S_TMSI_t *v;
@@ -2159,8 +2159,6 @@ S_TMSI_t *dec_S_TMSI(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
     /*Extensions*/
     getextension(&extensions, bytes, v->ext);
     skipextensions(bytes, 1, &extensions);
-
-    return v;
 }
 
 

@@ -11,6 +11,7 @@
 MMEcmd/MMEcmd
 NAS/testApp/NAStest
 S1AP/testApp/S1APtest
+S1AP/S1APtest
 exampleProgram/eNBemulator
 exampleProgram/eping
 exampleProgram/exampleProgram
@@ -24,6 +25,7 @@ TestProgram/check_tests.xml
 Debug/
 Release/
 autom4te.cache/
+build-aux/
 compile
 config.guess
 config.status

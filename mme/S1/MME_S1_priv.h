@@ -45,6 +45,8 @@ typedef struct{
  * */
 void s1_registerAssoc(S1 s1_h, gpointer assoc);
 
+void s1_deregisterAssoc(S1 s1_h, gpointer assoc);
+
 struct mme_t *s1_getMME(S1_t *self);
 
 #endif /* MME_S1_PRIV_HFILE */

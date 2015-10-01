@@ -20,6 +20,7 @@
 #include "NAS.h"
 #include "ECMSession_priv.h"
 #include "NAS_EMM_priv.h"
+#include "NAS_ESM.h"
 #include <string.h>
 
 static void processAttachComplete(EMMCtx_t *emm, GenericNASMsg_t *msg);

@@ -20,7 +20,7 @@
 #include "S1Assoc_priv.h"
 #include "ECMSession_priv.h"
 #include "ECMSession_FSMConfig.h"
-#include "ECMSession.h"
+#include "NAS_EMM.h"
 
 static void ecm_UEContextRelease(gpointer ecm_h, S1AP_Message_t *s1msg);
 
@@ -195,7 +195,7 @@ static void sendUEContextReleaseCommand(gpointer _ecm){
     ue_ids->uE_S1AP_ID.uE_S1AP_ID_pair->mME_UE_S1AP_ID->mme_id = ecm->mmeUEId;
 
     /* id-Cause */
-    s1ap_setValueOnNewIE(s1out, id_Cause, mandatory, ignore, ecm->causeRelease);
+    s1ap_setValueOnNewIE(s1out, id_Cause, mandatory, ignore, (GenericVal_t *)(ecm->causeRelease));
 
     /*s1out->showmsg(s1out);*/
     s1Assoc_send(ecm->assoc, ecm->l_sid, s1out);

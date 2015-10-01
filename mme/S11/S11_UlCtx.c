@@ -17,35 +17,36 @@
 #include "S11_UlCtx.h"
 #include "logmgr.h"
 #include "S11_FSMConfig.h"
+#include "S11_User.h"
 
-static void processMsg(gpointer self){
+static void s11u_processMsg(gpointer self){
     log_msg(LOG_ERR, 0, "Not Implemented");
 }
 
-static void attach(gpointer self){
+static void s11u_attach(gpointer self){
     log_msg(LOG_ERR, 0, "Not Implemented");
 }
 
-static void detach(gpointer self){
+static void s11u_detach(gpointer self){
     log_msg(LOG_DEBUG, 0, "Deleting Bearer Context");
     sendDeleteSessionReq(self);
     s11changeState(self, wDel);
 }
 
-static void modBearer(gpointer self){
+static void s11u_modBearer(gpointer self){
     log_msg(LOG_DEBUG, 0, "Sending Modify Bearer Request");
     sendModifyBearerReq(self);
     s11changeState(self, wModBearerRsp);
 }
 
-static void releaseAccess(gpointer self){
+static void s11u_releaseAccess(gpointer self){
     log_msg(LOG_ERR, 0, "Not Implemented");
 }
 
 void linkUlCtx(S11_State* s){
-    s->processMsg = processMsg;
-    s->attach = attach;
-    s->detach =  detach;
-    s->modBearer = modBearer;
-    s->releaseAccess = releaseAccess;
+    s->processMsg = s11u_processMsg;
+    s->attach = s11u_attach;
+    s->detach = s11u_detach;
+    s->modBearer = s11u_modBearer;
+    s->releaseAccess = s11u_releaseAccess;
 }

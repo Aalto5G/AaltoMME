@@ -16,7 +16,6 @@
  * It is currently only and emulator
  */
 
-#include "MME_engine.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include "signals.h"
@@ -30,7 +29,7 @@
 
 #include "HSS.h"
 
-typedef void (*s6a_STATE)(Signal *signal);
+typedef void (*s6a_STATE)(gpointer);
 
 struct s6a_t{
     gpointer mme;

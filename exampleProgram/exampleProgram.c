@@ -13,8 +13,6 @@
 #include <sys/queue.h>
 
 #include "gtp.h"
-#include "MME_engine.h"
-#include "storagesys.h"
 #include "logmgr.h"
 #include "MME.h"
 #include "gtpie.h"

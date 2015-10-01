@@ -26,7 +26,7 @@
  * @brief initiates the S11 stack
  * @param [in]  mme   pointer to mme structure to access the MME API
  * @return pointer to s11 handler
- * 
+ *
  * The returned pointer needs to be freed with s11_free
  */
 gpointer s11_init(gpointer mme);
@@ -34,7 +34,7 @@ gpointer s11_init(gpointer mme);
 /**
  * @brief removes the s11 handler
  * @param [in]  s11 s11 stack handler
- * 
+ *
  * Deallocates the s11 stack handler allocated with s11_init
  */
 void s11_free(gpointer s11);
@@ -42,7 +42,7 @@ void s11_free(gpointer s11);
 /**
  * @brief removes the s11 session
  * @param [in]  s11 s11 stack handler
- * 
+ *
  * Deregisters the user session, used in the State Machine
  */
 void s11_deleteSession(gpointer s11_h, gpointer u);
@@ -72,7 +72,8 @@ const char *s11_getLocalAddress(gpointer s11_h);
  * S11 MME State Machine API
  * ====================================================================== */
 
-/**@brief Attach new user
+/**
+ * @brief Attach new user
  * @param [in]  s11_h Engine reference
  * @param [in]  emm   Mobility Manamegent Handler
  * @param [in]  s     EPS session Handler
@@ -84,7 +85,8 @@ const char *s11_getLocalAddress(gpointer s11_h);
 gpointer S11_newUserAttach(gpointer s11_h, EMMCtx emm, EPS_Session s,
                        void(*cb)(gpointer), gpointer args);
 
-/**@brief Modify Bearer on Attach procedure
+/**
+ * @brief Modify Bearer on Attach procedure
  * @param [in]  s11_user  User structure
  * @param [in]  cb        Callback to continue the workflow when the S11 procedure is done
  * @param [in]  args      Argument passed to the callback
@@ -93,27 +95,28 @@ gpointer S11_newUserAttach(gpointer s11_h, EMMCtx emm, EPS_Session s,
  */
 void S11_Attach_ModifyBearerReq(gpointer s11_user, void(*cb)(gpointer), gpointer args);
 
-/**@brief Detach UE
+/**
+ * @brief Detach UE
  * @param [in]  engine Engine reference
  * @param [in]  session User session structure
  *
  */
 void S11_dettach(gpointer s11_user, void(*cb)(gpointer), gpointer args);
 
-/**@brief Trigger Indirect Data Forwarding Tunnel
- * @param [in]  engine Engine reference
- * @param [in]  session User session structure
- *
- */
+/* /\** */
+/*  * @brief Trigger Indirect Data Forwarding Tunnel */
+/*  * @param [in]  engine Engine reference */
+/*  * @param [in]  session User session structure */
+/*  * */
+/*  *\/ */
 /* void S11_CreateIndirectDataForwardingTunnel(struct t_engine_data *engine, struct SessionStruct_t *session); */
 
-/**@brief Release Access Bearers
+/**
+ * @brief Release Access Bearers
  * @param [in]  engine Engine reference
  * @param [in]  session User session structure
  *
  */
-/* void S11_ReleaseAccessBearers(struct t_engine_data *engine, struct SessionStruct_t *session); */
-
 void S11_ReleaseAccessBearers(gpointer s11_user, void(*cb)(gpointer), gpointer args);
 
 #endif /* MME_S11_HFILE */

@@ -102,7 +102,7 @@ void help_log_menu(CommandConn_t *self){
     /*  LOG_WARNING, LOG_NOTICE, LOG_INFO, LOG_DEBUG); */
 }
 
-static printAssoc(gpointer assoc, CommandConn_t *self){
+static void printAssoc(gpointer assoc, CommandConn_t *self){
     mme_GlobaleNBid gid;
     s1Assoc_getID(assoc, &gid);
     conn_print(self, "eNB: \t%u\t%u\t%.6x\t%s\n",
@@ -223,7 +223,7 @@ gpointer servcommand_init(gpointer mme, const int servPort){
                                              (struct sockaddr*)&sin,
                                              sizeof(sin));
     if (!self->listener) {
-        err(1,"Couldn't create listener");
+        g_error("Couldn't create listener");
         return NULL;
     }
 

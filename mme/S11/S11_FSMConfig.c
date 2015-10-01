@@ -17,6 +17,7 @@
 
 //#include "MME_S11.c"
 #include "S11_FSMConfig.h"
+#include "S11_User.h"
 
 #include "S11_NoCtx.h"
 #include "S11_WCtxRsp.h"

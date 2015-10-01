@@ -16,6 +16,7 @@
 
 #include "S1Assoc.h"
 #include "ECMSession_FSMConfig.h"
+#include "ECMSession_priv.h"
 /* Include States*/
 #include "ECMSession_Idle.h"
 #include "ECMSession_Connected.h"
@@ -36,7 +37,7 @@ void ecm_ConfigureFSM(){
 }
 
 void ecm_DestroyFSM(){
-	emmDestroyFSM();
+    emmDestroyFSM();
     g_free(ecm_states);
 }
 

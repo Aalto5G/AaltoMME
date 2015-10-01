@@ -17,35 +17,35 @@
 #include "S11_NoCtx.h"
 #include "logmgr.h"
 #include "S11_FSMConfig.h"
+#include "S11_User.h"
 
-static void processMsg(gpointer self){
-	log_msg(LOG_ERR, 0, "Not Implemented");
+static void s11u_processMsg(gpointer self){
+    log_msg(LOG_ERR, 0, "Not Implemented");
 }
 
-static void attach(gpointer self){
-	log_msg(LOG_DEBUG, 0, "Bearer Context doesn't exist, creating a new one.");
-	sendCreateSessionReq(self);
-	s11changeState(self, wCtxRsp);
+static void s11u_attach(gpointer self){
+    log_msg(LOG_DEBUG, 0, "Bearer Context doesn't exist, creating a new one.");
+    sendCreateSessionReq(self);
+    s11changeState(self, wCtxRsp);
 }
 
-static void detach(gpointer self){
-	log_msg(LOG_ERR, 0, "Not Implemented");
+static void s11u_detach(gpointer self){
+    log_msg(LOG_ERR, 0, "Not Implemented");
 }
 
-static void modBearer(gpointer self){
-	log_msg(LOG_ERR, 0, "Not Implemented");
+static void s11u_modBearer(gpointer self){
+    log_msg(LOG_ERR, 0, "Not Implemented");
 }
 
-static void releaseAccess(gpointer self){
-	log_msg(LOG_ERR, 0, "Not Implemented");
+static void s11u_releaseAccess(gpointer self){
+    log_msg(LOG_ERR, 0, "Not Implemented");
 }
 
 
 void linkNoCtx(S11_State* s){
-	s->processMsg = processMsg;
-	s->attach = attach;
-	s->detach =  detach;
-	s->modBearer = modBearer;
-	s->releaseAccess = releaseAccess;
+    s->processMsg = s11u_processMsg;
+    s->attach = s11u_attach;
+    s->detach = s11u_detach;
+    s->modBearer = s11u_modBearer;
+    s->releaseAccess = s11u_releaseAccess;
 }
-

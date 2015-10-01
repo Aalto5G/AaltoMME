@@ -20,6 +20,8 @@
 #include "SQLqueries.h"
 #include "MME.h"
 #include "EMMCtx.h"
+#include "hmac_sha2.h"
+#include "milenage.h"
 
 #include <mysql.h>
 #include <stdlib.h>
@@ -491,7 +493,7 @@ void HSS_UpdateLocation(EMMCtx emm, const ServedGUMMEIs_t * sGUMMEIs){
 
     subs = emmCtx_getSubscription(emm);
     subs_pdn = subs_newPDNCtx(subs);
-    
+
     emmCtx_setMSISDN(emm, strtoull(row[0], NULL, 0));
     subs_setUEAMBR(subs, strtoull(row[1], NULL, 0), strtoull(row[2], NULL, 0) );
 

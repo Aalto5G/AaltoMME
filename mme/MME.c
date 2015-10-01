@@ -29,7 +29,6 @@
 #include "gtp.h"
 #include "commands.h"
 #include "MME.h"
-#include "MME_engine.h"
 #include "MME_S1.h"
 #include "MME_S11.h"
 #include "MME_S6a.h"
@@ -39,25 +38,9 @@
 #include "S1Assoc.h"
 #include "ECMSession.h"
 #include "NAS_EMM.h"
+#include "nodemgr.h"
 
 int mme_run_flag=0;
-
-void free_ep(gpointer data){
-    struct EndpointStruct_t* ep = (struct EndpointStruct_t*)data;
-    if (ep->info)
-        free_S1_EndPoint_Info(ep->info);
-
-    if(ep->handler)
-        engine_process_stop(ep->handler);
-
-    if (ep->ev)
-        event_free(ep->ev);
-
-    if (ep->portState != closed){
-        close(ep->fd);
-    }
-    free(ep);
-}
 
 
 /**@brief Simple UDP creation
@@ -226,102 +209,6 @@ void freeMsg(void *msg){
     free((struct t_message *)msg);
 }
 
-int addToPendingResponse(struct SessionStruct_t *session){
-
-    struct SessionStruct_t *old = NULL;
-    struct mme_t *mme = session->sessionHandler->engine->mme;
-    /*Checking that the session is not on the hash table already, the value 0 as a key is not accepted*/
-    if(session->user_ctx->S11MMETeid != 0){
-        HASH_FIND(hh1, mme->sessionht_byTEID, &(session->user_ctx->S11MMETeid), sizeof(uint32_t), old);
-    }else{
-        HASH_FIND(hh2, mme->sessionht_byS1APID, &(session->user_ctx->mME_UE_S1AP_ID), sizeof(uint32_t), old);
-    }
-
-    if(old == NULL){
-        if(session->user_ctx->S11MMETeid != 0){
-            HASH_ADD(hh1, mme->sessionht_byTEID, user_ctx->S11MMETeid, sizeof(uint32_t), session);
-        }
-        if(session->user_ctx->mME_UE_S1AP_ID != 0){
-            HASH_ADD(hh2, mme->sessionht_byS1APID, user_ctx->mME_UE_S1AP_ID, sizeof(uint32_t), session);
-        }
-        log_msg(LOG_DEBUG, 0, "Session with Teid 0x%x, MME UE S1AP ID %u stored", session->user_ctx->S11MMETeid, session->user_ctx->mME_UE_S1AP_ID);
-
-    }else{
-        log_msg(LOG_WARNING, 0, "The session is already on the hash table. Something is wrong. (TEID 0x%x, MME UE S1AP ID %u)", session->user_ctx->S11MMETeid, session->user_ctx->mME_UE_S1AP_ID);
-        return 1;
-    }
-
-    session->pendingRsp=1;
-    return 0;
-}
-
-int removePendentResponse(struct SessionStruct_t *session){
-
-    struct mme_t *mme = session->sessionHandler->engine->mme;
-    struct SessionStruct_t *old = NULL;
-    /*Checking that the session is on the hash table already,*/
-    if(session->user_ctx->S11MMETeid != 0){
-        HASH_FIND(hh1, mme->sessionht_byTEID, &(session->user_ctx->S11MMETeid), sizeof(uint32_t), old);
-    }else{
-        HASH_FIND(hh2, mme->sessionht_byS1APID, &(session->user_ctx->mME_UE_S1AP_ID), sizeof(uint32_t), old);
-    }
-
-    if(old != NULL){
-        if(session->user_ctx->S11MMETeid != 0){
-            HASH_DELETE(hh1, mme->sessionht_byTEID, old);
-        }
-        if(session->user_ctx->mME_UE_S1AP_ID != 0){
-            HASH_DELETE(hh2, mme->sessionht_byS1APID, old);
-        }
-    }else{
-        log_msg(LOG_WARNING, 0, "removeToPendentResponse() Couldn't find the session of teid : %d, MME UE S1AP ID %u on the has table.", session->user_ctx->S11MMETeid, session->user_ctx->mME_UE_S1AP_ID);
-        return 1;
-    }
-    session->pendingRsp=0;
-    return 0;
-}
-
-struct SessionStruct_t *getPendingResponseByTEID(struct mme_t *mme, uint32_t teid){
-    struct SessionStruct_t *s = NULL;
-
-    if(teid!=0){
-        HASH_FIND(hh1, mme->sessionht_byTEID, &teid, sizeof(uint32_t), s);
-    }
-    if(s != NULL){
-        if(s->user_ctx->S11MMETeid != 0){
-            HASH_DELETE(hh1, mme->sessionht_byTEID, s);
-        }
-        if(s->user_ctx->mME_UE_S1AP_ID != 0){
-            HASH_DELETE(hh2, mme->sessionht_byS1APID, s);
-        }
-    }else{
-        log_msg(LOG_WARNING, 0, "Couldn't find the session of teid : %d, on the has table.", teid);
-        return NULL;
-    }
-    s->pendingRsp=0;
-    return s;
-}
-
-struct SessionStruct_t *getPendingResponseByUES1APID(struct mme_t *mme, uint32_t mME_UE_S1AP_ID){
-    struct SessionStruct_t *s = NULL;
-    if(mME_UE_S1AP_ID!=0){
-        HASH_FIND(hh2, mme->sessionht_byS1APID, &mME_UE_S1AP_ID, sizeof(uint32_t), s);
-    }
-    if(s != NULL){
-        if(s->user_ctx->S11MMETeid != 0){
-            HASH_DELETE(hh1, mme->sessionht_byTEID, s);
-        }
-        if(s->user_ctx->mME_UE_S1AP_ID != 0){
-            HASH_DELETE(hh2, mme->sessionht_byS1APID, s);
-        }
-    }else{
-        log_msg(LOG_WARNING, 0, "Couldn't find the session of MME UE S1AP ID %u on the has table.", mME_UE_S1AP_ID);
-        return NULL;
-    }
-    s->pendingRsp=0;
-    return s;
-}
-
 unsigned int newTeid(){
     static uint32_t i = 1;
     return i++;
@@ -454,6 +341,36 @@ gboolean mme_containsSupportedTAs(const struct mme_t *self, SupportedTAs_t *tas)
 }
 
 
+static void mme_stopEMM(gpointer mtmsi,
+                            gpointer emm,
+                            gpointer mme){
+    struct mme_t *self = (struct mme_t *)mme;
+    log_msg(LOG_DEBUG, 0, "Stoping EMM");
+    emm_stop(emm);
+}
+
+static gboolean mme_disconnectAssoc(gpointer geNBid,
+                                    gpointer assoc,
+                                    gpointer mme){
+    struct mme_t *self = (struct mme_t *)mme;
+    log_msg(LOG_INFO, 0, "Removing S1 Association with eNB %s",
+            s1Assoc_getName(assoc));
+    mme_deregisterRead(mme, s1Assoc_getfd(assoc));
+    s1Assoc_disconnect(assoc);
+    return TRUE;
+}
+
+void mme_stop(MME mme){
+    struct mme_t *self = (struct mme_t *)mme;
+    struct timeval exit_time;
+
+    g_hash_table_foreach(self->emm_sessions, mme_stopEMM, self);
+    g_hash_table_foreach_remove(self->s1_by_GeNBid, mme_disconnectAssoc, self);
+    /* event_base_loopbreak(self->evbase); */
+    exit_time.tv_sec = 5;
+    exit_time.tv_usec = 0;
+    event_base_loopexit(self->evbase, &exit_time);
+}
 
 void kill_handler(evutil_socket_t listener, short event, void *arg){
     struct mme_t *mme = (struct mme_t *)arg;
@@ -461,30 +378,28 @@ void kill_handler(evutil_socket_t listener, short event, void *arg){
     mme_stop(mme);
 }
 
-MME *mme_init(){
+MME mme_init(struct event_base *evbase){
     struct mme_t *self;
+
+
+    if (!evbase){
+        g_error("The libevent event-base parameter is NULL");
+        return NULL;
+    }
 
     self = malloc(sizeof(struct mme_t));
     if(self==NULL){
         g_error("Unable to allocate MME memory");
-        return 1;
-    }
-    memset(self, 0, sizeof(struct mme_t));
-    self->run = &mme_run_flag;
-
-    /*Create event base structure*/
-    self->evbase = event_base_new();
-    if (!self->evbase){
-        log_msg(LOG_ERR, 0, "Failed to create libevent event-base");
-        free(self);
         return NULL;
     }
+    memset(self, 0, sizeof(struct mme_t));
+
+    /*Assign event base structure*/
+    self->evbase = evbase;
+
     /*Create event for processing SIGINT*/
     self->kill_event = evsignal_new(self->evbase, SIGINT, kill_handler, self);
     event_add(self->kill_event, NULL);
-
-    /*Init user storage*/
-    init_storage_system();
 
     /*Init node manager*/
     init_nodemgr();
@@ -526,7 +441,6 @@ void mme_free(MME mme){
     mme_close_ifaces(self);
 
     event_free(self->kill_event);
-    event_base_free(self->evbase);
 
     g_hash_table_destroy(self->s1_by_GeNBid);
     g_hash_table_destroy(self->emm_sessions);
@@ -536,58 +450,27 @@ void mme_free(MME mme){
 
     freeMMEinfo(self);
     free_nodemgr();
-    free_storage_system();
 
     free(self);
 }
 
-void mme_run(MME mme){
-    struct mme_t *self = (struct mme_t *)mme;
-    event_base_dispatch(self->evbase);
-}
-
-static void mme_stopEMM(gpointer mtmsi,
-                            gpointer emm,
-                            gpointer mme){
-    struct mme_t *self = (struct mme_t *)mme;
-    log_msg(LOG_DEBUG, 0, "Stoping EMM");
-    emm_stop(emm);
-}
-
-static gboolean mme_disconnectAssoc(gpointer geNBid,
-                                    gpointer assoc,
-                                    gpointer mme){
-    struct mme_t *self = (struct mme_t *)mme;
-    log_msg(LOG_INFO, 0, "Removing S1 Association with eNB %s",
-            s1Assoc_getName(assoc));
-    mme_deregisterRead(mme, s1Assoc_getfd(assoc));
-    s1Assoc_disconnect(assoc);
-    return TRUE;
-}
-
-void mme_stop(MME mme){
-    struct mme_t *self = (struct mme_t *)mme;
-    struct timeval exit_time;
-
-    g_hash_table_foreach(self->emm_sessions, mme_stopEMM, self);
-    g_hash_table_foreach_remove(self->s1_by_GeNBid, mme_disconnectAssoc, self);
-    event_base_loopbreak(self->evbase);
-    /* exit_time.tv_sec = 5; */
-    /* exit_time.tv_usec = 0; */
-    /* event_base_loopexit(self->evbase, &exit_time); */
-}
-
 void mme_main(){
+    /*Create event base structure*/
+    struct event_base *evbase = event_base_new();
 
     /*Init syslog entity*/
     init_logger("MME", LOG_INFO);
 
-    MME mme = mme_init();
+    MME mme = mme_init(evbase);
     if(!mme){
         g_error("MME structure not created!");
     }
-    mme_run(mme);
+    /* Blocking loop*/
+    event_base_dispatch(evbase);
+
+    /*Free structures*/
     mme_free(mme);
+    event_base_free(evbase);
 
     /*Close syslog entity*/
     close_logger();

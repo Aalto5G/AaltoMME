@@ -21,6 +21,7 @@
 #include <netinet/in.h>
 #include <netinet/sctp.h>
 #include <arpa/inet.h>
+#include <unistd.h>
 /* #include <netinet/sctp.h> */
 
 #include "S1Assoc.h"

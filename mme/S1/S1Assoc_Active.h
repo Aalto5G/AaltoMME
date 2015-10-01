@@ -20,7 +20,7 @@
 #include "S1Assoc_State.h"
 
 typedef struct{
-	S1STATE
+    S1STATE;
 }S1Assoc_Active;
 
 void linkS1AssocActive(S1Assoc_State* s);

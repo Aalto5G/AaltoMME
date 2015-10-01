@@ -19,6 +19,7 @@
 #include "EMM_FSMConfig.h"
 #include "NAS.h"
 #include "NAS_EMM_priv.h"
+#include "MME_S6a.h"
 
 static void processIdentityRsp(EMMCtx_t *emm, GenericNASMsg_t *msg);
 static void processAuthResp(EMMCtx_t * emm,  GenericNASMsg_t* msg, guint8 *isAuth);

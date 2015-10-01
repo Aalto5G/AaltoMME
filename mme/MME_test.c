@@ -9,8 +9,7 @@
 // MME_test.cpp : Defines the entry point for the console application.
 //
 
-#include "MME_engine.h"
-#include "gtp.h"
+#include "MME.h"
 
 
 int main(int argc, char* argv[])

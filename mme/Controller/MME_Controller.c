@@ -20,18 +20,18 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <unistd.h>
 #include "signals.h"
 #include <syslog.h>
 #include <errno.h>
 #include <glib.h>
-#include "MME_engine.h"
 #include "logmgr.h"
 #include "MME_Controller.h"
 #include "MME.h"
 #include "nodemgr.h"
-#include "storagesys.h"
 #include "ESM_BearerContext.h"
-#include "EPS_Session.h"
+#include "EPS_Session_priv.h"
+#include "NAS_EMM.h"
 
 #define CONTROLLER_PORT 12345
 #define PACKET_MAX      8196

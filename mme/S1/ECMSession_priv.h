@@ -51,6 +51,7 @@ typedef struct{
     Cause_t     *causeRelease;
 }ECMSession_t;
 
+void ecmSession_setState(ECMSession ecm, ECMSession_State *s);
 
 /* API to NAS */
 
@@ -79,6 +80,8 @@ void ecmSession_getGUMMEI(const ECMSession h, guint32* sn, guint16 *mmegi, guint
 void ecm_sendUEContextReleaseCommand(const ECMSession h, cause_choice_t choice, uint32_t cause);
 
 void ecmSession_setEMM(ECMSession h, gpointer emm);
+
+void ecmSession_newGUTI(ECMSession h, guti_t *guti);
 
 
 #endif /* ECMSESSION_PRIV_HFILE */

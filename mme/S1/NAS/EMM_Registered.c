@@ -19,10 +19,11 @@
 #include "EMM_FSMConfig.h"
 #include "NAS.h"
 #include "NAS_EMM_priv.h"
+#include "NAS_ESM.h"
 
 static int emm_selectUpdateType(EMMCtx_t * emm);
 static void processDetachReq(EMMCtx_t *emm, GenericNASMsg_t *msg);
-static void emm_detach(EMMCtx_t *emm);
+static void emm_detach(gpointer emm_h);
 
 static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
     log_msg(LOG_WARNING, 0,
@@ -162,7 +163,8 @@ void linkEMMRegistered(EMM_State* s){
     s->sendESM = emm_internalSendESM;
 }
 
-static void emm_detach(EMMCtx_t *emm){
+static void emm_detach(gpointer emm_h){
+    EMMCtx_t *emm = (EMMCtx_t *)emm_h;
     uint8_t *pointer, buffer[150];
 
     emm->s1BearersActive = FALSE;
@@ -197,7 +199,7 @@ static int emm_selectUpdateType(EMMCtx_t * emm){
             /* log_msg(LOG_ALERT, 0, */
             /*         "Answering Combined TA/LA updating with TA updated"); */
             /* emm->updateResult = 0; */
-	        /* HACK */
+            /* HACK */
             emm->updateResult = 1;
         }
         /* emm->updateResult = 5; if ISR*/

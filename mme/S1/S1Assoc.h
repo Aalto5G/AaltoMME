@@ -77,4 +77,6 @@ mme_GlobaleNBid *s1Assoc_getID_p(const S1Assoc h);
 
 const char *s1Assoc_getName(const S1Assoc h);
 
+mme_GlobaleNBid *s1Assoc_getID(const S1Assoc h, mme_GlobaleNBid *out);
+
 #endif /* S1ASSOC_HFILE */

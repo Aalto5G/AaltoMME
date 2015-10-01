@@ -17,6 +17,7 @@
 
 #include <glib.h>
 #include <arpa/inet.h>
+#include "MME_S6a.h"
 #include "NAS_EMM_priv.h"
 #include "NAS.h"
 #include "logmgr.h"

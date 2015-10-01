@@ -25,6 +25,7 @@
 
 #include <string.h>
 #include <netinet/in.h>
+#include <glib.h>
 
 #include "gtp.h"
 
@@ -89,7 +90,7 @@ void s11u_freeUser(gpointer self){
     g_free(self);
 }
 
-static validateSourceAddr(S11_user_t* self, const char * src){
+static gboolean validateSourceAddr(S11_user_t* self, const char * src){
     char r[INET6_ADDRSTRLEN];
 
     switch(self->rAddr.sa_family){
@@ -474,7 +475,7 @@ const gboolean accepted(gpointer u){
         return value[0]==GTPV2C_CAUSE_REQUEST_ACCEPTED;
     }else{
         log_msg(LOG_ERR, 0, "GTPv2 Cause IE Parse Error");
-        return;
+        return FALSE;
     }
 }
 
@@ -488,7 +489,7 @@ const int cause(gpointer u){
         return value[0];
     }else{
         log_msg(LOG_ERR, 0, "GTPv2 Cause IE Parse Error");
-        return;
+        return FALSE;
     }
 }
 

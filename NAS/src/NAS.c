@@ -78,7 +78,7 @@ static int nas_setCOUNT(const NAS h, const NAS_Direction direction, const uint8_
     if((n->nas_count[direction]&0xFF)>(uint8_t)(recv+1)){
         n->nas_count[direction] += 0x100;
     }
-    n->nas_count[direction] = n->nas_count[direction]&0xFFFF00 | (uint8_t)(recv+1);
+    n->nas_count[direction] = (n->nas_count[direction]&0xFFFF00) | (uint8_t)(recv+1);
 
     if(n->nas_count[direction] > 0xFFFFFF-5){
         return 0;
@@ -111,7 +111,7 @@ static int nas_setCOUNTshort(const NAS h, const NAS_Direction direction, const u
        (n->nas_count[direction]&0xE0)==0xE0){
         n->nas_count[direction] += 0x100;
     }
-    n->nas_count[direction] = n->nas_count[direction]&0xFFFFE0 | (uint8_t)(recv+1);
+    n->nas_count[direction] = (n->nas_count[direction]&0xFFFFE0) | (uint8_t)(recv+1);
 
     if(n->nas_count[direction] > 0xFFFFFF-5){
         return 0;
@@ -126,7 +126,7 @@ static int nas_setCOUNTshort(const NAS h, const NAS_Direction direction, const u
  * @return 1 if ok, 0 retransmission
  */
 static int nas_checkCOUNT(const uint32_t last, const uint8_t recv){
-    if((recv-last&0xFF) <  NAS_COUNT_THRESHOLD){
+    if((recv-(last&0xFF)) <  NAS_COUNT_THRESHOLD){
         return 1;
     }
     return 0;
@@ -139,7 +139,7 @@ static int nas_checkCOUNT(const uint32_t last, const uint8_t recv){
  * @return 1 if ok, 0 retransmission
  */
 static int nas_checkCOUNTshort(const uint32_t last, const uint8_t recv){
-    if((recv-last&0x1F) <  NAS_COUNT_THRESHOLD){
+    if((recv-(last&0x1F)) <  NAS_COUNT_THRESHOLD){
         return 1;
     }
     return 0;
@@ -571,7 +571,7 @@ int nas_authenticateMsg(const NAS h,
                         const NAS_Direction direction, uint8_t *isAuth){
     SecurityHeaderType_t s;
     NASHandler *n = (NASHandler*)h;
-    uint8_t count[4], res = 0;
+    uint8_t count[4];
     uint32_t ncount;
     uint8_t mac[4], mac_x[4], nas_sqn, short_mac[2];
 

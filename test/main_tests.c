@@ -15,7 +15,9 @@
 
 #include <glib.h>
 #include <stdio.h>
+#include <string.h>
 #include <openssl/cmac.h>
+#include "eia2.h"
 
 static void test_kdf_test1(){
     g_assert (1 == 1);

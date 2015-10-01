@@ -44,6 +44,9 @@ void ePSsession_parsePDNConnectivityRequest(EPS_Session s, ESM_Message_t *msg,
 
 void ePSsession_activateDefault(EPS_Session s, gboolean infoTxRequired);
 
+void ePSsession_modifyE_RABList(EPS_Session s, E_RABsToBeModified_t* l,
+                                void (*cb)(gpointer), gpointer args);
+
 void ePSsession_getPDNAddr(const EPS_Session s, TransportLayerAddress_t* addr);
 
 ESM_BearerContext ePSsession_getDefaultBearer(EPS_Session s);

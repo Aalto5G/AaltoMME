@@ -429,7 +429,7 @@ void dec_PDNConnectivityReject(PDNConnectivityReject_t *msg, uint8_t *buffer, ui
 }
 
 void dec_PDNConnectivityRequest(PDNConnectivityRequest_t *msg, uint8_t *buffer, uint32_t size){
-    uint8_t  opT, numOp=0;
+    uint8_t numOp=0;
     /*Request type*/
     msg->requestType.v = (*buffer)&0x0F;
     /* PDN type*/
