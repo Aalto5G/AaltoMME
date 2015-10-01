@@ -155,10 +155,13 @@ static int emm_selectAttachType(EMMCtx_t * emm){
             emm->attachResult = 2;
             return 1;
         }else{
-            /*Reject*/
-            log_msg(LOG_ERR, 0,
-                    "Combined EPS/IMSI attach not supported");
-            return 0;
+            /* /\*Reject*\/ */
+            /* log_msg(LOG_ERR, 0, */
+            /*         "Combined EPS/IMSI attach not supported"); */
+            /* return 1; */
+            /* HACK */
+            emm->attachResult = 2;
+            return 1;
         }
     case 4:
         /*EPS emergency attach */
