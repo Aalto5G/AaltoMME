@@ -21,6 +21,7 @@
 #include "ECMSession_priv.h"
 #include "ECMSession_FSMConfig.h"
 #include "NAS_EMM.h"
+#include "MME_S1_priv.h"
 
 static void ecm_UEContextRelease(gpointer ecm_h, S1AP_Message_t *s1msg);
 
