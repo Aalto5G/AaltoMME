@@ -275,6 +275,7 @@ void ePSsession_modifyE_RABList(EPS_Session s, E_RABsToBeModified_t* l,
     struct fteid_t fteid;
     EPS_Session_t *self = (EPS_Session_t*)s;
 
+    memset(&fteid, 0, sizeof(struct fteid_t));
     bearer = ePSsession_getDefaultBearer(self);
 
     item = l->item[0]->value;

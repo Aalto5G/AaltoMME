@@ -153,14 +153,14 @@ void dec_AttachRequest(AttachRequest_t *msg, uint8_t *buffer, uint32_t size){
     msg->ePSMobileId.l = *buffer;
     memcpy(msg->ePSMobileId.v, ++buffer, msg->ePSMobileId.l);
     buffer+=msg->ePSMobileId.l;
-    size -= msg->ePSMobileId.l;
+    size -= (msg->ePSMobileId.l+1);
     nas_msg(NAS_DEBUG, 0, "DEC : ePSMobileId len = %u, v = %#x%x", msg->ePSMobileId.l, msg->ePSMobileId.v[0], msg->ePSMobileId.v[1]);
 
     /*UENetworkCapability*/
     msg->uENetworkCapability.l = *buffer;
     memcpy(msg->uENetworkCapability.v, ++buffer, msg->uENetworkCapability.l);
     buffer+=msg->uENetworkCapability.l;
-    size -= msg->uENetworkCapability.l;
+    size -= (msg->uENetworkCapability.l+1);
     nas_msg(NAS_DEBUG, 0, "DEC : uENetworkCapability len = %u, v = %#x", msg->uENetworkCapability.l, msg->uENetworkCapability.v[0]);
 
     /*ESM_MessageContainer*/
@@ -170,6 +170,7 @@ void dec_AttachRequest(AttachRequest_t *msg, uint8_t *buffer, uint32_t size){
     size-=2;
     memcpy(msg->eSM_MessageContainer.v, buffer, msg->eSM_MessageContainer.l);
     buffer+=msg->eSM_MessageContainer.l;
+    size-=msg->eSM_MessageContainer.l;
     nas_msg(NAS_DEBUG, 0, "DEC : eSM_MessageContainer len = %u, v = %#x", msg->eSM_MessageContainer.l, msg->eSM_MessageContainer.v[0]);
 
     /*Currently not working. The TV IE's are common on the NAS specifications and are not considered on 3gpp 24.007, Clause 11.2.4*/
@@ -223,11 +224,13 @@ void dec_DetachRequestUEOrig(DetachRequestUEOrig_t *msg, uint8_t *buffer, uint32
     msg->detachType.v = (*buffer)&0x0F;
     msg->nASKeySetId.v = ((*buffer)&0xF0)>>4;
     buffer++;
+    size--;
     nas_msg(NAS_DEBUG, 0, "DEC : detachType = %#x", msg->detachType.v);
 
     /*EPSMobileId*/
     msg->ePSMobileId.l = *buffer;
     memcpy(msg->ePSMobileId.v, ++buffer, msg->ePSMobileId.l);
+    size-=(msg->ePSMobileId.l+1);
     buffer+=msg->ePSMobileId.l;
     nas_msg(NAS_DEBUG, 0, "DEC : ePSMobileId len = %u, v = %#x%x", msg->ePSMobileId.l, msg->ePSMobileId.v[0], msg->ePSMobileId.v[1]);
 
@@ -237,6 +240,7 @@ void dec_DetachRequestUETerm(DetachRequestUETerm_t *msg, uint8_t *buffer, uint32
     /*detachType and spare*/
     msg->detachType.v = (*buffer)&0x0F;
     buffer++;
+    size--;
     nas_msg(NAS_DEBUG, 0, "DEC : detachType = %#x", msg->detachType.v);
 }
 
@@ -244,6 +248,7 @@ void dec_TrackingAreaUpdateAccept(TrackingAreaUpdateAccept_t *msg, uint8_t *buff
     /*detachType and spare*/
     msg->ePSUpdateResult.v = (*buffer)&0x0F;
     buffer++;
+    size--;
     nas_msg(NAS_DEBUG, 0, "DEC : ePSUpdateResult = %#x", msg->ePSUpdateResult.v);
 }
 
@@ -251,6 +256,7 @@ void dec_TrackingAreaUpdateReject(TrackingAreaUpdateReject_t *msg, uint8_t *buff
     /*eMMCause*/
     memcpy(&(msg->eMMCause), buffer,1);
     buffer++;
+    size--;
     nas_msg(NAS_DEBUG, 0, "DEC : eMMCause = %#x", msg->eMMCause);
 }
 
@@ -260,12 +266,14 @@ void dec_TrackingAreaUpdateRequest(TrackingAreaUpdateRequest_t *msg, uint8_t *bu
     msg->ePSUpdateType.v = (*buffer)&0x0F;
     msg->nASKeySetId.v = ((*buffer)&0xF0)>>4;
     buffer++;
+    size--;
     nas_msg(NAS_DEBUG, 0, "DEC : ePSUpdateType = %#x, DEC : nASKeySetId = %#x",
             msg->ePSUpdateType.v, msg->nASKeySetId.v);
 
     /*oldGUTI - EPSMobileId*/
     msg->oldGUTI.l = *buffer;
     memcpy(msg->oldGUTI.v, ++buffer, msg->oldGUTI.l);
+    size-=(msg->oldGUTI.l+1);
     buffer+=msg->oldGUTI.l;
     nas_msg(NAS_DEBUG, 0, "DEC : oldGUTI len = %u, v = %#x%x",
             msg->oldGUTI.l, msg->oldGUTI.v[0], msg->oldGUTI.v[1]);
@@ -336,6 +344,7 @@ void dec_ActivateDefaultEPSBearerContextReject(ActivateDefaultEPSBearerContextRe
     /*eSMCause*/
     memcpy(&(msg->eSMCause), buffer,1);
     buffer++;
+    size--;
     nas_msg(NAS_DEBUG, 0, "DEC : eSMCause = %#x", msg->eSMCause);
 }
 
@@ -343,18 +352,21 @@ void dec_ActivateDefaultEPSBearerContextRequest(ActivateDefaultEPSBearerContextR
     /*ePSQoS*/
     msg->ePSQoS.l = *buffer;
     memcpy(msg->ePSQoS.v, ++buffer, msg->ePSQoS.l);
+    size-=(msg->ePSQoS.l+1);
     buffer+=msg->ePSQoS.l;
     nas_msg(NAS_DEBUG, 0, "DEC : ePSQoS len = %u, v = %#x%x", msg->ePSQoS.l, msg->ePSQoS.v[0], msg->ePSQoS.v[1]);
 
     /*accessPointName*/
     msg->accessPointName.l = *buffer;
     memcpy(msg->ePSQoS.v, ++buffer, msg->accessPointName.l);
+    size-=(msg->accessPointName.l+1);
     buffer+=msg->accessPointName.l;
     nas_msg(NAS_DEBUG, 0, "DEC : accessPointName len = %u, v = %#x%x", msg->accessPointName.l, msg->accessPointName.v[0], msg->accessPointName.v[1]);
 
     /*ePSQoS*/
     msg->pDNAddress.l = *buffer;
     memcpy(msg->pDNAddress.v, ++buffer, msg->pDNAddress.l);
+    size-=(msg->ePSQoS.l+1);
     buffer+=msg->ePSQoS.l;
     nas_msg(NAS_DEBUG, 0, "DEC : pDNAddress len = %u, v = %#x%x", msg->pDNAddress.l, msg->pDNAddress.v[0], msg->pDNAddress.v[1]);
 
@@ -369,6 +381,7 @@ void dec_ActivateDedicatedEPSBearerContextReject(ActivateDedicatedEPSBearerConte
     /*eSMCause*/
     memcpy(&(msg->eSMCause), buffer,1);
     buffer++;
+    size--;
     nas_msg(NAS_DEBUG, 0, "DEC : eSMCause = %#x", msg->eSMCause);
 }
 
@@ -377,17 +390,20 @@ void dec_ActivateDedicatedEPSBearerContextRequest(ActivateDedicatedEPSBearerCont
     /*linkedEPSIdentity*/
     msg->linkedEPSId.v = (*buffer)&0x0F;
     buffer++;
+    size--;
     nas_msg(NAS_DEBUG, 0, "DEC : linkedEPSId = %#x", msg->linkedEPSId.v);
 
     /*ePSQoS*/
     msg->ePSQoS.l = *buffer;
     memcpy(msg->ePSQoS.v, ++buffer, msg->ePSQoS.l);
+    buffer-=(msg->ePSQoS.l+1);
     buffer+=msg->ePSQoS.l;
     nas_msg(NAS_DEBUG, 0, "DEC : ePSQoS len = %u, v = %#x%x", msg->ePSQoS.l, msg->ePSQoS.v[0], msg->ePSQoS.v[1]);
 
     /*TFT*/
     msg->tFT.l = *buffer;
     memcpy(msg->tFT.v, ++buffer, msg->tFT.l);
+    size-=(msg->tFT.l+1);
     buffer+=msg->tFT.l;
     nas_msg(NAS_DEBUG, 0, "DEC : TFT len = %u, v = %#x%x", msg->tFT.l, msg->tFT.v[0], msg->tFT.v[1]);
 }
@@ -401,6 +417,7 @@ void dec_ModifyEPSBearerContextReject(ModifyEPSBearerContextReject_t *msg, uint8
     /*eSMCause*/
     memcpy(&(msg->eSMCause), buffer,1);
     buffer++;
+    size--;
     nas_msg(NAS_DEBUG, 0, "DEC : eSMCause = %#x", msg->eSMCause);
 }
 
@@ -417,6 +434,7 @@ void dec_DeactivateEPSBearerContextRequest(DeactivateEPSBearerContextRequest_t *
     /*eSMCause*/
     memcpy(&(msg->eSMCause), buffer,1);
     buffer++;
+    size--;
     nas_msg(NAS_DEBUG, 0, "DEC : eSMCause = %#x", msg->eSMCause);
 }
 
@@ -425,6 +443,7 @@ void dec_PDNConnectivityReject(PDNConnectivityReject_t *msg, uint8_t *buffer, ui
     /*eSMCause*/
     memcpy(&(msg->eSMCause), buffer,1);
     buffer++;
+    size--;
     nas_msg(NAS_DEBUG, 0, "DEC : eSMCause = %#x", msg->eSMCause);
 }
 
@@ -458,6 +477,7 @@ void dec_PDNDisconnectReject(PDNDisconnectReject_t *msg, uint8_t *buffer, uint32
     /*eSMCause*/
     memcpy(&(msg->eSMCause), buffer,1);
     buffer++;
+    size--;
     nas_msg(NAS_DEBUG, 0, "DEC : eSMCause = %#x", msg->eSMCause);
 }
 
@@ -465,6 +485,7 @@ void dec_PDNDisconnectRequest(PDNDisconnectRequest_t *msg, uint8_t *buffer, uint
     /*linkedEPSIdentity*/
     msg->linkedEPSId.v = (*buffer)&0x0F;
     buffer++;
+    size--;
     nas_msg(NAS_DEBUG, 0, "DEC : linkedEPSId = %#x", msg->linkedEPSId.v);
 }
 
@@ -472,6 +493,7 @@ void dec_BearerResourceAllocationReject(BearerResourceAllocationReject_t *msg, u
     /*eSMCause*/
     memcpy(&(msg->eSMCause), buffer,1);
     buffer++;
+    size--;
     nas_msg(NAS_DEBUG, 0, "DEC : eSMCause = %#x", msg->eSMCause);
 }
 
@@ -479,17 +501,20 @@ void dec_BearerResourceAllocationRequest(BearerResourceAllocationRequest_t *msg,
     /*linkedEPSIdentity*/
     msg->linkedEPSId.v = (*buffer)&0x0F;
     buffer++;
+    size--;
     nas_msg(NAS_DEBUG, 0, "DEC : linkedEPSId = %#x", msg->linkedEPSId.v);
 
     /*trafficFlowAggregate*/
     msg->trafficFlowAggregate.l = *buffer;
     memcpy(msg->trafficFlowAggregate.v, ++buffer, msg->trafficFlowAggregate.l);
+    size-=(msg->trafficFlowAggregate.l+1);
     buffer+=msg->trafficFlowAggregate.l;
     nas_msg(NAS_DEBUG, 0, "DEC : trafficFlowAggregate len = %u, v = %#x%x", msg->trafficFlowAggregate.l, msg->trafficFlowAggregate.v[0], msg->trafficFlowAggregate.v[1]);
 
     /*requiredTrafficFlowQoS*/
     msg->requiredTrafficFlowQoS.l = *buffer;
     memcpy(msg->requiredTrafficFlowQoS.v, ++buffer, msg->requiredTrafficFlowQoS.l);
+    size-=(msg->requiredTrafficFlowQoS.l+1);
     buffer+=msg->requiredTrafficFlowQoS.l;
     nas_msg(NAS_DEBUG, 0, "DEC : requiredTrafficFlowQoS len = %u, v = %#x%x",
             msg->requiredTrafficFlowQoS.l, msg->requiredTrafficFlowQoS.v[0], msg->requiredTrafficFlowQoS.v[1]);
@@ -501,6 +526,7 @@ void dec_BearerResourceModificationReject(BearerResourceModificationReject_t *ms
     /*eSMCause*/
     memcpy(&(msg->eSMCause), buffer,1);
     buffer++;
+    size--;
     nas_msg(NAS_DEBUG, 0, "DEC : eSMCause = %#x", msg->eSMCause);
 }
 
@@ -508,11 +534,13 @@ void dec_BearerResourceModificationRequest(BearerResourceModificationRequest_t *
     /*EPSBearerIdForPacketFilter*/
     msg->EPSBearerIdForPacketFilter.v = (*buffer)&0x0F;
     buffer++;
+    size--;
     nas_msg(NAS_DEBUG, 0, "DEC : linkedEPSId = %#x", msg->EPSBearerIdForPacketFilter.v);
 
     /*trafficFlowAggregate*/
     msg->trafficFlowAggregate.l = *buffer;
     memcpy(msg->trafficFlowAggregate.v, ++buffer, msg->trafficFlowAggregate.l);
+    size-=(msg->trafficFlowAggregate.l+1);
     buffer+=msg->trafficFlowAggregate.l;
     nas_msg(NAS_DEBUG, 0, "DEC : trafficFlowAggregate len = %u, v = %#x%x", msg->trafficFlowAggregate.l, msg->trafficFlowAggregate.v[0], msg->trafficFlowAggregate.v[1]);
 }
@@ -554,10 +582,11 @@ void dec_nonImperativeIE(union nAS_ie_member ** optionals, uint8_t *buffer, uint
 void dec_NASOpt_tlv(union nAS_ie_member *optionals, uint8_t **buffer, uint32_t *size,
                     uint8_t *optIndex, uint32_t type){
     ie_tlv_t4_t *temp;
-    uint8_t opT = **buffer;
+    uint8_t opT;
     if(*size==0){
         return;
     }
+    opT = **buffer;
     if(opT == type){
         temp = (ie_tlv_t4_t *)*buffer;
         memcpy(optionals + *optIndex, temp, temp->l+2);
@@ -569,10 +598,11 @@ void dec_NASOpt_tlv(union nAS_ie_member *optionals, uint8_t **buffer, uint32_t *
 
 void dec_NASOpt_tv_t3(union nAS_ie_member *optionals, uint8_t **buffer, uint32_t *size,
                       uint8_t *optIndex, uint32_t type, uint32_t len){
-    uint8_t opT = **buffer;
+    uint8_t opT;
     if(*size==0){
         return;
     }
+    opT = **buffer;
     if(opT == type){
         memcpy(optionals + *optIndex, *buffer, len);
         (*buffer)+=len;
@@ -583,10 +613,11 @@ void dec_NASOpt_tv_t3(union nAS_ie_member *optionals, uint8_t **buffer, uint32_t
 
 void dec_NASOpt_tv_t1(union nAS_ie_member *optionals, uint8_t **buffer, uint32_t *size,
                       uint8_t *optIndex, uint32_t type, uint32_t valueMask){
-    uint8_t opT = **buffer;
+    uint8_t opT;
     if(*size==0){
         return;
     }
+    opT = **buffer;
     if((opT&0xF0) == (type<<4)){
         optionals[*optIndex].iei = opT&(0xF0|valueMask);
         (*buffer)++;

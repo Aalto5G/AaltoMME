@@ -67,8 +67,8 @@ static void processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
             ecm->causeRelease=NULL;
         }
         s1Assoc_deregisterECMSession(ecm->assoc, ecm);
-        /* mme = s1_getMME(s1Assoc_getS1(ecm->assoc)); */
-        /* mme_deregisterECM(mme, ecm); */
+        mme = s1_getMME(s1Assoc_getS1(ecm->assoc));
+        mme_deregisterECM(mme, ecm);
     }else if(s1msg->pdu->procedureCode ==  id_InitialContextSetup &&
              s1msg->choice == successful_outcome){
         mme_id = (MME_UE_S1AP_ID_t*)s1ap_findIe(s1msg, id_MME_UE_S1AP_ID);

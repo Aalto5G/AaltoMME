@@ -198,10 +198,10 @@ void s1Assoc_accept(S1Assoc h, int ss){
             ipStr, ntoh16(addr_in->sin_port));
 
     /* Enable reception of SCTP Snd/Rcv Data via sctp_recvmsg */
-    memset((void *)&events, 0, sizeof(events) );
+    memset((void *)&events, 0, sizeof(struct sctp_event_subscribe) );
     events.sctp_data_io_event = 1;
     setsockopt(self->fd, SOL_SCTP, SCTP_EVENTS,
-               (const void *)&events, sizeof(events) );
+               (const void *)&events, sizeof(struct sctp_event_subscribe) );
     /* on = 1; */
     /* setsockopt(self->fd, IPPROTO_SCTP, SCTP_RECVRCVINFO, */
     /*                &on, sizeof(on)); */
