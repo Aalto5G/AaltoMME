@@ -15,15 +15,31 @@
  * The current database is a MariaDB.
  */
 
-#include "MME.h"
+
+#ifndef HSS_HFILE
+#define HSS_HFILE
+
+#include "EMMCtx_iface.h"
+#include "S1AP.h"
+#include <glib.h>
+
+#define DIAMETER diameter_quark()
+
+GQuark diameter_quark();
+
+typedef enum{
+    DIAMETER_UNKNOWN_EPS_SUBSCRIPTION,
+}DiameterCause;
 
 /* Functions Called from the MME initialize and destroy methods*/
 int init_hss();
 
 void disconnect_hss();
 
-void HSS_getAuthVec(EMMCtx emm);
+void HSS_getAuthVec(EMMCtx emm, GError **err);
 
 void HSS_UpdateLocation(EMMCtx emm, const ServedGUMMEIs_t * sGUMMEIs);
 
 void HSS_syncAuthVec(EMMCtx emm, uint8_t * auts);
+
+#endif /* HSS_HFILE */

@@ -146,6 +146,67 @@ static guint8 emm_generateNewKSI(guint8 k1, guint k2){
     return k1;
 }
 
+void emm_processS6aError(EMMCtx emm_h, GError *err){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    if(!err){
+        g_error("emm_processS6aError() can't be called with an empty error");
+    }
+
+    if(g_error_matches(err, MME_S6a, S6a_UNKNOWN_EPS_SUBSCRIPTION)){
+        emm_sendAttachReject(emm, EMM_EPSServicesAndNonEPSServicesNotAllowed,
+                             NULL, 0);
+    }else{
+        log_msg(LOG_ERR, 0, "Error not recognized");
+    }
+}
+
+
+void emm_sendAttachReject(EMMCtx emm_h, EMMCause_t eMMcause,
+                          gpointer esm_msg, gsize msgLen){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    guint8 *pointer, out[256], plain[250], count, t3412, addRes;
+    guint8 guti_b[11], lAI[5], tmsi[5];
+    guti_t guti;
+    guint32 len;
+    gsize tlen;
+    NAS_tai_list_t tAIl;
+
+    memset(out, 0, 156);
+    memset(plain, 0, 150);
+    pointer = plain;
+
+    if (emm->attachStarted != TRUE){
+        return;
+    }
+
+    emm->attachStarted = FALSE;
+    /* Build Attach Accept*/
+    newNASMsg_EMM(&pointer, EPSMobilityManagementMessages, PlainNAS);
+
+    encaps_EMM(&pointer, AttachReject);
+
+    /* EMM Cause */
+    nasIe_v_t3(&pointer, (uint8_t*)&eMMcause, 1);
+
+    /* ESM message container */
+    if(!(!esm_msg || msgLen==0)){
+        nasIe_tlv_t6(&pointer, 0x78, esm_msg, msgLen);
+    }
+
+    emm->s1BearersActive = FALSE;
+    if(emm->sci){
+        newNASMsg_sec(emm->parser, out, &len,
+                      EPSMobilityManagementMessages,
+                      IntegrityProtectedAndCiphered,
+                      NAS_DownLink,
+                      plain, pointer-plain);
+        ecm_send(emm->ecm, out, len);
+    }else{
+        ecm_send(emm->ecm, plain, pointer-plain);
+    }
+    emmChangeState(emm, EMM_Deregistered);
+}
+
 void emm_sendAuthRequest(EMMCtx emm_h){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     guint8 *pointer;
@@ -568,7 +629,7 @@ guint emm_checkAuthInformation(EMMCtx emm_h){
     guint res = 1;
 
     if(!self->authQuadrsLen>0){
-        s6a_GetAuthInformation(self->s6a, self, emm_sendAuthRequest, self);
+        s6a_GetAuthInformation(self->s6a, self, emm_sendAuthRequest, emm_processS6aError, self);
         res = 0;
     }
     return res;

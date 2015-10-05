@@ -18,6 +18,8 @@
 #include <string.h>
 #include <openssl/cmac.h>
 #include "eia2.h"
+#include "NAS.h"
+#include "NASHandler.h"
 
 static void test_kdf_test1(){
     g_assert (1 == 1);
@@ -54,14 +56,14 @@ static void test_cmac(){
 
     CMAC_CTX *ctx = CMAC_CTX_new();
     CMAC_Init(ctx, key, 16, EVP_aes_128_cbc(), NULL);
-    printf("message length = %lu bytes (%lu bits)\n",sizeof(message), sizeof(message)*8);
+    /* printf("message length = %lu bytes (%lu bits)\n",sizeof(message), sizeof(message)*8); */
 
     CMAC_Update(ctx, message, sizeof(message));
     CMAC_Final(ctx, mact, &mactlen);
 
     g_assert_true(memcmp (mact, mact_x, 4) == 0);
 
-    printBytes(mact, mactlen);
+    /* printBytes(mact, mactlen); */
     /* expected result T = 070a16b4 6b4d4144 f79bdd9d d04a287c */
 
     CMAC_CTX_free(ctx);
@@ -103,7 +105,7 @@ static void test_eia2_TestSet6(){
     const guint8 mact_x[] = {0xf0, 0x66, 0x8c, 0x1e};
     guint8 mact[4] = {0};
     eia2(ik, countI, bearer, direction, msg, len, mact);
-    printf("mact %#x%x%x%x\n", mact[0], mact[1], mact[2], mact[3]);
+    /* printf("mact %#x%x%x%x\n", mact[0], mact[1], mact[2], mact[3]); */
     g_assert_true(memcmp (mact, mact_x, 4) == 0);
 }
 
@@ -131,7 +133,7 @@ static void test_eia2_TestSet5(){
     const guint8 mact_x[] = {0xe6, 0x57, 0xe1, 0x82};
     guint8 mact[4] = {0};
     eia2(ik, countI, bearer, direction, msg, len, mact);
-    printf("mact %#x%x%x%x\n", mact[0], mact[1], mact[2], mact[3]);
+    /* printf("mact %#x%x%x%x\n", mact[0], mact[1], mact[2], mact[3]); */
     g_assert_true(memcmp (mact, mact_x, 4) == 0);
 }
 
@@ -154,7 +156,7 @@ static void test_eia2_TestSet4(){
     const guint8 mact_x[] = {0x68, 0x46, 0xa2, 0xf0};
     guint8 mact[4] = {0};
     eia2(ik, countI, bearer, direction, msg, len, mact);
-    printf("mact %#x%x%x%x\n", mact[0], mact[1], mact[2], mact[3]);
+    /* printf("mact %#x%x%x%x\n", mact[0], mact[1], mact[2], mact[3]); */
     g_assert_true(memcmp (mact, mact_x, 4) == 0);
 }
 
@@ -173,7 +175,7 @@ static void test_eia2_TestSet3(){
     const guint8 mact_x[] = {0x1f, 0x60, 0xb0, 0x1d};
     guint8 mact[4] = {0};
     eia2(ik, countI, bearer, direction, msg, len, mact);
-    printf("mact %#x%x%x%x\n", mact[0], mact[1], mact[2], mact[3]);
+    /* printf("mact %#x%x%x%x\n", mact[0], mact[1], mact[2], mact[3]); */
     g_assert_true(memcmp (mact, mact_x, 4) == 0);
 }
 
@@ -189,7 +191,7 @@ static void test_eia2_TestSet2(){
     const guint8 mact_x[] = {0xb9, 0x37, 0x87, 0xe6};
     guint8 mact[4] = {0};
     eia2(ik, countI, bearer, direction, msg, len, mact);
-    printf("mact %#x%x%x%x\n", mact[0], mact[1], mact[2], mact[3]);
+    /* printf("mact %#x%x%x%x\n", mact[0], mact[1], mact[2], mact[3]); */
     g_assert_true(memcmp (mact, mact_x, 4) == 0);
 }
 
@@ -205,12 +207,42 @@ static void test_eia2_TestSet1(){
     const guint8 mact_x[] = {0x11, 0x8c, 0x6e, 0xb8};
     guint8 mact[4] = {0};
     eia2(ik, countI, bearer, direction, msg, len, mact);
-    printf("mact %#x%x%x%x\n", mact[0], mact[1], mact[2], mact[3]);
+    /* printf("mact %#x%x%x%x\n", mact[0], mact[1], mact[2], mact[3]); */
     g_assert_true(memcmp (mact, mact_x, 4) == 0);
 }
 
+typedef struct {
+    /* gpointer n; */
+    NASHandler *n;
+}NAS_Fixture;
+
+/* Internal Functions*/
+int nas_setCOUNTshort(const NAS h, const NAS_Direction direction, const uint8_t recv);
+
+static void NAS_fixture_set_up(NAS_Fixture *nas, gconstpointer count){
+    nas->n = nas_newHandler();
+    nas->n->nas_count[0] = ((const guint32)count);
+}
+
+static void NAS_fixture_tear_down(NAS_Fixture *nas, gconstpointer count){
+    nas_freeHandler(nas->n);
+}
+
+static void test_nas_shortCount1(NAS_Fixture *nas, gconstpointer count){
+    const guint8 c = ((const guint32)count)&0x1F, next = (c+1)&0x1F;
+    g_assert_cmpint(nas_getLastCount(nas->n, 0), ==, ((const guint32)count)-1);
+    nas_setCOUNTshort(nas->n, 0, c);
+    g_assert_cmpint(nas_getLastCount(nas->n, 0), ==, (const guint32)count);
+    nas_setCOUNTshort(nas->n, 0, next);
+    g_assert_cmpint(nas_getLastCount(nas->n, 0), ==, ((const guint32)count)+1);
+}
+
+static void test_dummy(int *n, gconstpointer data){
+    g_assert(1==1);
+}
+
 int main (int argc, char **argv){
-    g_test_init (&argc, &argv);
+    g_test_init (&argc, &argv, NULL);
     g_test_add_func("/crypto/kdf", test_kdf_test1);
     g_test_add_func("/crypto/cmac", test_cmac);
     g_test_add_func("/crypto/eia2-ts1", test_eia2_TestSet1);
@@ -219,6 +251,18 @@ int main (int argc, char **argv){
     g_test_add_func("/crypto/eia2-ts4", test_eia2_TestSet4);
     g_test_add_func("/crypto/eia2-ts5", test_eia2_TestSet5);
     g_test_add_func("/crypto/eia2-ts6", test_eia2_TestSet6);
+
+    g_test_add("/nas/shortCount-in_byte_overflow2", NAS_Fixture, (gconstpointer)0x3F,
+               NAS_fixture_set_up, test_nas_shortCount1, NAS_fixture_tear_down);
+    g_test_add("/nas/shortCount-in_byte_overflow2", NAS_Fixture, (gconstpointer)0x13F,
+               NAS_fixture_set_up, test_nas_shortCount1,
+               NAS_fixture_tear_down);
+    g_test_add("/nas/shortCount-byte_overflow1", NAS_Fixture, (gconstpointer)0xFF,
+               NAS_fixture_set_up, test_nas_shortCount1,
+               NAS_fixture_tear_down);
+    g_test_add("/nas/shortCount-byte_overflow2", NAS_Fixture, (gconstpointer)0x1FF,
+               NAS_fixture_set_up, test_nas_shortCount1,
+               NAS_fixture_tear_down);
 
     return g_test_run();
 }

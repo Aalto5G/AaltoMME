@@ -34,7 +34,7 @@
  * It increments the NAS counter depending on the direction provided,
  * if an overflow is about to occur (5 counts before), returns 0
  */
-static int nas_incrementNASCount(const NAS h, const NAS_Direction direction){
+int nas_incrementNASCount(const NAS h, const NAS_Direction direction){
     NASHandler *n = (NASHandler*)h;
 
     /* NAS COUNT structure:
@@ -63,7 +63,7 @@ static int nas_incrementNASCount(const NAS h, const NAS_Direction direction){
  * It increments the NAS counter depending on the direction provided,
  * if an overflow is about to occur (5 counts before), returns 0
  */
-static int nas_setCOUNT(const NAS h, const NAS_Direction direction, const uint8_t recv){
+int nas_setCOUNT(const NAS h, const NAS_Direction direction, const uint8_t recv){
     NASHandler *n = (NASHandler*)h;
 
     /* NAS COUNT structure:
@@ -75,10 +75,10 @@ static int nas_setCOUNT(const NAS h, const NAS_Direction direction, const uint8_
             direction,
             n->nas_count[direction]);
 
-    if((n->nas_count[direction]&0xFF)>(uint8_t)(recv+1)){
-        n->nas_count[direction] += 0x100;
-    }
-    n->nas_count[direction] = (n->nas_count[direction]&0xFFFF00) | (uint8_t)(recv+1);
+    /* if((n->nas_count[direction]&0xFF)>(uint8_t)(recv+1)){ */
+    /*     n->nas_count[direction] += 0x100; */
+    /* } */
+    n->nas_count[direction] = ((n->nas_count[direction]&0xFFFF00) | (uint8_t)recv)+1;
 
     if(n->nas_count[direction] > 0xFFFFFF-5){
         return 0;
@@ -95,7 +95,7 @@ static int nas_setCOUNT(const NAS h, const NAS_Direction direction, const uint8_
  * It increments the NAS counter depending on the direction provided,
  * if an overflow is about to occur (5 counts before), returns 0
  */
-static int nas_setCOUNTshort(const NAS h, const NAS_Direction direction, const uint8_t recv){
+int nas_setCOUNTshort(const NAS h, const NAS_Direction direction, const uint8_t recv){
     NASHandler *n = (NASHandler*)h;
 
     /* NAS COUNT structure:
@@ -107,11 +107,11 @@ static int nas_setCOUNTshort(const NAS h, const NAS_Direction direction, const u
             direction,
             n->nas_count[direction]);
 
-    if((n->nas_count[direction]&0x1F)> (uint8_t)(recv+1) &&
-       (n->nas_count[direction]&0xE0)==0xE0){
-        n->nas_count[direction] += 0x100;
-    }
-    n->nas_count[direction] = (n->nas_count[direction]&0xFFFFE0) | (uint8_t)(recv+1);
+    /* if((n->nas_count[direction]&0x1F)> (uint8_t)(recv+1) && */
+    /*    (n->nas_count[direction]&0xE0)==0xE0){ */
+    /*     n->nas_count[direction] += 0x100; */
+    /* } */
+    n->nas_count[direction] = ((n->nas_count[direction]&0xFFFFE0) | (uint8_t)recv)+1;
 
     if(n->nas_count[direction] > 0xFFFFFF-5){
         return 0;

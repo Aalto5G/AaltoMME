@@ -21,6 +21,8 @@
 
 #include "eea0.h"
 
+#include "NAS.h"
+
 typedef void (*EIAcb) (const void *k,
                        const void *count, const uint8_t bearer,
                        const uint8_t direction,
@@ -39,7 +41,7 @@ typedef void (*EEAcyph_cb) (const void *k,
                             void* msg, size_t *mLen,
                             const void* plain, const size_t pLen);
 
-const EIAcb eia_cb[] = {
+static const EIAcb eia_cb[] = {
     eia0,
     NULL,
     eia2,
@@ -49,7 +51,7 @@ const EIAcb eia_cb[] = {
     NULL,
 };
 
-const EEAdec_cb eea_dec_cb[] = {
+static const EEAdec_cb eea_dec_cb[] = {
     eea0_dec,
     NULL,
     NULL,
@@ -59,7 +61,7 @@ const EEAdec_cb eea_dec_cb[] = {
     NULL,
 };
 
-const EEAcyph_cb eea_cyph_cb[] = {
+static const EEAcyph_cb eea_cyph_cb[] = {
     eea0_cyph,
     NULL,
     NULL,
@@ -71,7 +73,7 @@ const EEAcyph_cb eea_cyph_cb[] = {
 
 
 typedef struct{
-	uint8_t  isValid;                  /**< 1 if the structure is filled,
+    uint8_t  isValid;                  /**< 1 if the structure is filled,
                                             0 otherwise*/
     NAS_EIA  i;                        /**< NAS Integrity Algorithm*/
     uint8_t  ikey[16];                 /**< NAS Integrity Key*/

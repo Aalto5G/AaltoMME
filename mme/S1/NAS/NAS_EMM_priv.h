@@ -24,6 +24,11 @@
 
 gpointer emm_getS11(EMMCtx emm_h);
 
+void emm_processS6aError(EMMCtx emm_h, GError *err);
+
+void emm_sendAttachReject(EMMCtx emm_h, guint cause,
+                          gpointer esm_msg, gsize msgLen);
+
 /**@brief Send the Authentication Request message
  * @param [in] em_h     EMM handler
  * @param [in] msg      Message buffer pointer
@@ -38,7 +43,7 @@ void emm_sendSecurityModeCommand(EMMCtx emm_h);
 
 void emm_processFirstESMmsg(EMMCtx emm_h);
 
-void emm_attachAccept(EMMCtx emm_h, gpointer esm_msb, gsize len, GList *bearers);
+void emm_attachAccept(EMMCtx emm_h, gpointer esm_msg, gsize len, GList *bearers);
 
 void emm_sendESM(const EMMCtx emm, const gpointer msg, const gsize len, GError **e);
 

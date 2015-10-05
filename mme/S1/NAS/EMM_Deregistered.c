@@ -255,7 +255,7 @@ void attachContinuationSwitch(gpointer emm_h, guint8 ksi_msg){
     /* Check Auth, Proof down*/
     if( emm->ksi == 7 && !emm->authQuadrsLen>0){
         log_msg(LOG_DEBUG, 0,"Getting info from HSS");
-        s6a_GetAuthInformation(emm->s6a, emm, emm_AuthInfoAvailable, emm);
+        s6a_GetAuthInformation(emm->s6a, emm, emm_AuthInfoAvailable, emm_processS6aError, emm);
         return;
     }else if(emm->ksi == 7 && emm->authQuadrsLen>0
              || emm->ksi != ksi_msg){

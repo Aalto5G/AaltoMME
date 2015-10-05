@@ -41,7 +41,7 @@ static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
     case IdentityResponse:
         processIdentityRsp(emm, msg);
         log_msg(LOG_DEBUG, 0, "Received IdentityResponse from: %llu", emm->imsi);
-        s6a_GetAuthInformation(emm->s6a, emm, emm_sendAuthRequest, emm);
+        s6a_GetAuthInformation(emm->s6a, emm, emm_sendAuthRequest, emm_processS6aError, emm);
         break;
     case AuthenticationResponse:
         processAuthResp(emm, msg, &isAuth);
@@ -98,7 +98,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     case IdentityResponse:
         processIdentityRsp(emm, &msg);
         log_msg(LOG_DEBUG, 0, "Received IdentityResponse from: %llu", emm->imsi);
-        s6a_GetAuthInformation(emm->s6a, emm, emm_sendAuthRequest, emm);
+        s6a_GetAuthInformation(emm->s6a, emm, emm_sendAuthRequest, emm_processS6aError, emm);
         break;
     case AuthenticationResponse:
         processAuthResp(emm, &msg, &isAuth);

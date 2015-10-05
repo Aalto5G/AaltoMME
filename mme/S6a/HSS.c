@@ -35,6 +35,8 @@
 /* HSS connection global variable */
 MYSQL                   *HSSConnection;
 
+G_DEFINE_QUARK(diameter, diameter);
+
 
 static char *bin_to_strhex(uint8_t *hexbuf, uint32_t size, char *result){
     char          hex_str[]= "0123456789abcdef";
@@ -189,7 +191,7 @@ static void generate_Kasme(const uint8_t *ck, const uint8_t *ik, const uint8_t *
 
 /* ============================================================== */
 
-static void HSS_newAuthVec(EMMCtx emm){
+static void HSS_newAuthVec(EMMCtx emm, GError **err){
     MYSQL_RES *result;
     MYSQL_ROW row;
     my_ulonglong num_rows;
@@ -226,7 +228,12 @@ static void HSS_newAuthVec(EMMCtx emm){
     }
 
     num_rows =mysql_num_rows(result);
-    if(num_rows != 1){
+    if(num_rows == 0){
+        mysql_free_result(result);
+        g_set_error(err, DIAMETER, DIAMETER_UNKNOWN_EPS_SUBSCRIPTION,
+                    "Unknown EPS subscription: %" PRIu64, imsi);
+        return;
+    }else if(num_rows != 1){
         mysql_free_result(result);
         log_msg(LOG_ERR, 0, "Unexpected number of rows %" PRIu64 ". \n %s", num_rows, query);
         return;
@@ -328,8 +335,8 @@ static void HSS_newAuthVec(EMMCtx emm){
 
 /* ============================================================== */
 
-void HSS_getAuthVec(EMMCtx emm){
-    HSS_newAuthVec(emm);
+void HSS_getAuthVec(EMMCtx emm, GError **err){
+    HSS_newAuthVec(emm, err);
 
 }
 

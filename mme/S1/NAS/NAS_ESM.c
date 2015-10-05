@@ -156,6 +156,8 @@ void esm_modifyE_RABList(ESM esm_h,  E_RABsToBeModified_t* l,
     if(ls){
         session = ls->data;
         ePSsession_modifyE_RABList(session, l, cb, args);
+    }else if(cb){
+        cb(args);
     }
 }
 
@@ -167,6 +169,8 @@ void esm_UEContextReleaseReq(ESM esm_h, void (*cb)(gpointer), gpointer args){
     if(ls){
         session = ls->data;
         ePSsession_UEContextReleaseReq(session, cb, args);
+    }else if(cb){
+        cb(args);
     }
 }
 
@@ -178,7 +182,9 @@ void esm_deleteEPSSession(EPS_Session s){
     g_hash_table_remove(esm->bearers, esm_bc_getEBIp(bearer));
 
     esm->next_ebi = 5;
-    esm->cb(esm->args);
+    if(esm->cb){
+        esm->cb(esm->args);
+    }
 }
 
 void esm_detach(ESM esm_h, void(*cb)(gpointer), gpointer args){
