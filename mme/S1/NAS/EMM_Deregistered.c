@@ -51,6 +51,11 @@ static void emmProcessMsg(gpointer emm_h,  GenericNASMsg_t* msg){
         }
         emm_triggerAKAprocedure(emm);
         break;
+    case TrackingAreaUpdateRequest:
+        log_msg(LOG_INFO, 0,
+                "Received TAU Req on EMM Deregistered. "
+                "Sending TAU Reject. Implicitly Detached");
+        emm_sendTAUReject(emm, EMM_ImplicitlyDetached);
     default:
         log_msg(LOG_WARNING, 0,
                 "NAS Message type (%x) not recognized in this context",
