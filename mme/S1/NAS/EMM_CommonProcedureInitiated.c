@@ -132,6 +132,22 @@ static void emm_processSrvReq(gpointer emm_h, gpointer buf, gsize len){
     log_msg(LOG_WARNING, 0, "Received Service request, not supported in EMM CPI");
 }
 
+static void emm_processError(gpointer emm_h, GError *err){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+
+    log_msg(LOG_INFO, 0, "Received Error");
+    if(g_error_matches(err, MME_S6a, S6a_UNKNOWN_EPS_SUBSCRIPTION)){
+        if(emm->attachStarted){
+            emm_sendAttachReject(emm, EMM_EPSServicesAndNonEPSServicesNotAllowed,
+                                 NULL, 0);
+        }
+        emmChangeState(emm, EMM_Deregistered);
+    }else{
+        log_msg(LOG_ERR, 0, "Error not recognized, transition to EMM Deregisted");
+        emmChangeState(emm, EMM_Deregistered);
+    }
+}
+
 void linkEMMCommonProcedureInitiated(EMM_State* s){
     s->processMsg = emmProcessMsg;
     /* s->authInfoAvailable = emmAuthInfoAvailable; */
@@ -139,6 +155,7 @@ void linkEMMCommonProcedureInitiated(EMM_State* s){
     s->processSecMsg = emm_processSecMsg;
     s->processSrvReq = emm_processSrvReq;
     s->sendESM = NULL;
+    s->processError = emm_processError;
 }
 
 void sendAuthReject(EMMCtx_t * emm){

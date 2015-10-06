@@ -152,12 +152,7 @@ void emm_processS6aError(EMMCtx emm_h, GError *err){
         g_error("emm_processS6aError() can't be called with an empty error");
     }
 
-    if(g_error_matches(err, MME_S6a, S6a_UNKNOWN_EPS_SUBSCRIPTION)){
-        emm_sendAttachReject(emm, EMM_EPSServicesAndNonEPSServicesNotAllowed,
-                             NULL, 0);
-    }else{
-        log_msg(LOG_ERR, 0, "Error not recognized");
-    }
+    emm->state->processError(emm, err);
 }
 
 
@@ -204,8 +199,39 @@ void emm_sendAttachReject(EMMCtx emm_h, EMMCause_t eMMcause,
     }else{
         ecm_send(emm->ecm, plain, pointer-plain);
     }
+}
+
+
+void emm_sendServiceReject(EMMCtx emm_h, EMMCause_t eMMcause){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    guint8 *pointer, out[256], plain[250];
+    guint32 len;
+
+    memset(out, 0, 156);
+    memset(plain, 0, 150);
+    pointer = plain;
+
+    /* Build Service Reject*/
+    newNASMsg_EMM(&pointer, EPSMobilityManagementMessages, PlainNAS);
+    encaps_EMM(&pointer, ServiceReject);
+
+    /* EMM Cause */
+    nasIe_v_t3(&pointer, (uint8_t*)&eMMcause, 1);
+
+    if(emm->sci){
+        newNASMsg_sec(emm->parser, out, &len,
+                      EPSMobilityManagementMessages,
+                      IntegrityProtectedAndCiphered,
+                      NAS_DownLink,
+                      plain, pointer-plain);
+        ecm_send(emm->ecm, out, len);
+    }else{
+        ecm_send(emm->ecm, plain, pointer-plain);
+    }
     emmChangeState(emm, EMM_Deregistered);
 }
+
+
 
 void emm_sendAuthRequest(EMMCtx emm_h){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
@@ -443,6 +469,45 @@ guint32 *emm_getM_TMSI_p(EMMCtx emm){
     return emmCtx_getM_TMSI_p(emm);
 }
 
+
+void processDetachReq(EMMCtx_t *emm, GenericNASMsg_t *msg){
+    uint64_t mobid=0ULL;
+    guti_t  *guti;
+    guint i;
+    DetachRequestUEOrig_t *detachMsg = (DetachRequestUEOrig_t*)&(msg->plain.eMM);
+
+    /*ePSAttachType*/
+    gboolean switchoff;
+    guint8 detachType;
+    emm->msg_detachType = detachMsg->detachType.v;
+
+    /*nASKeySetId*/
+    emm->msg_ksi = detachMsg->nASKeySetId.v;
+
+    /*EPSMobileId*/
+    if(((ePSMobileId_header_t*)detachMsg->ePSMobileId.v)->type == 1 ){  /* IMSI*/
+        for(i=0; i<detachMsg->ePSMobileId.l-1; i++){
+            mobid = mobid*10 + ((detachMsg->ePSMobileId.v[i])>>4);
+            mobid = mobid*10 + ((detachMsg->ePSMobileId.v[i+1])&0x0F);
+        }
+        if(((ePSMobileId_header_t*)detachMsg->ePSMobileId.v)->parity == 1){
+            mobid = mobid*10 + ((detachMsg->ePSMobileId.v[i])>>4);
+        }
+        if(emm->imsi != mobid){
+            log_msg(LOG_ERR, 0, "received IMSI doesn't match.");
+            return;
+        }
+    }else if(((ePSMobileId_header_t*)detachMsg->ePSMobileId.v)->type == 6 ){    /*GUTI*/
+        guti = (guti_t  *)(detachMsg->ePSMobileId.v+1);
+        if(memcmp(guti, &(emm->guti), 10)!=0){
+            log_msg(LOG_ERR, 0, "GUTI incorrect. GUTI reallocation not implemented yet.");
+            return;
+        }
+    }
+
+}
+
+
 void emm_processTAUReq(EMMCtx emm_h, GenericNASMsg_t *msg){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     uint8_t mobId[20];
@@ -568,11 +633,10 @@ void emm_sendTAUAccept(EMMCtx emm_h){
 }
 
 
-void emm_sendTAUReject(EMMCtx emm_h){
+void emm_sendTAUReject(EMMCtx emm_h, EMMCause_t cause){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     guint8 *pointer, t3412;
     guint8 out[156], plain[150], guti_b[11];
-    EMMCause_t cause;
     gsize len=0, tlen;
     NAS_tai_list_t tAIl;
     guti_t guti;
@@ -586,19 +650,19 @@ void emm_sendTAUReject(EMMCtx emm_h){
 
     encaps_EMM(&pointer, TrackingAreaUpdateReject);
 
-    /*EPS update result*/
-    /* nasIe_v_t1_l(&pointer, 1); /\* Combined TA/LA updated *\/ */
-    cause = EMM_ImplicitlyDetached;
-    nasIe_v_t3(&pointer, (uint8_t*)&cause, 1); /* TA updated */
+    /*EMM Cause*/
+    nasIe_v_t3(&pointer, (uint8_t*)&cause, 1);
 
-    newNASMsg_sec(emm->parser, out, &len,
-                  EPSMobilityManagementMessages,
-                  IntegrityProtectedAndCiphered,
-                  NAS_DownLink,
-                  plain, pointer-plain);
-
-    ecm_send(emm->ecm, out, len);
-    /* nas_incrementNASCount(emm->parser, NAS_DownLink); */
+    if(emm->sci){
+        newNASMsg_sec(emm->parser, out, &len,
+                      EPSMobilityManagementMessages,
+                      IntegrityProtectedAndCiphered,
+                      NAS_DownLink,
+                      plain, pointer-plain);
+        ecm_send(emm->ecm, out, len);
+    }else{
+        ecm_send(emm->ecm, plain, pointer-plain);
+    }
 }
 
 guint emm_checkIdentity(EMMCtx emm_h){
@@ -711,4 +775,23 @@ void emm_getBearers(EMMCtx emm_h, GList **bearers){
 const guint64 emm_getIMSI(const EMMCtx emm_h){
     EMMCtx_t *self = (EMMCtx_t*)emm_h;
     return emmCtx_getIMSI(self);
+}
+
+void emm_detachAccept(gpointer emm_h){
+    EMMCtx_t *emm = (EMMCtx_t *)emm_h;
+    uint8_t *pointer, buffer[150];
+
+    emm->s1BearersActive = FALSE;
+    if((emm->msg_detachType&0x8)!=0x8){
+        /* Build Detach Accept when not switchoff*/
+        pointer = buffer;
+        newNASMsg_EMM(&pointer, EPSMobilityManagementMessages, PlainNAS);
+        encaps_EMM(&pointer, DetachAccept);
+
+        ecm_send(emm->ecm, buffer, pointer-buffer);
+    }
+
+    log_msg(LOG_INFO, 0, "UE (IMSI: %llu) NAS Detach", emm->imsi);
+    emmChangeState(emm, EMM_Deregistered);
+    ecm_sendUEContextReleaseCommand(emm->ecm, CauseNas, CauseNas_detach);
 }

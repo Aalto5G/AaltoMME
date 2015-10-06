@@ -29,6 +29,8 @@ void emm_processS6aError(EMMCtx emm_h, GError *err);
 void emm_sendAttachReject(EMMCtx emm_h, guint cause,
                           gpointer esm_msg, gsize msgLen);
 
+void emm_sendServiceReject(EMMCtx emm_h, EMMCause_t eMMcause);
+
 /**@brief Send the Authentication Request message
  * @param [in] em_h     EMM handler
  * @param [in] msg      Message buffer pointer
@@ -51,14 +53,18 @@ void emm_internalSendESM(const EMMCtx emm, const gpointer msg, const gsize len, 
 
 void emm_sendUEContextReleaseCommand(EMMCtx emm, cause_choice_t choice, uint32_t cause);
 
+void processDetachReq(EMMCtx_t *emm, GenericNASMsg_t *msg);
+
 void emm_processTAUReq(EMMCtx emm_h, GenericNASMsg_t *msg);
 
 void emm_sendTAUAccept(EMMCtx emm_h);
 
-void emm_sendTAUReject(EMMCtx emm_h);
+void emm_sendTAUReject(EMMCtx emm_h, EMMCause_t cause);
 
 void emm_sendIdentityReq(EMMCtx emm_h);
 
 void emm_setSecurityQuadruplet(EMMCtx emm_h);
+
+void emm_detachAccept(gpointer emm_h);
 
 #endif /* NAS_EMM_PRIV_HFILE */

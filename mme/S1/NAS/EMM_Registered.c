@@ -22,8 +22,6 @@
 #include "NAS_ESM.h"
 
 static int emm_selectUpdateType(EMMCtx_t * emm);
-static void processDetachReq(EMMCtx_t *emm, GenericNASMsg_t *msg);
-static void emm_detach(gpointer emm_h);
 
 static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
     log_msg(LOG_WARNING, 0,
@@ -83,7 +81,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
             log_msg(LOG_ALERT, 0, "DetachRequest, ksi mismatch");
             return;
         }
-        esm_detach(emm->esm, emm_detach, emm);
+        esm_detach(emm->esm, emm_detachAccept, emm);
         break;
     case TrackingAreaUpdateRequest:
         emm_processTAUReq(emm, &msg);
@@ -154,6 +152,11 @@ static void emm_processSrvReq(gpointer emm_h, gpointer buf, gsize len){
 }
 
 
+static void emm_processError(gpointer emm_h, GError *err){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    log_msg(LOG_WARNING, 0, "Received Error, not supported in EMM Registered");
+}
+
 void linkEMMRegistered(EMM_State* s){
     s->processMsg = emmProcessMsg;
     /* s->authInfoAvailable = emmAuthInfoAvailable; */
@@ -161,25 +164,7 @@ void linkEMMRegistered(EMM_State* s){
     s->processSecMsg = emm_processSecMsg;
     s->processSrvReq = emm_processSrvReq;
     s->sendESM = emm_internalSendESM;
-}
-
-static void emm_detach(gpointer emm_h){
-    EMMCtx_t *emm = (EMMCtx_t *)emm_h;
-    uint8_t *pointer, buffer[150];
-
-    emm->s1BearersActive = FALSE;
-    if((emm->msg_detachType&0x8)!=0x8){
-        /* Build Detach Accept when not switchoff*/
-        pointer = buffer;
-        newNASMsg_EMM(&pointer, EPSMobilityManagementMessages, PlainNAS);
-        encaps_EMM(&pointer, DetachAccept);
-
-        ecm_send(emm->ecm, buffer, pointer-buffer);
-    }
-
-    log_msg(LOG_INFO, 0, "UE (IMSI: %llu) NAS Detach", emm->imsi);
-    emmChangeState(emm, EMM_Deregistered);
-    ecm_sendUEContextReleaseCommand(emm->ecm, CauseNas, CauseNas_detach);
+    s->processError = emm_processError;
 }
 
 static int emm_selectUpdateType(EMMCtx_t * emm){
@@ -228,42 +213,4 @@ static int emm_selectUpdateType(EMMCtx_t * emm){
                 "Reserved Updating type received");
         return 0;
     }
-}
-
-
-static void processDetachReq(EMMCtx_t *emm, GenericNASMsg_t *msg){
-    uint64_t mobid=0ULL;
-    guti_t  *guti;
-    guint i;
-    DetachRequestUEOrig_t *detachMsg = (DetachRequestUEOrig_t*)&(msg->plain.eMM);
-
-    /*ePSAttachType*/
-    gboolean switchoff;
-    guint8 detachType;
-    emm->msg_detachType = detachMsg->detachType.v;
-
-    /*nASKeySetId*/
-    emm->msg_ksi = detachMsg->nASKeySetId.v;
-
-    /*EPSMobileId*/
-    if(((ePSMobileId_header_t*)detachMsg->ePSMobileId.v)->type == 1 ){  /* IMSI*/
-        for(i=0; i<detachMsg->ePSMobileId.l-1; i++){
-            mobid = mobid*10 + ((detachMsg->ePSMobileId.v[i])>>4);
-            mobid = mobid*10 + ((detachMsg->ePSMobileId.v[i+1])&0x0F);
-        }
-        if(((ePSMobileId_header_t*)detachMsg->ePSMobileId.v)->parity == 1){
-            mobid = mobid*10 + ((detachMsg->ePSMobileId.v[i])>>4);
-        }
-        if(emm->imsi != mobid){
-            log_msg(LOG_ERR, 0, "received IMSI doesn't match.");
-            return;
-        }
-    }else if(((ePSMobileId_header_t*)detachMsg->ePSMobileId.v)->type == 6 ){    /*GUTI*/
-        guti = (guti_t  *)(detachMsg->ePSMobileId.v+1);
-        if(memcmp(guti, &(emm->guti), 10)!=0){
-            log_msg(LOG_ERR, 0, "GUTI incorrect. GUTI reallocation not implemented yet.");
-            return;
-        }
-    }
-
 }

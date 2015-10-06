@@ -84,7 +84,15 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         }
         emmChangeState(emm, EMM_Registered);
         break;
-
+    case DetachRequest:
+        log_msg(LOG_DEBUG, 0, "Received DetachRequest");
+        processDetachReq(emm, &msg);
+        if(emm->ksi != emm->msg_ksi){
+            log_msg(LOG_ALERT, 0, "DetachRequest, ksi mismatch");
+            return;
+        }
+        esm_detach(emm->esm, emm_detachAccept, emm);
+        break;
     /* /\*HACK: 2 extra cases*\/ */
     /* case AttachRequest: */
     /*     log_msg(LOG_ALERT, 0, "Wrong State (SPI): HACK"); */
@@ -116,6 +124,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     /*     /\* End of HACK*\/ */
 
     default:
+        emmChangeState(emm, EMM_Deregistered);
         log_msg(LOG_WARNING, 0,
                 "NAS Message type (%x) not recognized in EMM SPI",
                 msg.plain.eMM.messageType);
@@ -210,6 +219,14 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
 static void emm_processSrvReq(gpointer emm_h, gpointer buf, gsize len){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     log_msg(LOG_WARNING, 0, "Received Service request, not supported in EMM SPI");
+    /* HACK */
+    emmChangeState(emm, EMM_Deregistered);
+}
+
+
+static void emm_processError(gpointer emm_h, GError *err){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    log_msg(LOG_WARNING, 0, "Received Error, not supported in EMM SPI");
 }
 
 
@@ -220,6 +237,7 @@ void linkEMMSpecificProcedureInitiated(EMM_State* s){
     s->processSecMsg = emm_processSecMsg;
     s->processSrvReq = emm_processSrvReq;
     s->sendESM = emm_internalSendESM;
+    s->processError = emm_processError;
 }
 
 static void processAttachComplete(EMMCtx_t *emm, GenericNASMsg_t *msg){

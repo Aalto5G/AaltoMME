@@ -35,6 +35,11 @@ static void emm_processSrvReq(gpointer emm_h, gpointer buf, gsize len){
     log_msg(LOG_WARNING, 0, "Received Service request, not supported in this context");
 }
 
+static void emm_processError(gpointer emm_h, GError *err){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    log_msg(LOG_WARNING, 0, "Received Error, not supported in EMM Deregistered Initiated");
+}
+
 void linkEMMDeregisteredInitiated(EMM_State* s){
     s->processMsg = emmProcessMsg;
     /* s->authInfoAvailable = emmAuthInfoAvailable; */
@@ -42,4 +47,5 @@ void linkEMMDeregisteredInitiated(EMM_State* s){
     s->processSecMsg = emm_processSecMsg;
     s->processSrvReq = emm_processSrvReq;
     s->sendESM = NULL;
+    s->processError = emm_processError;
 }

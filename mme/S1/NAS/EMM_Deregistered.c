@@ -21,6 +21,7 @@
 #include "NAS.h"
 #include "ECMSession_priv.h"
 #include "NAS_EMM_priv.h"
+#include "NAS_ESM.h"
 #include "MME_S6a.h"
 #include "S1Assoc_priv.h"
 #include "MME_S1_priv.h"
@@ -115,13 +116,27 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         emmChangeState(emm, EMM_SpecificProcedureInitiated);
         emm_processFirstESMmsg(emm);
         break;
+    case TrackingAreaUpdateRequest:
+        log_msg(LOG_INFO, 0,
+                "Received TAU Req on EMM Deregistered. "
+                "Sending TAU Reject. Implicitly Detached");
+        emm_sendTAUReject(emm, EMM_ImplicitlyDetached);
+        break;
+    case DetachRequest:
+        /* HACK ? */
+        log_msg(LOG_INFO, 0, "Received DetachRequest");
+        processDetachReq(emm, &msg);
+        if(emm->ksi != emm->msg_ksi){
+            log_msg(LOG_ALERT, 0, "DetachRequest, ksi mismatch");
+            return;
+        }
+        esm_detach(emm->esm, emm_detachAccept, emm);
+        break;
     case IdentityResponse:
     case AuthenticationResponse:
     case AuthenticationFailure:
     case SecurityModeReject:
     case DetachAccept:
-    case DetachRequest:
-    case TrackingAreaUpdateRequest:
         log_msg(LOG_INFO, 0,
                 "NAS Message type (%u) not valid in EMM Deregistered",
                 msg.plain.eMM.messageType);
@@ -135,7 +150,23 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
 
 static void emm_processSrvReq(gpointer emm_h, gpointer buf, gsize len){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
-    log_msg(LOG_WARNING, 0, "Received Service request, not supported in this context");
+    log_msg(LOG_INFO, 0, "Received Service request while in EMM Deregistered, "
+            "Service Reject sent");
+    emm_sendServiceReject(emm, EMM_ImplicitlyDetached);
+}
+
+static void emm_processError(gpointer emm_h, GError *err){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+
+    log_msg(LOG_INFO, 0, "Received Error");
+    if(g_error_matches(err, MME_S6a, S6a_UNKNOWN_EPS_SUBSCRIPTION)){
+        if(emm->attachStarted){
+            emm_sendAttachReject(emm, EMM_EPSServicesAndNonEPSServicesNotAllowed,
+                                 NULL, 0);
+        }
+    }else{
+        log_msg(LOG_ERR, 0, "Error not recognized, transition to EMM Deregisted");
+    }
 }
 
 void linkEMMDeregistered(EMM_State* s){
@@ -144,6 +175,7 @@ void linkEMMDeregistered(EMM_State* s){
     s->processSecMsg = emm_processSecMsg;
     s->processSrvReq = emm_processSrvReq;
     s->sendESM = NULL;
+    s->processError = emm_processError;
 }
 
 

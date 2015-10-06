@@ -29,15 +29,16 @@ typedef void (*EMM_eventMsg)(gpointer, GenericNASMsg_t*);
 typedef void (*EMM_eventSecMsg)(gpointer, gpointer, gsize);
 typedef void (*EMM_sendMsg)(gpointer, gpointer, gsize, GList *);
 typedef void (*EMM_sendESM)(gpointer, gpointer, gsize, GError **);
-
+typedef void (*EMM_errorEvent)(gpointer, GError *);
 
 #define EMMSTATE \
-    EMM_eventMsg       processMsg;          /*  */ \
-    EMM_event          authInfoAvailable;   /*  */ \
-    EMM_sendMsg        attachAccept;         /*  */	\
-    EMM_eventSecMsg    processSecMsg;        /*  */	\
-    EMM_eventSecMsg    processSrvReq;        /*  */	\
-    EMM_sendESM        sendESM
+    EMM_eventMsg       processMsg;          /*  */  \
+    EMM_event          authInfoAvailable;   /*  */  \
+    EMM_sendMsg        attachAccept;        /*  */	\
+    EMM_eventSecMsg    processSecMsg;       /*  */	\
+    EMM_eventSecMsg    processSrvReq;       /*  */	\
+    EMM_sendESM        sendESM;             /*  */	\
+    EMM_errorEvent     processError         /*  */
 
 typedef struct{
     EMMSTATE;
