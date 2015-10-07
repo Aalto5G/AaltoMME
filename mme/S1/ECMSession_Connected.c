@@ -67,6 +67,8 @@ static void processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
             ecm->causeRelease->freeIE(ecm->causeRelease);
             ecm->causeRelease=NULL;
         }
+        log_msg(LOG_INFO, 0, "ECM Idle: S1AP UE MME-ID/eNB-ID %u / %u",
+                ecm->mmeUEId, ecm->eNBUEId);
         s1Assoc_deregisterECMSession(ecm->assoc, ecm);
         mme = s1_getMME(s1Assoc_getS1(ecm->assoc));
         mme_deregisterECM(mme, ecm);
@@ -105,7 +107,7 @@ static void processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
         log_msg(LOG_WARNING, 0, "Received id_NASNonDeliveryIndication");
     }else if(s1msg->pdu->procedureCode == id_UEContextReleaseRequest &&
              s1msg->choice == initiating_message){
-        log_msg(LOG_INFO, 0, "Received id_UEContextReleaseRequest");
+        log_msg(LOG_DEBUG, 0, "Received id_UEContextReleaseRequest");
         ecm_UEContextRelease(ecm, s1msg);
     }else if(s1msg->pdu->procedureCode == id_UECapabilityInfoIndication &&
              s1msg->choice == initiating_message){

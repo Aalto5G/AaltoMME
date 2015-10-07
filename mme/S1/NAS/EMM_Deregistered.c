@@ -56,6 +56,7 @@ static void emmProcessMsg(gpointer emm_h,  GenericNASMsg_t* msg){
                 "Received TAU Req on EMM Deregistered. "
                 "Sending TAU Reject. Implicitly Detached");
         emm_sendTAUReject(emm, EMM_ImplicitlyDetached);
+        break;
     default:
         log_msg(LOG_WARNING, 0,
                 "NAS Message type (%x) not recognized in this context",

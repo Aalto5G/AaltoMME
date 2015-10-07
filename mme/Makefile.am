@@ -58,6 +58,7 @@ mme_SOURCES = Subscription.c \
 			  S11/S11_WDel.c \
 			  MME_test.c commands.c \
 			  ../Common/logmgr.c \
+			  ../Common/timermgr.c \
 			  MME.c \
 			  MMEutils.c \
 			  nodemgr.c \

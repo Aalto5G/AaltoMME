@@ -66,9 +66,9 @@ gpointer s1_init(gpointer mme){
     mme_registerRead(self->mme, self->fd, s1_accept_new_eNB, self);
 
     self->assocs = g_hash_table_new_full( g_int_hash,
-                                        g_int_equal,
-                                        NULL,
-                                        s1Assoc_free);
+                                          g_int_equal,
+                                          NULL,
+                                          s1Assoc_free);
 
     return self;
 }

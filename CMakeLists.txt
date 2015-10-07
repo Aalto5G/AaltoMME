@@ -34,7 +34,8 @@ set(LIBRARY_OUTPUT_PATH ${CMAKE_BINARY_DIR})
 
 set(COMMON_INCLUDES ${PROJECT_SOURCE_DIR}/Common
     /usr/include/mysql)
-set(COMMON_SRC ${PROJECT_SOURCE_DIR}/Common/logmgr.c)
+
+FILE(GLOB_RECURSE COMMON_SRC MME_SRCS "${PROJECT_SOURCE_DIR}/Common/*.c")
 
 include_directories(
   ${COMMON_INCLUDES}

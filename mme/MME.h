@@ -37,6 +37,7 @@
 #include "S1AP.h"
 #include "S6a.h"
 #include "EMM_FSMConfig.h"
+#include "timermgr.h"
 
 #define MAX_UE 500000 /*< Max number of active users on this MME*/
 #define FIRST_UE_SCTP_STREAM 1 /*< The minimum UE SCTP stream value*/
@@ -67,6 +68,7 @@ struct t_message{
 struct mme_t{
     struct event_base       *evbase;
     struct event            *kill_event;                     /*< Kill Posix signal event*/
+    TimerMgr                tm;
     MMEname_t               *name;
     char                    ipv4[INET_ADDRSTRLEN];
     char                    ipv6[INET6_ADDRSTRLEN]; /* Not used*/
@@ -83,7 +85,6 @@ struct mme_t{
     GHashTable              *emm_sessions;                   /**< Store all EMM session of the MME */
     GHashTable              *ecm_sessions_by_localID;        /**< Store all ECM session of the MME */
 
-    /* uint32_t                nums1conn;                      /\*< Number of S1 Connections*\/ */
     struct timeval          start;   /* Test Variable*/
     uint32_t                procTime;
     uint32_t                uE_DNS;  /*IP address to be used on the PDN by the UEs*/
@@ -117,7 +118,18 @@ extern const char *mme_getLocalAddress(const struct mme_t *mme);
 /* API towards state machines                     */
 /**************************************************/
 
-/**@brief Register a read callback for a socket
+
+
+/**
+ * @brief  Get timer manager
+ * @param [in] self MME pointer
+ * @return Timer manager
+ *
+ */
+TimerMgr mme_getTimerMgr(struct mme_t *self);
+
+/**
+ * @brief Register a read callback for a socket
  * @param [in] self MME pointer
  * @param [in] fd   File descriptor to register
  * @param [in] cb   Callback invoked when the fd becomes active
@@ -129,7 +141,8 @@ extern const char *mme_getLocalAddress(const struct mme_t *mme);
 void mme_registerRead(struct mme_t *self, int fd,
                       event_callback_fn cb, void * args);
 
-/**@brief Deregister a read callback
+/**
+ * @brief Deregister a read callback
  * @param [in] self MME pointer
  * @param [in] fd   File descriptor to register
  *

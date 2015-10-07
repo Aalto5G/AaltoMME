@@ -80,6 +80,8 @@ static void ecm_processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
         }else{
             emm_registerECM(ecm->emm, ecm);
         }
+        log_msg(LOG_INFO, 0, "ECM Connected: S1AP UE MME-ID/eNB-ID %u / %u",
+                ecm->mmeUEId, ecm->eNBUEId);
 
         emm_processMsg(ecm->emm, nASPDU->str, nASPDU->len);
         ecm_ChangeState(ecm, ECM_Connected);

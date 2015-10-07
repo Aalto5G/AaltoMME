@@ -243,6 +243,10 @@ const char *mme_getLocalAddress(const struct mme_t *mme){
     return mme->ipv4;
 }
 
+TimerMgr mme_getTimerMgr(struct mme_t *self){
+    return self->tm;
+}
+
 void mme_registerS1Assoc(struct mme_t *self, gpointer assoc){
     g_hash_table_insert(self->s1_by_GeNBid, s1Assoc_getID_p(assoc), assoc);
 }
@@ -342,8 +346,8 @@ gboolean mme_containsSupportedTAs(const struct mme_t *self, SupportedTAs_t *tas)
 
 
 static void mme_stopEMM(gpointer mtmsi,
-                            gpointer emm,
-                            gpointer mme){
+                        gpointer emm,
+                        gpointer mme){
     struct mme_t *self = (struct mme_t *)mme;
     log_msg(LOG_DEBUG, 0, "Stoping EMM");
     emm_stop(emm);
@@ -353,7 +357,7 @@ static gboolean mme_disconnectAssoc(gpointer geNBid,
                                     gpointer assoc,
                                     gpointer mme){
     struct mme_t *self = (struct mme_t *)mme;
-    log_msg(LOG_INFO, 0, "Removing S1 Association with eNB %s",
+    log_msg(LOG_INFO, 0, "Removing S1 Association with eNB \"%s\"",
             s1Assoc_getName(assoc));
     mme_deregisterRead(mme, s1Assoc_getfd(assoc));
     s1Assoc_disconnect(assoc);
@@ -396,6 +400,9 @@ MME mme_init(struct event_base *evbase){
 
     /*Assign event base structure*/
     self->evbase = evbase;
+
+    /* New timer manager */
+    self->tm = init_timerMgr(self->evbase);
 
     /*Create event for processing SIGINT*/
     self->kill_event = evsignal_new(self->evbase, SIGINT, kill_handler, self);
@@ -450,6 +457,7 @@ void mme_free(MME mme){
 
     freeMMEinfo(self);
     free_nodemgr();
+    free_timerMgr(self->tm);
 
     free(self);
 }
