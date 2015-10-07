@@ -54,7 +54,7 @@ static gboolean s1Assoc_free_deleteECM(gpointer key,
     struct mme_t * mme = s1_getMME(self->s1);
 
     mme_deregisterECM(mme, value);
-    ecmSession_free(value);
+    /*The ecmSession_free(value); is executed in the previous function*/
     return TRUE;
 }
 
