@@ -65,6 +65,8 @@ extern void free_timerMgr(TimerMgr h);
  * @return Timer handler
  *
  * Starts a new timer.
+ * The parameters cb_maxTO and cb_free can be NULL. The cb_to cannot be NULL.
+ * The max_rtx must be greater than 0.
  */
 extern Timer tm_add_timer(TimerMgr h,
                           const struct timeval *tv, const uint32_t max_rtx,

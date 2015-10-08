@@ -66,11 +66,17 @@ static void timer_cb(int sock, short which, void *arg){
 
     if(t->rtx == t->max_rtx){
         /* Max Retransmission reached*/
-        t->cb_maxTo((Timer)t, t->cb_args);
+        if(t->cb_maxTo){
+            t->cb_maxTo((Timer)t, t->cb_args);
+        }
         tm_stop_timer(t);
     }else{
         /* Process CB*/
         t->cb_to((Timer)t, t->cb_args);
+        /*Last timer and cb_maxTo is NULL*/
+        if(!t->cb_maxTo && (t->rtx + 1) == t->max_rtx){
+            tm_stop_timer(t);
+        }
     }
     t->rtx++;
 }
@@ -78,6 +84,9 @@ static void timer_cb(int sock, short which, void *arg){
 TimerMgr init_timerMgr(struct event_base *ev_base){
     TimerMgr_t *self = g_new0(TimerMgr_t, 1);
 
+    if(!ev_base){
+        return NULL;
+    }
     self->evbase = ev_base;
     self->timers = g_hash_table_new_full(g_direct_hash,
                                          g_direct_equal,
@@ -97,13 +106,13 @@ Timer tm_add_timer(TimerMgr h, const struct timeval *tv, const uint32_t max_rtx,
                    void* cb_args){
     Timer_t *t;
     TimerMgr_t *self = (TimerMgr_t*) h;
-    if(!tv){
+    if(!tv || !cb_to){
         return NULL;
     }
     if(tv->tv_sec == 0 && tv->tv_usec == 0){
         return NULL;
     }
-    if(!cb_to || !cb_maxTo){
+    if(max_rtx < 1){
         return NULL;
     }
 
