@@ -63,22 +63,29 @@ static void free_timer(Timer_t *t){
  */
 static void timer_cb(int sock, short which, void *arg){
     Timer_t * t = (Timer_t*)arg;
+    Timer_cb cb_max_To;
+    guint32 rtx, max_rtx;
 
-    if(t->rtx == t->max_rtx){
-        /* Max Retransmission reached*/
-        if(t->cb_maxTo){
-            t->cb_maxTo((Timer)t, t->cb_args);
-        }
-        tm_stop_timer(t);
-    }else{
+    t->rtx++;
+    if(t->rtx <= t->max_rtx ){
+        /* Store variables just in case the Timer is freed in the cb */
+        cb_max_To = t->cb_maxTo;
+        rtx = t->rtx;
+        max_rtx = t->max_rtx;
+
         /* Process CB*/
         t->cb_to((Timer)t, t->cb_args);
+
         /*Last timer and cb_maxTo is NULL*/
-        if(!t->cb_maxTo && (t->rtx + 1) == t->max_rtx){
+        if(!cb_max_To && rtx == max_rtx){
             tm_stop_timer(t);
         }
+        return;
     }
-    t->rtx++;
+
+    /* Max Retransmission reached*/
+    t->cb_maxTo((Timer)t, t->cb_args);
+    tm_stop_timer(t);
 }
 
 TimerMgr init_timerMgr(struct event_base *ev_base){

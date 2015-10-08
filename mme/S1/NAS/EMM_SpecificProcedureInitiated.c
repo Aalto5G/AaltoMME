@@ -22,6 +22,7 @@
 #include "NAS_EMM_priv.h"
 #include "NAS_ESM.h"
 #include <string.h>
+#include "EMM_Timers.h"
 
 static void processAttachComplete(EMMCtx_t *emm, GenericNASMsg_t *msg);
 
@@ -230,6 +231,22 @@ static void emm_processError(gpointer emm_h, GError *err){
 }
 
 
+static void emm_processTimeout(gpointer emm_h, gpointer buf, gsize len,
+                               EMM_TimerCode c){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    log_msg(LOG_WARNING, 0, "Timeout %s, not supported in EMM SPI",
+            EMM_TimerStr[c]);
+}
+
+
+static void emm_processTimeoutMax(gpointer emm_h, gpointer buf, gsize len,
+                                  EMM_TimerCode c){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    log_msg(LOG_WARNING, 0, "Timeout Max %s, not supported in EMM SPI",
+            EMM_TimerStr[c]);
+}
+
+
 void linkEMMSpecificProcedureInitiated(EMM_State* s){
     s->processMsg = emmProcessMsg;
     /* s->authInfoAvailable = emmAuthInfoAvailable; */
@@ -238,6 +255,8 @@ void linkEMMSpecificProcedureInitiated(EMM_State* s){
     s->processSrvReq = emm_processSrvReq;
     s->sendESM = emm_internalSendESM;
     s->processError = emm_processError;
+    s->processTimeout = (EMM_eventTimeout) emm_processTimeout;
+    s->processTimeoutMax = (EMM_eventTimeout) emm_processTimeoutMax;
 }
 
 static void processAttachComplete(EMMCtx_t *emm, GenericNASMsg_t *msg){

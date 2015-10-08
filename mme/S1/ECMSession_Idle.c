@@ -75,7 +75,7 @@ static void ecm_processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
         }
 
         if(ecm->emm == NULL){
-            ecm->emm = emm_init(ecm);
+            ecm->emm = emm_init(ecm, mme_getTimerMgr(mme));
             log_msg(LOG_INFO, 0, "New EMM created");
         }else{
             emm_registerECM(ecm->emm, ecm);

@@ -23,6 +23,7 @@
 #include "glib.h"
 #include "NAS_Definitions.h"
 #include "EMM_State.h"
+#include "timermgr.h"
 
 typedef struct{
     guint8       rAND[16];
@@ -44,6 +45,9 @@ typedef struct{
     gpointer     esm;           /**< Higher layer */
     gpointer     s6a;
     EMM_State    *state;
+
+    TimerMgr     tm;
+    Timer        *activeTimers;
 
     guint64      imsi;
     guint64      msisdn;

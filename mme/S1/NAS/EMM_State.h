@@ -30,6 +30,7 @@ typedef void (*EMM_eventSecMsg)(gpointer, gpointer, gsize);
 typedef void (*EMM_sendMsg)(gpointer, gpointer, gsize, GList *);
 typedef void (*EMM_sendESM)(gpointer, gpointer, gsize, GError **);
 typedef void (*EMM_errorEvent)(gpointer, GError *);
+typedef void (*EMM_eventTimeout)(gpointer, gpointer, gsize, guint);
 
 #define EMMSTATE \
     EMM_eventMsg       processMsg;          /*  */  \
@@ -38,7 +39,9 @@ typedef void (*EMM_errorEvent)(gpointer, GError *);
     EMM_eventSecMsg    processSecMsg;       /*  */	\
     EMM_eventSecMsg    processSrvReq;       /*  */	\
     EMM_sendESM        sendESM;             /*  */	\
-    EMM_errorEvent     processError         /*  */
+    EMM_errorEvent     processError;        /*  */	\
+    EMM_eventTimeout   processTimeout;      /*  */  \
+    EMM_eventTimeout   processTimeoutMax    /*  */
 
 typedef struct{
     EMMSTATE;

@@ -24,6 +24,7 @@ mme_SOURCES = Subscription.c \
 			  S1/ECMSession_FSMConfig.c \
 			  S1/ECMSession_Idle.c \
 			  S1/ECMSession_Connected.c \
+			  S1/NAS/EMM_Timers.c \
 			  S1/NAS/EMMCtx.c \
 			  S1/NAS/EMM_FSMConfig.c \
 			  S1/NAS/EMM_Deregistered.c \

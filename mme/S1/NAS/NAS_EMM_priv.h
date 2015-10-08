@@ -19,12 +19,15 @@
 
 #include <glib.h>
 #include "NAS_EMM.h"
+#include "EMM_Timers.h"
 
 /* API to NAS */
 
 gpointer emm_getS11(EMMCtx emm_h);
 
 void emm_processS6aError(EMMCtx emm_h, GError *err);
+
+void emm_send(EMMCtx emm_h, gpointer msg, gsize len, EMM_TimerCode c);
 
 void emm_sendAttachReject(EMMCtx emm_h, guint cause,
                           gpointer esm_msg, gsize msgLen);

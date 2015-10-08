@@ -25,21 +25,30 @@
 #include "ECMSession_priv.h"
 #include "NAS_ESM.h"
 #include "EMM_State.h"
+#include "EMM_Timers.h"
 
 #include "hmac_sha2.h"
 
-gpointer emm_init(gpointer ecm){
+gpointer emm_init(gpointer ecm, TimerMgr tm){
     EMMCtx_t *self = emmCtx_init();
+    self->tm = tm;
     emmChangeState(self, EMM_Deregistered);
     self->ecm = ecm;
     self->s6a = ecmSession_getS6a(ecm);
     self->esm = esm_init(self);
     self->parser = nas_newHandler();
+
+    self->activeTimers = g_new0(Timer, EMM_NUM_TIMERS);
+
     return self;
 }
 
 void emm_free(gpointer emm_h){
     EMMCtx_t *self = (EMMCtx_t*)emm_h;
+
+    emm_stopAllTimers(self);
+    g_free(self->activeTimers);
+
     nas_freeHandler(self->parser);
     esm_free(self->esm);
     emmCtx_free(self);
@@ -153,6 +162,12 @@ void emm_processS6aError(EMMCtx emm_h, GError *err){
     }
 
     emm->state->processError(emm, err);
+}
+
+void emm_send(EMMCtx emm_h, gpointer msg, gsize len, EMM_TimerCode c){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    emm_setTimer(emm, c, msg, len);
+    ecm_send(emm->ecm, msg, len);
 }
 
 

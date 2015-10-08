@@ -21,16 +21,18 @@
 #include "MME.h"
 #include "S1AP.h"
 #include "ECMSession_priv.h"
+#include "timermgr.h"
 #include <glib.h>
 
 /**
  * @brief NAS EMM constructor
  * @param [in]  emm EMM stack handler
+ * @param [in]  tm  Timer manager
  * @return emm stack handler
  *
  *  Allocates the EMM stack. Use emm_free to delete the structure.
  */
-gpointer emm_init(gpointer ecm);
+gpointer emm_init(gpointer ecm, TimerMgr tm);
 
 /**
  * @brief Dealocates the EMM stack handler
