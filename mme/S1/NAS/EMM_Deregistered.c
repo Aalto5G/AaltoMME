@@ -144,12 +144,12 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     case SecurityModeReject:
     case DetachAccept:
         log_msg(LOG_INFO, 0,
-                "NAS Message type (%u) not valid in EMM Deregistered",
+                "NAS Message type (%x) not valid in EMM Deregistered",
                 msg.plain.eMM.messageType);
         break;
     default:
         log_msg(LOG_WARNING, 0,
-                "NAS Message type (%u) not recognized in EMM Deregistered",
+                "NAS Message type (%x) not recognized in EMM Deregistered",
                 msg.plain.eMM.messageType);
     }
 }
@@ -294,6 +294,7 @@ void processAttach(gpointer emm_h,  GenericNASMsg_t* msg){
     }
     /* Additional Update type: 0xF*/
     nas_NASOpt_lookup(attachMsg->optionals, 17, 0xF, &optIE);
+    emm->msg_additionalUpdateType = FALSE;
     if(optIE){
         emm->msg_additionalUpdateType = TRUE;
         emm->msg_smsOnly = (gboolean)optIE->v_t1_l.v;

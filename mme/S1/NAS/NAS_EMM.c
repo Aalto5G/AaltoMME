@@ -551,6 +551,13 @@ void emm_processTAUReq(EMMCtx emm_h, GenericNASMsg_t *msg){
         memcpy(emm->ueCapabilities, optIE->tlv_t4.v, optIE->tlv_t4.l);
         emm->ueCapabilitiesLen = optIE->tlv_t4.l;
     }
+    /* EPS bearer context status: 0x57*/
+    nas_NASOpt_lookup(tau_msg->optionals, 22, 0x57, &optIE);
+    emm->msg_bearerCtxI = FALSE;
+    if(optIE && optIE->tlv_t4.l == 2){
+        emm->msg_bearerCtxI = TRUE;
+        memcpy(emm->msg_bearerCtx, optIE->tlv_t4.v, 2);
+    }
     /*MS network capability: 0x31*/
     nas_NASOpt_lookup(tau_msg->optionals, 22, 0x31, &optIE);
     if(optIE){
@@ -601,22 +608,26 @@ void emm_sendTAUAccept(EMMCtx emm_h){
     ecmSession_getTAIlist(emm->ecm, &tAIl, &tlen);
     nasIe_tlv_t4(&pointer, 0x54, (uint8_t*)&tAIl, tlen);
     /* EPS Bearer Context Status*/
-    /* bearerStatus = hton16(0x0000); */
-    /* bearerStatus = hton16(0x2000); */
-    /* nasIe_tlv_t4(&pointer, 0x57, (uint8_t *)&bearerStatus, 2); */
-
+    if(emm->msg_bearerCtxI){
+        /* bearerStatus = hton16(0x0000); */
+        bearerStatus = hton16(0x2000);
+        nasIe_tlv_t4(&pointer, 0x57, (uint8_t *)&bearerStatus, 2);
+    }
     /* EMM cause if the attach type is different
      * This version only accepts EPS services, the combined attach
      * is not supported*/
     if(emm->updateResult == 1 ||
        emm->updateResult == 5){
-        /* /\* LAI list HACK *\/ */
-        /* memcpy(lAI, &(tAIl.list), 5); */
-        /* nasIe_tv_t3(&pointer, 0x13, lAI, 5); */
-        /* /\* MS identity : TMSI*\/ */
-        /* tmsi[0]=0xf4; */
-        /* memcpy(tmsi+1, &(guti.mtmsi), 4); */
-        /* nasIe_tlv_t4(&pointer, 0x23, tmsi, 5); */
+        if(!(emm->msg_additionalUpdateType &&
+             emm->msg_smsOnly)){
+            /* LAI list HACK */
+            memcpy(lAI, &(tAIl.list), 5);
+            nasIe_tv_t3(&pointer, 0x13, lAI, 5);
+            /* MS identity : TMSI*/
+            tmsi[0]=0xf4;
+            memcpy(tmsi+1, &(guti.mtmsi), 4);
+            nasIe_tlv_t4(&pointer, 0x23, tmsi, 5);
+        }
 
         if(emm->msg_additionalUpdateType){
             /* Additional Update Result*/

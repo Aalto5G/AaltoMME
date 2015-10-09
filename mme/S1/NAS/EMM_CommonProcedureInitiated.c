@@ -55,7 +55,7 @@ static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
         break;
     default:
         log_msg(LOG_WARNING, 0,
-                "NAS Message type (%u) not recognized in this context",
+                "NAS Message type (%x) not recognized in this context",
                 msg->plain.eMM.messageType);
     }
 }
@@ -142,10 +142,12 @@ static void emm_processError(gpointer emm_h, GError *err){
             emm_sendAttachReject(emm, EMM_EPSServicesAndNonEPSServicesNotAllowed,
                                  NULL, 0);
         }
-        emmChangeState(emm, EMM_Deregistered);
+        emm_stop(emm);
+        /* emmChangeState(emm, EMM_Deregistered); */
     }else{
         log_msg(LOG_ERR, 0, "Error not recognized, transition to EMM Deregisted");
-        emmChangeState(emm, EMM_Deregistered);
+        emm_stop(emm);
+        /* emmChangeState(emm, EMM_Deregistered); */
     }
 }
 

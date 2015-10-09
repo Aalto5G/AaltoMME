@@ -75,6 +75,8 @@ typedef struct{
     guti_t       msg_guti;
     gboolean     msg_additionalUpdateType;
     gboolean     msg_smsOnly;
+    gboolean     msg_bearerCtxI;
+    guint8       msg_bearerCtx[2];
 
     /* **** Start of MM context **** */
     guint8       type;          /**< MM type */

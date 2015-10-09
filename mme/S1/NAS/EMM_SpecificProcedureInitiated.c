@@ -125,7 +125,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     /*     /\* End of HACK*\/ */
 
     default:
-        emmChangeState(emm, EMM_Deregistered);
+        emm_stop(emm);
         log_msg(LOG_WARNING, 0,
                 "NAS Message type (%x) not recognized in EMM SPI",
                 msg.plain.eMM.messageType);
@@ -176,13 +176,16 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
          * supported
          */
         if(emm->attachResult == 2){
-            /* /\* LAI list HACK *\/ */
-            /* memcpy(lAI, &(tAIl.list), 5); */
-            /* nasIe_tv_t3(&pointer, 0x13, lAI, 5); */
-            /* /\* MS identity : TMSI*\/ */
-            /* tmsi[0]=0xf4; */
-            /* memcpy(tmsi+1, &(guti.mtmsi), 4); */
-            /* nasIe_tlv_t4(&pointer, 0x23, tmsi, 5); */
+            if(!(emm->msg_additionalUpdateType &&
+                 emm->msg_smsOnly)){
+                /* LAI list HACK */
+                memcpy(lAI, &(tAIl.list), 5);
+                nasIe_tv_t3(&pointer, 0x13, lAI, 5);
+                /* MS identity : TMSI*/
+                tmsi[0]=0xf4;
+                memcpy(tmsi+1, &(guti.mtmsi), 4);
+                nasIe_tlv_t4(&pointer, 0x23, tmsi, 5);
+            }
 
             if(emm->msg_additionalUpdateType){
                 /* Additional Update Result*/
@@ -221,7 +224,7 @@ static void emm_processSrvReq(gpointer emm_h, gpointer buf, gsize len){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     log_msg(LOG_WARNING, 0, "Received Service request, not supported in EMM SPI");
     /* HACK */
-    emmChangeState(emm, EMM_Deregistered);
+    emm_stop(emm);
 }
 
 
