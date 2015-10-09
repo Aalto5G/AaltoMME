@@ -213,10 +213,13 @@ static int emm_selectUpdateType(EMMCtx_t * emm){
         if(emm->msg_additionalUpdateType && emm->msg_smsOnly){
             emm->updateResult = 1;
         }else{
-            log_msg(LOG_ALERT, 0,
-                    "Answering Combined TA/LA updating with IMSI attach "
-                    "with TA updated");
-            emm->updateResult = 0;
+            /* log_msg(LOG_ALERT, 0, */
+            /*         "Answering Combined TA/LA updating with IMSI attach " */
+            /*         "with TA updated"); */
+            /* emm->updateResult = 0; */
+            /* HACK */
+            emm->updateResult = 1;
+
         }
         /* emm->updateResult = 5; if ISR*/
         return 1;

@@ -146,7 +146,11 @@ void tm_stop_timer(Timer timer){
     Timer_t *t = (Timer_t*)timer;
     TimerMgr_t *tm = t->mgr;
 
-    evtimer_del(t->ev);
+    if(evtimer_del(t->ev) == -1){
+        /* Error occurred, was the timer deleted in the last
+         * retransmission callback ?*/
+        return;
+    }
 
     g_hash_table_remove(tm->timers, t);
 

@@ -73,10 +73,12 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
 
     switch(msg.plain.eMM.messageType){
     case AttachComplete:
+        emm_stopTimer(emm, T3450);
         log_msg(LOG_DEBUG, 0, "Received AttachComplete");
         processAttachComplete(emm, &msg);
         break;
     case TrackingAreaUpdateComplete:
+        emm_stopTimer(emm, T3450);
         log_msg(LOG_INFO, 0, "Received TrackingAreaUpdateComplete");
 
         if(!emm->s1BearersActive){
@@ -217,6 +219,7 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
         return;
     }
     emm->s1BearersActive = TRUE;
+    emm_setTimer(emm, T3450, plain, pointer-plain);
     ecm_sendCtxtSUReq(emm->ecm, out, len, bearers);
 }
 
@@ -237,16 +240,56 @@ static void emm_processError(gpointer emm_h, GError *err){
 static void emm_processTimeout(gpointer emm_h, gpointer buf, gsize len,
                                EMM_TimerCode c){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
-    log_msg(LOG_WARNING, 0, "Timeout %s, not supported in EMM SPI",
-            EMM_TimerStr[c]);
+    guint8 out[1500];
+    gsize olen=0;
+    NASMessageType_t type = (NASMessageType_t)((guint8*)buf)[1];
+
+    switch (c) {
+    case T3450: /* Attach Accept, TAU with GUTI*/
+        log_msg(LOG_INFO, 0, "%s expiration. UE IMSI %llu", EMM_TimerStr[c], emm->imsi);
+        if(emm->sci){
+            newNASMsg_sec(emm->parser, out, &olen,
+                          EPSMobilityManagementMessages,
+                          IntegrityProtectedAndCiphered,
+                          NAS_DownLink,
+                          buf, len);
+            ecm_send(emm->ecm, out, olen);
+        }
+        break;
+    case TMOBILE_REACHABLE:
+    case TIMPLICIT_DETACH:
+        log_msg(LOG_ERR, 0, "Timer (%s) not implemented", EMM_TimerStr[c]);
+        break;
+    default:
+        log_msg(LOG_ERR, 0, "Timer (%s) not recognized", EMM_TimerStr[c]);
+        break;
+    }
 }
 
 
 static void emm_processTimeoutMax(gpointer emm_h, gpointer buf, gsize len,
                                   EMM_TimerCode c){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
-    log_msg(LOG_WARNING, 0, "Timeout Max %s, not supported in EMM SPI",
-            EMM_TimerStr[c]);
+    NASMessageType_t type = (NASMessageType_t)((guint8*)buf)[1];
+    switch (c) {
+    case T3450:  /* Attach Accept, TAU with GUTI*/
+        log_msg(LOG_NOTICE, 0, "%s Max expirations reached for UE IMSI %llu. "
+                "Deregistering.", EMM_TimerStr[c], emm->imsi);
+        if(type == AttachComplete){
+            emm_stop(emm);
+        }else{
+            emmChangeState(emm, EMM_Registered);
+        }
+        ecm_sendUEContextReleaseCommand(emm->ecm, CauseNas, CauseNas_normal_release);
+        break;
+    case TMOBILE_REACHABLE:
+    case TIMPLICIT_DETACH:
+        log_msg(LOG_ERR, 0, "Timer (%s) not implemented", EMM_TimerStr[c]);
+        break;
+    default:
+        log_msg(LOG_ERR, 0, "Timer (%s) not recognized", EMM_TimerStr[c]);
+        break;
+    }
 }
 
 

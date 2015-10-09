@@ -50,11 +50,6 @@ void emm_setTimer(EMMCtx_t *emm, EMM_TimerCode c, guint8 *msg, gsize len){
     EMM_Timer *t;
     Timer tm_t;
 
-    if(c == TNULL){
-        /* Timer innactive*/
-        return;
-    }
-
     t = g_new0(EMM_Timer, 1);
     t->emm = emm;
     t->code = c;

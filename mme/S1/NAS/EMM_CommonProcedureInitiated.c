@@ -40,17 +40,21 @@ static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
     switch(msg->plain.eMM.messageType){
 
     case IdentityResponse:
+        emm_stopTimer(emm, T3470);
         processIdentityRsp(emm, msg);
         log_msg(LOG_DEBUG, 0, "Received IdentityResponse from: %llu", emm->imsi);
         s6a_GetAuthInformation(emm->s6a, emm, emm_sendAuthRequest, emm_processS6aError, emm);
         break;
     case AuthenticationResponse:
+        emm_stopTimer(emm, T3460);
         processAuthResp(emm, msg, &isAuth);
         break;
     case AuthenticationFailure:
+        emm_stopTimer(emm, T3460);
         processAuthFailure(emm, msg);
         break;
     case SecurityModeReject:
+        emm_stopTimer(emm, T3460);
         log_msg(LOG_ERR, 0, "Received SecurityModeReject, not implemented");
         break;
     default:
@@ -97,20 +101,25 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
 
     switch(msg.plain.eMM.messageType){
     case IdentityResponse:
+        emm_stopTimer(emm, T3470);
         processIdentityRsp(emm, &msg);
         log_msg(LOG_DEBUG, 0, "Received IdentityResponse from: %llu", emm->imsi);
         s6a_GetAuthInformation(emm->s6a, emm, emm_sendAuthRequest, emm_processS6aError, emm);
         break;
     case AuthenticationResponse:
+        emm_stopTimer(emm, T3460);
         processAuthResp(emm, &msg, &isAuth);
         break;
     case AuthenticationFailure:
+        emm_stopTimer(emm, T3460);
         processAuthFailure(emm, &msg);
         break;
     case SecurityModeReject:
+        emm_stopTimer(emm, T3460);
         log_msg(LOG_ERR, 0, "Received SecurityModeReject, not implemented EMM CPI");
         break;
     case SecurityModeComplete:
+        emm_stopTimer(emm, T3460);
         if(! s == IntegrityProtectedAndCipheredWithNewEPSSecurityContext){
             return;
         }
@@ -155,16 +164,82 @@ static void emm_processError(gpointer emm_h, GError *err){
 static void emm_processTimeout(gpointer emm_h, gpointer buf, gsize len,
                                EMM_TimerCode c){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
-    log_msg(LOG_WARNING, 0, "Timeout %s, not supported in EMM CPI",
-            EMM_TimerStr[c]);
+    guint8 out[1500];
+    gsize olen=0;
+    SecurityHeaderType_t s;
+    NASMessageType_t type = (NASMessageType_t)((guint8*)buf)[1];
+
+    switch (c) {
+    case T3460: /* Auth Req or Security Mode Command*/
+        log_msg(LOG_INFO, 0, "%s expiration. UE IMSI %llu", EMM_TimerStr[c], emm->imsi);
+        if(emm->sci || type == SecurityModeCommand){
+            s = IntegrityProtectedAndCiphered;
+            if(type==SecurityModeCommand){
+                s = IntegrityProtectedWithNewEPSSecurityContext;
+            }
+            newNASMsg_sec(emm->parser, out, &olen,
+                          EPSMobilityManagementMessages,
+                          s,
+                          NAS_DownLink,
+                          buf, len);
+            ecm_send(emm->ecm, out, olen);
+        }else{
+            ecm_send(emm->ecm, buf, len);
+        }
+        break;
+    case T3470: /* Identity Req*/
+        if(emm->imsi){
+            log_msg(LOG_INFO, 0, "%s expiration. UE IMSI %llu",
+                    EMM_TimerStr[c], emm->imsi);
+        }else if(emm->guti.mtmsi){
+            log_msg(LOG_INFO, 0, "%s expiration. UE TMSI %x",
+                    EMM_TimerStr[c], emm->guti.mtmsi);
+        }else{
+            log_msg(LOG_INFO, 0, "%s expiration. unidentified UE");
+        }
+        /* Retransmission */
+        ecm_send(emm->ecm, buf, len);
+        break;
+    case TMOBILE_REACHABLE:
+    case TIMPLICIT_DETACH:
+        log_msg(LOG_ERR, 0, "Timer (%s) not implemented", EMM_TimerStr[c]);
+        break;
+    default:
+        log_msg(LOG_ERR, 0, "Timer (%s) not recognized", EMM_TimerStr[c]);
+        break;
+    }
 }
 
 
 static void emm_processTimeoutMax(gpointer emm_h, gpointer buf, gsize len,
                                   EMM_TimerCode c){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
-    log_msg(LOG_WARNING, 0, "Timeout Max %s, not supported in EMM CPI",
-            EMM_TimerStr[c]);
+    NASMessageType_t type = (NASMessageType_t)((guint8*)buf)[1];
+    switch (c) {
+    case T3460: /* Auth Req or Security Mode Command*/
+        log_msg(LOG_NOTICE, 0, "%s Max expirations reached for UE IMSI %llu. "
+                "Deregistering.", EMM_TimerStr[c], emm->imsi);
+        if(type == AuthenticationRequest){
+            emm_stop(emm);
+        }else{
+            /* Security Mode Command shall be aborted.
+             * No other indications in the standard */
+            emm_stop(emm);
+        }
+        break;
+    case T3470: /* Identity Req*/
+        log_msg(LOG_NOTICE, 0, "%s Max expirations reached for UE IMSI %llu. "
+                "Deregistering.", EMM_TimerStr[c], emm->imsi);
+        emm_stop(emm);
+        break;
+    case TMOBILE_REACHABLE:
+    case TIMPLICIT_DETACH:
+        log_msg(LOG_ERR, 0, "Timer (%s) not implemented", EMM_TimerStr[c]);
+        break;
+    default:
+        log_msg(LOG_ERR, 0, "Timer (%s) not recognized", EMM_TimerStr[c]);
+        break;
+    }
 }
 
 

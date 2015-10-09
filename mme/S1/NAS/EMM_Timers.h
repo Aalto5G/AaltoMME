@@ -19,10 +19,11 @@
 
 #include "EMMCtx.h"
 
-#define EMM_NUM_TIMERS (15)
+#define EMM_NUM_TIMERS (22)
 
 typedef enum{
     TNULL,
+    /* UE side*/
     T3402,
     T3410,
     T3411,
@@ -36,11 +37,20 @@ typedef enum{
     T3423,
     T3430,
     T3440,
-    T3442
+    T3442,
+    /*Network side*/
+    T3413,
+    T3422,
+    T3450,
+    T3460,
+    T3470,
+    TMOBILE_REACHABLE,
+    TIMPLICIT_DETACH
 }EMM_TimerCode;
 
 static const char* EMM_TimerStr[] = {
     "TNULL",
+    /* UE side*/
     "T3402",
     "T3410",
     "T3411",
@@ -54,43 +64,69 @@ static const char* EMM_TimerStr[] = {
     "T3423",
     "T3430",
     "T3440",
-    "T3442"
+    "T3442",
+    /* Network side */
+    "T3413",
+    "T3422",
+    "T3450",
+    "T3460",
+    "T3470",
+    "TMOBILE_REACHABLE",
+    "TIMPLICIT_DETACH",
 };
 
 static const guint EMM_rtx[] = {
     0, /* TNULL */
-    5, /* T3402 */
-    5, /* T3410 */
-    5, /* T3411 */
-    5, /* T3412 */
-    5, /* T3416 */
-    5, /* T3417 */
-    5, /* T3417ext */
-    5, /* T3418 */
-    5, /* T3420 */
-    5, /* T3421 */
-    5, /* T3423 */
-    5, /* T3430 */
-    5, /* T3440 */
-    5, /* T3442 */
+    /* UE side*/
+    4, /* T3402 */
+    4, /* T3410 */
+    4, /* T3411 */
+    4, /* T3412 */
+    4, /* T3416 */
+    4, /* T3417 */
+    4, /* T3417ext */
+    4, /* T3418 */
+    4, /* T3420 */
+    4, /* T3421 */
+    4, /* T3423 */
+    4, /* T3430 */
+    4, /* T3440 */
+    4, /* T3442 */
+    /* Network side */
+    4, /* T3413 */
+    4, /* T3422 */
+    4, /* T3450 */
+    4, /* T3460 */
+    4, /* T3470 */
+    4, /* TMOBILE_REACHABLE */
+    1, /* TIMPLICIT_DETACH */
 };
 
 static const struct timeval EMM_tv[] = {
-    {0, 0},     /* TNULL */
-    {12*60, 0}, /* T3402 */
-    {15, 0},    /* T3410 */
-    {10, 0},    /* T3411 */
-    {54*60, 0}, /* T3412 */ /* UE only, provided by the network*/
-    {30, 0},    /* T3416 */
-    {5, 0},     /* T3417 */
-    {10, 0},    /* T3417ext */
-    {20, 0},    /* T3418 */
-    {15, 0},    /* T3420 */
-    {15, 0},    /* T3421 */
-    {54*60, 0}, /* T3423 */ /* UE only, provided by the network*/
-    {15, 0},    /* T3430 */
-    {10, 0},    /* T3440 */
-    {60*60, 0}, /* T3442 */ /* UE only, provided by the network*/
+    {0, 0},       /* TNULL */
+    /* UE side*/
+    {12*60, 0},   /* T3402 */
+    {15, 0},      /* T3410 */
+    {10, 0},      /* T3411 */
+    {54*60, 0},   /* T3412 */ /* UE only, provided by the network*/
+    {30, 0},      /* T3416 */
+    {5, 0},       /* T3417 */
+    {10, 0},      /* T3417ext */
+    {20, 0},      /* T3418 */
+    {15, 0},      /* T3420 */
+    {15, 0},      /* T3421 */
+    {54*60, 0},   /* T3423 */ /* UE only, provided by the network*/
+    {15, 0},      /* T3430 */
+    {10, 0},      /* T3440 */
+    {60*60, 0},   /* T3442 */ /* UE only, provided by the network*/
+    /* Network side */
+    {55, 0},      /* T3413 */ /* Network dependent*/
+    {6, 0},       /* T3422 */
+    {6, 0},       /* T3450 */
+    {6, 0},       /* T3460 */
+    {6, 0},       /* T3470 */
+    {55+4*60, 0}, /* TMOBILE_REACHABLE */ /* Network dependent 4min extra thatn T3412*/
+    {1, 0},       /* TIMPLICIT_DETACH */  /* Network dependent ISR? T3423+4min, T3324? T3412+4min*/
 };
 
 void emm_setTimer(EMMCtx_t *emm, EMM_TimerCode t, guint8 *msg, gsize len);

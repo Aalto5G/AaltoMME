@@ -164,13 +164,6 @@ void emm_processS6aError(EMMCtx emm_h, GError *err){
     emm->state->processError(emm, err);
 }
 
-void emm_send(EMMCtx emm_h, gpointer msg, gsize len, EMM_TimerCode c){
-    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
-    emm_setTimer(emm, c, msg, len);
-    ecm_send(emm->ecm, msg, len);
-}
-
-
 void emm_sendAttachReject(EMMCtx emm_h, EMMCause_t eMMcause,
                           gpointer esm_msg, gsize msgLen){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
@@ -280,6 +273,7 @@ void emm_sendAuthRequest(EMMCtx emm_h){
     nasIe_lv_t4(&pointer, sec->aUTN, 16); /* 256 bits */
 
     ecm_send(emm->ecm, buffer, pointer-buffer);
+    emm_setTimer(emm, T3460, buffer, pointer-buffer);
     emmChangeState(emm, EMM_CommonProcedureInitiated);
 }
 
@@ -341,10 +335,8 @@ void emm_sendSecurityModeCommand(EMMCtx emm_h){
                   plain, pointer-plain);
 
     ecm_send(emm->ecm, out, len);
-    /* nas_incrementNASCount(emm->parser, NAS_DownLink); */
+    emm_setTimer(emm, T3460, plain, pointer-plain);
     emmChangeState(emm, EMM_CommonProcedureInitiated);
-
-    /* Set timer T3460*/
 }
 
 void emm_processFirstESMmsg(EMMCtx emm_h){
@@ -655,6 +647,7 @@ void emm_sendTAUAccept(EMMCtx emm_h){
                   NAS_DownLink,
                   plain, pointer-plain);
 
+    emm_setTimer(emm, T3450, plain, pointer-plain);
     ecm_send(emm->ecm, out, len);
 }
 
@@ -785,6 +778,7 @@ void emm_sendIdentityReq(EMMCtx emm_h){
     nasIe_v_t1_l(&pointer, 1); /*Get Imsi*/
     pointer++; /*Spare half octet*/
 
+    emm_setTimer(emm, T3470, buffer, pointer-buffer);
     ecm_send(emm->ecm, buffer, pointer-buffer);
 }
 
