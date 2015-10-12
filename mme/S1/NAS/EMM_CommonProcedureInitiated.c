@@ -201,8 +201,16 @@ static void emm_processTimeout(gpointer emm_h, gpointer buf, gsize len,
         ecm_send(emm->ecm, buf, len);
         break;
     case TMOBILE_REACHABLE:
+        log_msg(LOG_ERR, 0, "%s expiration. UE IMSI %llu. Setting Implicit detach timer",
+                EMM_TimerStr[c], emm->imsi);
+        emm_stopTimer(emm, TMOBILE_REACHABLE);
+        emm_setTimer(emm, TIMPLICIT_DETACH, NULL, 0);
+        break;
     case TIMPLICIT_DETACH:
-        log_msg(LOG_ERR, 0, "Timer (%s) not implemented", EMM_TimerStr[c]);
+        emm_stopTimer(emm, TIMPLICIT_DETACH);
+        log_msg(LOG_ERR, 0, "%s expiration. UE IMSI %llu. Implicit detach",
+                EMM_TimerStr[c], emm->imsi);
+        emm_stop(emm);
         break;
     default:
         log_msg(LOG_ERR, 0, "Timer (%s) not recognized", EMM_TimerStr[c]);

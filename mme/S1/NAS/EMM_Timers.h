@@ -98,7 +98,7 @@ static const guint EMM_rtx[] = {
     4, /* T3450 */
     4, /* T3460 */
     4, /* T3470 */
-    4, /* TMOBILE_REACHABLE */
+    1, /* TMOBILE_REACHABLE */
     1, /* TIMPLICIT_DETACH */
 };
 
@@ -120,12 +120,12 @@ static const struct timeval EMM_tv[] = {
     {10, 0},      /* T3440 */
     {60*60, 0},   /* T3442 */ /* UE only, provided by the network*/
     /* Network side */
-    {55, 0},      /* T3413 */ /* Network dependent*/
+    {60, 0},      /* T3413 */ /* Network dependent*/
     {6, 0},       /* T3422 */
     {6, 0},       /* T3450 */
     {6, 0},       /* T3460 */
     {6, 0},       /* T3470 */
-    {55+4*60, 0}, /* TMOBILE_REACHABLE */ /* Network dependent 4min extra thatn T3412*/
+    {60+4*60, 0}, /* TMOBILE_REACHABLE */ /* Network dependent 4min extra thatn T3412*/
     {1, 0},       /* TIMPLICIT_DETACH */  /* Network dependent ISR? T3423+4min, T3324? T3412+4min*/
 };
 

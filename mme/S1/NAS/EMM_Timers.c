@@ -61,6 +61,9 @@ void emm_setTimer(EMMCtx_t *emm, EMM_TimerCode c, guint8 *msg, gsize len){
                         (Timer_cb)emm_timer_max_cb,
                         (Timer_cb)emm_timer_free_cb,
                         (void*)t);
+    if(!tm_t){
+        g_error("Failed to create timer.");
+    }
     if(emm->activeTimers[t->code] != NULL){
         log_msg(LOG_WARNING, 0,"Failed to add Timer %s: Already exists. Replacing",
                 EMM_TimerStr[t->code]);
@@ -73,7 +76,7 @@ void emm_stopTimer(EMMCtx_t *emm, EMM_TimerCode c){
     Timer tm_t = emm->activeTimers[c];
 
     if(!tm_t){
-        log_msg(LOG_WARNING, 0,"Failed to Stop Timer %s: not found",
+        log_msg(LOG_DEBUG, 0,"Failed to Stop Timer %s: not found",
                 EMM_TimerStr[c]);
         return;
     }

@@ -135,6 +135,9 @@ Timer tm_add_timer(TimerMgr h, const struct timeval *tv, const uint32_t max_rtx,
     t->cb_args = cb_args;
 
     t->ev = event_new(self->evbase, -1, EV_PERSIST , timer_cb, t);
+    if(!t->ev){
+        return NULL;
+    }
     evtimer_add(t->ev, &(t->tv));
 
     g_hash_table_add(self->timers, t);

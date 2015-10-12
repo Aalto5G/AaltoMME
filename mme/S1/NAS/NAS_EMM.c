@@ -61,6 +61,7 @@ void emm_registerECM(EMMCtx emm_h, gpointer ecm){
 
 void emm_deregister(EMMCtx emm_h){
     EMMCtx_t *self = (EMMCtx_t*)emm_h;
+    emm_setTimer(self, TMOBILE_REACHABLE, NULL, 0);
     self->ecm = NULL;
 }
 
@@ -81,6 +82,8 @@ void emm_processMsg(gpointer emm_h, gpointer buffer, gsize len){
     GenericNASMsg_t msg;
     SecurityHeaderType_t s;
     ProtocolDiscriminator_t p;
+
+    emm_stopTimer(self, TMOBILE_REACHABLE);
 
     if (!nas_getHeader(buffer, len, &s, &p))
         g_error("Empty NAS message buffer");

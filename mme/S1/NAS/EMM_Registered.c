@@ -146,6 +146,7 @@ static void emm_processSrvReq(gpointer emm_h, gpointer buf, gsize len){
     }
     emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink);
 
+    log_msg(LOG_INFO, 0, "UE (IMSI %llu): Service Request", emm->imsi);
     emm->s1BearersActive = TRUE;
     esm_getSessions(emm->esm, &sessions);
     ecm_sendCtxtSUReq(emm->ecm, NULL, 0, sessions);
@@ -162,8 +163,24 @@ static void emm_processError(gpointer emm_h, GError *err){
 static void emm_processTimeout(gpointer emm_h, gpointer buf, gsize len,
                                EMM_TimerCode c){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
-    log_msg(LOG_WARNING, 0, "Timeout %s, not supported in EMM Registered",
-            EMM_TimerStr[c]);
+
+    switch (c) {
+    case TMOBILE_REACHABLE:
+        log_msg(LOG_ERR, 0, "%s expiration. UE IMSI %llu. Setting Implicit detach timer",
+                EMM_TimerStr[c], emm->imsi);
+        emm_stopTimer(emm, TMOBILE_REACHABLE);
+        emm_setTimer(emm, TIMPLICIT_DETACH, NULL, 0);
+        break;
+    case TIMPLICIT_DETACH:
+        emm_stopTimer(emm, TIMPLICIT_DETACH);
+        log_msg(LOG_ERR, 0, "%s expiration. UE IMSI %llu. Implicit detach",
+                EMM_TimerStr[c], emm->imsi);
+        emm_stop(emm);
+        break;
+    default:
+        log_msg(LOG_ERR, 0, "Timer (%s) not recognized", EMM_TimerStr[c]);
+        break;
+    }
 }
 
 
