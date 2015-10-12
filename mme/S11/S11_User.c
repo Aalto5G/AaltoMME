@@ -229,6 +229,7 @@ void sendCreateSessionReq(gpointer u){
     memset(ie_bearer_ctx, 0, sizeof(union gtpie_member)*3);
     /*  Send Create Context Request to SGW*/
 
+    memset(qos, 0, sizeof(struct qos_t));
     subs_cpyQoS_GTP(self->subs, &qos);
 
     self->oMsglen = get_default_gtp(2, GTP2_CREATE_SESSION_REQ, &(self->oMsg));

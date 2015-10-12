@@ -108,6 +108,7 @@ void subs_cpyQoS_GTP(Subscription s, struct qos_t *qos){
     /*  // do something with key and value */
     /*  pdn = (PDNCtx*)value; */
     /* } */
+    memset(qos, 0, sizeof(struct qos_t));
     pdn = self->pdn;
 
     qos->pvi    = pdn->qos.arp.preemption_vulnerability;
@@ -152,10 +153,10 @@ const char* subs_getAPN(const Subscription s){
 }
 
 guint8* subs_getEncodedAPN(const Subscription s, gpointer buffer, gsize maxLen, gsize *len){
-	Subs_t *self = (Subs_t*)s;
+    Subs_t *self = (Subs_t*)s;
 
-	uint8_t i, label_len=0, *tmp, *res;
-	GString *apn = self->pdn->apn;
+    uint8_t i, label_len=0, *tmp, *res;
+    GString *apn = self->pdn->apn;
 
     tmp = apn->str;
     memcpy(buffer+1, apn->str, apn->len);
@@ -191,29 +192,29 @@ const uint8_t subs_getPDNType(const Subscription s){
 }
 
 void subs_getPDNAddr(const Subscription s, struct PAA_t *paa, gsize *len){
-	Subs_t *self = (Subs_t*)s;
+    Subs_t *self = (Subs_t*)s;
     PDNCtx_t *pdn;
     memset(paa, 0, sizeof(struct PAA_t));
     pdn = self->pdn;
 
-	paa->type = pdn->pdn_addr_type;
-	switch(pdn->pdn_addr_type){
-	case PAA_IP4:
-		*len = 5;
-		memcpy(&(paa->addr.ipv4), pdn->pdn_addr, 4);
-		break;
-	case PAA_IP6:
-		*len = 17;
-		memcpy(paa->addr.ipv6, pdn->pdn_addr, 16);
-		break;
-	case PAA_IP46:
-		*len = 21;
-		memcpy(paa->addr.both.ipv6, pdn->pdn_addr, 16);
-		memcpy(&(paa->addr.both.ipv4), pdn->pdn_addr + 16, 4);
+    paa->type = pdn->pdn_addr_type;
+    switch(pdn->pdn_addr_type){
+    case PAA_IP4:
+        *len = 5;
+        memcpy(&(paa->addr.ipv4), pdn->pdn_addr, 4);
         break;
-	default:
-		g_error("Wrong coding of PDN address, type %u", pdn->pdn_addr_type);
-	}
+    case PAA_IP6:
+        *len = 17;
+        memcpy(paa->addr.ipv6, pdn->pdn_addr, 16);
+        break;
+    case PAA_IP46:
+        *len = 21;
+        memcpy(paa->addr.both.ipv6, pdn->pdn_addr, 16);
+        memcpy(&(paa->addr.both.ipv4), pdn->pdn_addr + 16, 4);
+        break;
+    default:
+        g_error("Wrong coding of PDN address, type %u", pdn->pdn_addr_type);
+    }
 }
 
 void subs_setPDNaddr(Subscription s, const struct PAA_t *paa){
@@ -245,38 +246,38 @@ void subs_setPDNaddr(Subscription s, const struct PAA_t *paa){
 }
 
 PDNCtx subs_newPDNCtx(Subscription s){
-	Subs_t *self = (Subs_t*)s;
-	return self->pdn;
+    Subs_t *self = (Subs_t*)s;
+    return self->pdn;
 }
 
 void subs_setUEAMBR(Subscription s, guint64 ue_ambr_ul, guint64 ue_ambr_dl){
-	Subs_t *self = (Subs_t*)s;
-	self->ambr_ul = ue_ambr_ul;
+    Subs_t *self = (Subs_t*)s;
+    self->ambr_ul = ue_ambr_ul;
     self->ambr_dl = ue_ambr_dl;
 }
 
 void subs_getUEAMBR(const Subscription s, guint64 *ue_ambr_ul, guint64 *ue_ambr_dl){
-	Subs_t *self = (Subs_t*)s;
-	*ue_ambr_ul = self->ambr_ul;
+    Subs_t *self = (Subs_t*)s;
+    *ue_ambr_ul = self->ambr_ul;
     *ue_ambr_dl = self->ambr_dl;
 }
 
 void pdnCtx_setDefaultBearerQoS(PDNCtx _pdn, struct qos_t *qos){
-	PDNCtx_t *pdn = (PDNCtx_t *)_pdn;
-	pdn->qos.qci = qos->qci;
-	pdn->qos.arp.level = qos->pl;
-	pdn->qos.arp.preemption_capability = qos->pci;
-	pdn->qos.arp.preemption_vulnerability = qos->pvi;
-	pdn->subscribed_apn_ambr_dl = qos->mbr_ul;
-	pdn->subscribed_apn_ambr_up = qos->mbr_dl;
+    PDNCtx_t *pdn = (PDNCtx_t *)_pdn;
+    pdn->qos.qci = qos->qci;
+    pdn->qos.arp.level = qos->pl;
+    pdn->qos.arp.preemption_capability = qos->pci;
+    pdn->qos.arp.preemption_vulnerability = qos->pvi;
+    pdn->subscribed_apn_ambr_dl = qos->mbr_ul;
+    pdn->subscribed_apn_ambr_up = qos->mbr_dl;
 }
 
 void pdnCtx_setPDNtype(PDNCtx _pdn, guint8 t){
-	PDNCtx_t *pdn = (PDNCtx_t *)_pdn;
-	pdn->pdn_addr_type = t;
+    PDNCtx_t *pdn = (PDNCtx_t *)_pdn;
+    pdn->pdn_addr_type = t;
 }
 
 void pdnCtx_setAPN(PDNCtx _pdn, const char* apn){
-	PDNCtx_t *pdn = (PDNCtx_t *)_pdn;
-	g_string_assign(pdn->apn, apn);
+    PDNCtx_t *pdn = (PDNCtx_t *)_pdn;
+    g_string_assign(pdn->apn, apn);
 }
