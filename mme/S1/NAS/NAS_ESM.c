@@ -64,7 +64,7 @@ static gboolean esm_errorEMMToSessions(gpointer unused,
 void esm_errorEMM(gpointer esm_h){
     ESM_t *self = (ESM_t*)esm_h;
 
-    self->emm = NULL;
+    /* self->emm = NULL; */
     log_msg(LOG_ERR, 0, "EMM Error indication, deleting ESM");
     g_hash_table_foreach_remove(self->sessions, esm_errorEMMToSessions, self);
     /* Loyer layer will free this?*/
