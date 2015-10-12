@@ -225,6 +225,8 @@ void sendCreateSessionReq(gpointer u){
     ESM_BearerContext bearer;
 
     log_msg(LOG_DEBUG, 0, "Enter");
+    memset(ie, 0, sizeof(union gtpie_member)*14);
+    memset(ie_bearer_ctx, 0, sizeof(union gtpie_member)*3);
     /*  Send Create Context Request to SGW*/
 
     subs_cpyQoS_GTP(self->subs, &qos);
@@ -389,6 +391,8 @@ void sendModifyBearerReq(gpointer u){
     gsize fteid_size;
     ESM_BearerContext bearer;
 
+    memset(ie, 0, sizeof(union gtpie_member)*13);
+    memset(ie_bearer_ctx, 0, sizeof(union gtpie_member)*3);
 
     log_msg(LOG_DEBUG, 0, "Enter");
     /*  Send Create Context Request to SGW*/
@@ -432,6 +436,7 @@ void sendDeleteSessionReq(gpointer u){
     S11_user_t *self = (S11_user_t*)u;
 
     union gtpie_member ie[13];
+    memset(ie, 0, sizeof(union gtpie_member)*13);
 
     /*  Send Delete Session Request to SGW*/
     /******************************************************************************/
@@ -454,6 +459,7 @@ void sendReleaseAccessBearersReq(gpointer u){
     S11_user_t *self = (S11_user_t*)u;
 
     union gtpie_member ie[13];
+    memset(ie, 0, sizeof(union gtpie_member)*13);
 
     /*  Send Release Access Bearers Request to SGW*/
     /******************************************************************************/
