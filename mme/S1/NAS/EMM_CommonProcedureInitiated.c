@@ -195,7 +195,8 @@ static void emm_processTimeout(gpointer emm_h, gpointer buf, gsize len,
             log_msg(LOG_INFO, 0, "%s expiration. UE TMSI %x",
                     EMM_TimerStr[c], emm->guti.mtmsi);
         }else{
-            log_msg(LOG_INFO, 0, "%s expiration. unidentified UE");
+            log_msg(LOG_INFO, 0, "%s expiration. unidentified UE",
+                    EMM_TimerStr[c]);
         }
         /* Retransmission */
         ecm_send(emm->ecm, buf, len);
