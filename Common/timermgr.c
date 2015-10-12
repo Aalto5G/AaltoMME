@@ -99,6 +99,7 @@ TimerMgr init_timerMgr(struct event_base *ev_base){
                                          g_direct_equal,
                                          NULL,
                                          (GDestroyNotify)free_timer);
+    return self;
 }
 
 void free_timerMgr(TimerMgr h){
