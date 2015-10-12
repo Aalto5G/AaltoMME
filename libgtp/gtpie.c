@@ -102,10 +102,10 @@ int gtp2ie_tliv(void *p, unsigned int *length, unsigned int size,  uint8_t type,
 int gtp2ie_gettliv(union gtpie_member* ie[], int type, int instance, uint8_t dst[], uint16_t *iesize){
   int ien;
   ien = gtpie_getie(ie, type, instance);
-
+  *iesize = 0;
   if (ien>=0){
       if (GTPIE_DEBUG)
-	      printf("IE type %d found, length %d\n", type, ntoh16(ie[ien]->tliv.l));
+          printf("IE type %d found, length %d\n", type, ntoh16(ie[ien]->tliv.l));
       memcpy(dst, ie[ien]->tliv.v, ntoh16(ie[ien]->tliv.l));
       *iesize = ntoh16(ie[ien]->tliv.l);
       return 0;

@@ -497,7 +497,7 @@ void parseCtxRsp(gpointer u, GError **err){
     S11_user_t *self = (S11_user_t*)u;
     union gtpie_member *bearerCtxGroupIE[GTPIE_SIZE];
     uint8_t value[GTP2IE_MAX], value_bc[GTP2IE_MAX], addr[INET6_ADDRSTRLEN], ebi;
-    uint16_t vsize;
+    uint16_t vsize = 0;
     uint32_t numIE;
     struct fteid_t fteid;
     struct in_addr s1uaddr;
@@ -513,7 +513,6 @@ void parseCtxRsp(gpointer u, GError **err){
         s11u_setS11fteid(self, value);
         log_msg(LOG_DEBUG, 0, "S11 Sgw teid = %x into", hton32(self->rTEID));
     }
-
 
     /* F-TEID S5 /S8 (PGW)*/
     gtp2ie_gettliv(self->ie, GTPV2C_IE_FTEID, 1, value, &vsize);
