@@ -23,6 +23,7 @@
 #include "glib.h"
 #include "NAS_Definitions.h"
 #include "EMM_State.h"
+#include "EMM_FSMConfig.h"
 #include "timermgr.h"
 
 typedef struct{
@@ -45,6 +46,7 @@ typedef struct{
     gpointer     esm;           /**< Higher layer */
     gpointer     s6a;
     EMM_State    *state;
+    EMMState     stateName;
 
     TimerMgr     tm;
     Timer        *activeTimers;
@@ -136,11 +138,7 @@ EMMCtx emmCtx_init();
 
 void emmCtx_free(EMMCtx s);
 
-void emm_setState(gpointer emm_h, EMM_State *s);
-
-const guint64 emmCtx_getIMSI(const EMMCtx emm);
-
-const guint64 emmCtx_getMSISDN(const EMMCtx emm);
+void emm_setState(EMMCtx emm_h, EMM_State *s, EMMState stateName);
 
 void emmCtx_setNewAuthQuadruplet(EMMCtx emm, AuthQuadruplet *a);
 
@@ -156,11 +154,6 @@ Subscription emmCtx_getSubscription(const EMMCtx emm);
 
 void emmCtx_newGUTI(EMMCtx emm, guti_t *guti);
 
-const guti_t * emmCtx_getGUTI(const EMMCtx emm);
-
 guint32 *emmCtx_getM_TMSI_p(const EMMCtx emm);
-
-void emmCtx_replaceEMM(EMMCtx_t **emm, EMMCtx_t *old_emm);
-
 
 #endif /* EMM_CTX_H*/

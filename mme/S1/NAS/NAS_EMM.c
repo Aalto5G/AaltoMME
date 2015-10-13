@@ -62,13 +62,22 @@ void emm_registerECM(EMMCtx emm_h, gpointer ecm){
 
 void emm_deregister(EMMCtx emm_h){
     EMMCtx_t *self = (EMMCtx_t*)emm_h;
-    emm_setTimer(self, TMOBILE_REACHABLE, NULL, 0);
+    if(self->stateName != EMM_Deregistered){
+        emm_setTimer(self, TMOBILE_REACHABLE, NULL, 0);
+    }
     self->ecm = NULL;
 }
 
 void emm_stop(EMMCtx emm_h){
     EMMCtx_t *self = (EMMCtx_t*)emm_h;
     esm_errorEMM(self->esm);
+    emm_stopTimer(self, T3413);
+    emm_stopTimer(self, T3422);
+    emm_stopTimer(self, T3450);
+    emm_stopTimer(self, T3460);
+    emm_stopTimer(self, T3470);
+    emm_stopTimer(self, TMOBILE_REACHABLE);
+    emm_stopTimer(self, TIMPLICIT_DETACH);
     emmChangeState(self, EMM_Deregistered);
 }
 
@@ -167,6 +176,105 @@ void emm_processS6aError(EMMCtx emm_h, GError *err){
 
     emm->state->processError(emm, err);
 }
+
+void processAttach(gpointer emm_h,  GenericNASMsg_t* msg){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    AttachRequest_t *attachMsg;
+    guint i;
+    uint64_t mobid=0ULL;
+    GByteArray *esmRaw;
+    guint16 cap;
+    union nAS_ie_member const *optIE=NULL;
+
+    attachMsg = (AttachRequest_t*)&(msg->plain.eMM);
+    emm->attachStarted = TRUE;
+    emm->msg_attachType = attachMsg->ePSAttachType.v;
+    emm->msg_ksi = attachMsg->nASKeySetId.v & 0x07;
+
+    esmRaw = g_byte_array_new();
+    g_byte_array_append(esmRaw,
+                        (guint8*)attachMsg->eSM_MessageContainer.v,
+                        attachMsg->eSM_MessageContainer.l);
+
+    g_ptr_array_add(emm->pendingESMmsg, esmRaw);
+
+    if(((ePSMobileId_header_t*)attachMsg->ePSMobileId.v)->type == 1 ){  /* IMSI*/
+        for(i=0; i<attachMsg->ePSMobileId.l-1; i++){
+            mobid = mobid*10 + ((attachMsg->ePSMobileId.v[i])>>4);
+            mobid = mobid*10 + ((attachMsg->ePSMobileId.v[i+1])&0x0F);
+        }
+        if(((ePSMobileId_header_t*)attachMsg->ePSMobileId.v)->parity == 1){
+            mobid = mobid*10 + ((attachMsg->ePSMobileId.v[i])>>4);
+        }
+        log_msg(LOG_DEBUG, 0,"Attach Received from IMSI : %llu", mobid);
+        emm->imsi = mobid;
+    }else if(((ePSMobileId_header_t*)attachMsg->ePSMobileId.v)->type == 6 ){    /*GUTI*/
+        memcpy(&(emm->msg_guti), (guti_t *)(attachMsg->ePSMobileId.v+1), 10);
+    }
+
+    memcpy(emm->ueCapabilities,
+           attachMsg->uENetworkCapability.v,
+           attachMsg->uENetworkCapability.l);
+    emm->ueCapabilitiesLen = attachMsg->uENetworkCapability.l;
+
+    /*Optionals*/
+    /* Last visited registered TAI: 0x52*/
+    nas_NASOpt_lookup(attachMsg->optionals, 17, 0x52, &optIE);
+    if(optIE){
+        /* optIE->tv_t3_l.v; */
+    }
+    /*MS network capability: 0x58*/
+    nas_NASOpt_lookup(attachMsg->optionals, 17, 0x31, &optIE);
+    if(optIE){
+        memcpy(emm->msNetCap, optIE->tlv_t4.v, optIE->tlv_t4.l);
+        emm->msNetCapLen = optIE->tlv_t4.l;
+    }
+    /* Additional Update type: 0xF*/
+    nas_NASOpt_lookup(attachMsg->optionals, 17, 0xF, &optIE);
+    emm->msg_additionalUpdateType = FALSE;
+    if(optIE){
+        emm->msg_additionalUpdateType = TRUE;
+        emm->msg_smsOnly = (gboolean)optIE->v_t1_l.v;
+    }
+}
+
+
+int emm_selectAttachType(EMMCtx_t * emm){
+    switch(emm->msg_attachType){
+    case 2:
+        /*Combined EPS/IMSI attach*/
+        if(emm->msg_additionalUpdateType && emm->msg_smsOnly){
+            emm->attachResult = 2;
+            return 1;
+        }else{
+            /* /\*Reject*\/ */
+            /* log_msg(LOG_ERR, 0, */
+            /*         "Combined EPS/IMSI attach not supported"); */
+            /* return 1; */
+            /* HACK */
+            emm->attachResult = 2;
+            return 1;
+        }
+    case 4:
+        /*EPS emergency attach */
+        /*Reject*/
+        log_msg(LOG_ERR, 0,
+                "Emergency attach not supported");
+        return 0;
+    case 7:
+        /*Reserved*/
+        /*Reject*/
+        log_msg(LOG_ERR, 0,
+                "Reserved attach type received");
+        return 0;
+    case 1:
+    default:
+        /*EPS attach*/
+        emm->attachResult = 1;
+        return 1;
+    }
+}
+
 
 void emm_sendAttachReject(EMMCtx emm_h, EMMCause_t eMMcause,
                           gpointer esm_msg, gsize msgLen){

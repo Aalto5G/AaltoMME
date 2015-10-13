@@ -27,6 +27,10 @@ gpointer emm_getS11(EMMCtx emm_h);
 
 void emm_processS6aError(EMMCtx emm_h, GError *err);
 
+void processAttach(gpointer emm_h,  GenericNASMsg_t* msg);
+
+int emm_selectAttachType(EMMCtx_t * emm);
+
 void emm_sendAttachReject(EMMCtx emm_h, guint cause,
                           gpointer esm_msg, gsize msgLen);
 

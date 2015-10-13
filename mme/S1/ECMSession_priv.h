@@ -20,6 +20,7 @@
 #define ECMSESSION_PRIV_HFILE
 
 #include <glib.h>
+#include "NAS.h"
 #include "ECMSession.h"
 #include "ECMSession_State.h"
 

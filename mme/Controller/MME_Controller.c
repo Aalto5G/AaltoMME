@@ -28,6 +28,7 @@
 #include "logmgr.h"
 #include "MME_Controller.h"
 #include "MME.h"
+#include "EMMCtx_iface.h"
 #include "nodemgr.h"
 #include "ESM_BearerContext.h"
 #include "EPS_Session_priv.h"

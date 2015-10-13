@@ -21,6 +21,7 @@
 #include <glib.h>
 #include "MME.h"
 #include "EPS_Session.h"
+#include "EMMCtx_iface.h"
 
 /**
  * @brief initiates the S11 stack

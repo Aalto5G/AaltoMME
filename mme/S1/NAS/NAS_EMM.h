@@ -22,6 +22,7 @@
 #include "S1AP.h"
 #include "ECMSession_priv.h"
 #include "timermgr.h"
+#include "EMMCtx_iface.h"
 #include <glib.h>
 
 /**

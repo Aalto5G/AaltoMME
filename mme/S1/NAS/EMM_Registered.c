@@ -25,9 +25,23 @@
 static int emm_selectUpdateType(EMMCtx_t * emm);
 
 static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
-    log_msg(LOG_WARNING, 0,
-            "NAS Message type (%x) not recognized in this context",
-            msg->plain.eMM.messageType);
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    switch(msg->plain.eMM.messageType){
+    case AttachRequest:
+        esm_errorEMM(emm->esm);
+        ecmSession_getTAI(emm->ecm, emm->sn, &(emm->tac));
+        processAttach(emm, msg);
+        /* Check last TAI and trigger S6a if different from current*/
+        if(!emm_selectAttachType(emm)){
+            return;
+        }
+        emm_triggerAKAprocedure(emm);
+        break;
+    default:
+        log_msg(LOG_WARNING, 0,
+                "NAS Message type (%u) not recognized in EMM Registered",
+                msg->plain.eMM.messageType);
+    }
 }
 
 static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
@@ -79,6 +93,24 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     }
 
     switch(msg.plain.eMM.messageType){
+    case AttachRequest:
+        esm_errorEMM(emm->esm);
+        ecmSession_getTAI(emm->ecm, emm->sn, &(emm->tac));
+        processAttach(emm, &msg);
+        /* Check last TAI and trigger S6a if different from current*/
+        if(!emm_selectAttachType(emm)){
+            return;
+        }
+
+        if(!isAuth || TRUE){
+            emm_triggerAKAprocedure(emm);
+            return;
+        }
+
+        emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink);
+        emmChangeState(emm, EMM_SpecificProcedureInitiated);
+        emm_processFirstESMmsg(emm);
+        break;
     case DetachRequest:
         log_msg(LOG_DEBUG, 0, "Received DetachRequest");
         processDetachReq(emm, &msg);

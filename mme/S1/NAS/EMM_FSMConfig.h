@@ -18,7 +18,6 @@
 #define EMM_FSMCONFIG_HFILE
 
 #include <glib.h>
-#include "EMMCtx.h"
 
 /**
  * EMM STATES, More info in 3gpp 24.301 clause 5.1.3.4

@@ -95,6 +95,11 @@ static void ecmSession_sendPathSwitchReqAck(ECMSession h){
     gsize fteid_size=0;
     guint8 ncc;
 
+    if(!self){
+        log_msg(LOG_INFO, 0, "ECM: failed to send message. Not connected");
+        return;
+    }
+
     /*Build PatchSwitch Req Ack*/
     s1out = S1AP_newMsg();
     s1out->choice = successful_outcome;
@@ -200,6 +205,11 @@ void ecm_send(ECMSession h, gpointer msg, size_t len){
 
     ECMSession_t *self = (ECMSession_t *)h;
 
+    if(!self){
+        log_msg(LOG_INFO, 0, "ECM: failed to send message. Not connected");
+        return;
+    }
+
     s1out = S1AP_newMsg();
     s1out->choice = initiating_message;
     s1out->pdu->procedureCode = id_downlinkNASTransport;
@@ -241,6 +251,11 @@ void ecm_sendCtxtSUReq(ECMSession h, gpointer msg, size_t len, GList *bearers){
     guint32 teid;
     struct fteid_t fteid;
     gsize fteid_size=0;
+
+    if(!self){
+        log_msg(LOG_INFO, 0, "ECM: failed to send message. Not connected");
+        return;
+    }
 
     s1out = S1AP_newMsg();
     s1out->choice = initiating_message;
@@ -395,6 +410,12 @@ void ecmSession_newGUTI(ECMSession h, guti_t *guti){
 
 void ecm_sendUEContextReleaseCommand(const ECMSession h, cause_choice_t choice, uint32_t cause){
     ECMSession_t *self = (ECMSession_t *)h;
+
+    if(!self){
+        log_msg(LOG_INFO, 0, "ECM: failed to send message. Not connected");
+        return;
+    }
+
     self->state->release(self, choice, cause);
 }
 

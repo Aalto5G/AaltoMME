@@ -23,6 +23,7 @@
 #include "Subscription.h"
 #include "S11_State.h"
 #include "EPS_Session.h"
+#include "EMMCtx_iface.h"
 
 gpointer s11u_newUser(gpointer s11, EMMCtx emm, EPS_Session s);
 

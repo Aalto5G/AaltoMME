@@ -90,6 +90,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         emmChangeState(emm, EMM_Registered);
         break;
     case DetachRequest:
+        emm_stopTimer(emm, T3450);
         log_msg(LOG_DEBUG, 0, "Received DetachRequest");
         processDetachReq(emm, &msg);
         if(emm->ksi != emm->msg_ksi){

@@ -61,9 +61,10 @@ void emmCtx_free(EMMCtx s){
     g_free(self);
 }
 
-void emm_setState(EMMCtx emm_h, EMM_State *s){
+void emm_setState(EMMCtx emm_h, EMM_State *s, EMMState stateName){
     EMMCtx_t *self = (EMMCtx_t*)emm_h;
     self->state = s;
+    self->stateName = stateName;
 }
 
 const guint64 emmCtx_getIMSI(const EMMCtx emm){
@@ -129,30 +130,4 @@ const guti_t * emmCtx_getGUTI(const EMMCtx emm){
 guint32 *emmCtx_getM_TMSI_p(const EMMCtx emm){
     EMMCtx_t *self = (EMMCtx_t*)emm;
     return &(self->guti.mtmsi);
-}
-
-void emmCtx_replaceEMM(EMMCtx_t **emm, EMMCtx_t *old_emm){
-    EMMCtx_t *temp = *emm;
-    GPtrArray *tmp;
-    *emm = old_emm;
-
-    old_emm->attachStarted = temp->attachStarted;
-    old_emm->attachResult =  temp->attachResult;
-
-    tmp = old_emm->pendingESMmsg;
-    old_emm->pendingESMmsg = temp->pendingESMmsg;
-    temp->pendingESMmsg = tmp;
-
-    old_emm->ueCapabilitiesLen = temp->ueCapabilitiesLen;
-    memcpy(old_emm->ueCapabilities,
-           temp->ueCapabilities,
-           temp->ueCapabilitiesLen);
-
-    old_emm->state = temp->state;
-    old_emm->ecm = temp->ecm;
-    ecmSession_setEMM(temp->ecm, old_emm);
-
-    old_emm->msg_ksi = temp->msg_ksi;
-
-    emm_free(temp);
 }

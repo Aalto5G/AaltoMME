@@ -24,6 +24,7 @@
 #include "EMM_DeregisteredInitiated.h"
 
 #include "ESM_FSMConfig.h"
+#include "EMMCtx.h"
 
 #include "logmgr.h"
 
@@ -52,10 +53,9 @@ void emmDestroyFSM(){
     g_free(emm_states);
 }
 
-
 void emmChangeState(gpointer ctx, EMMState s){
     log_msg(LOG_INFO, 0, "Change to EMM %s", EMMStateName[s]);
-    emm_setState(ctx, &(emm_states[s]));
+    emm_setState(ctx, &(emm_states[s]), s);
 }
 
 void emmNotImplemented(gpointer self){

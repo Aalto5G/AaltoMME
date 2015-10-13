@@ -27,10 +27,8 @@
 #include "MME_S1_priv.h"
 #include "EMM_Timers.h"
 
-void processAttach(gpointer emm_h,  GenericNASMsg_t* msg);
 void attachContinuationSwitch(gpointer emm_h, guint8 ksi_msg);
 void emm_AuthInfoAvailable(gpointer emm_h);
-static int emm_selectAttachType(EMMCtx_t *emm);
 
 
 static void emmProcessMsg(gpointer emm_h,  GenericNASMsg_t* msg){
@@ -207,103 +205,6 @@ void linkEMMDeregistered(EMM_State* s){
     s->processTimeoutMax = (EMM_eventTimeout) emm_processTimeoutMax;
 }
 
-
-static int emm_selectAttachType(EMMCtx_t * emm){
-    switch(emm->msg_attachType){
-    case 2:
-        /*Combined EPS/IMSI attach*/
-        if(emm->msg_additionalUpdateType && emm->msg_smsOnly){
-            emm->attachResult = 2;
-            return 1;
-        }else{
-            /* /\*Reject*\/ */
-            /* log_msg(LOG_ERR, 0, */
-            /*         "Combined EPS/IMSI attach not supported"); */
-            /* return 1; */
-            /* HACK */
-            emm->attachResult = 2;
-            return 1;
-        }
-    case 4:
-        /*EPS emergency attach */
-        /*Reject*/
-        log_msg(LOG_ERR, 0,
-                "Emergency attach not supported");
-        return 0;
-    case 7:
-        /*Reserved*/
-        /*Reject*/
-        log_msg(LOG_ERR, 0,
-                "Reserved attach type received");
-        return 0;
-    case 1:
-    default:
-        /*EPS attach*/
-        emm->attachResult = 1;
-        return 1;
-    }
-}
-
-void processAttach(gpointer emm_h,  GenericNASMsg_t* msg){
-    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
-    AttachRequest_t *attachMsg;
-    guint i;
-    uint64_t mobid=0ULL;
-    GByteArray *esmRaw;
-    guint16 cap;
-    union nAS_ie_member const *optIE=NULL;
-
-    attachMsg = (AttachRequest_t*)&(msg->plain.eMM);
-    emm->attachStarted = TRUE;
-    emm->msg_attachType = attachMsg->ePSAttachType.v;
-    emm->msg_ksi = attachMsg->nASKeySetId.v & 0x07;
-
-    esmRaw = g_byte_array_new();
-    g_byte_array_append(esmRaw,
-                        (guint8*)attachMsg->eSM_MessageContainer.v,
-                        attachMsg->eSM_MessageContainer.l);
-
-    g_ptr_array_add(emm->pendingESMmsg, esmRaw);
-
-    if(((ePSMobileId_header_t*)attachMsg->ePSMobileId.v)->type == 1 ){  /* IMSI*/
-        for(i=0; i<attachMsg->ePSMobileId.l-1; i++){
-            mobid = mobid*10 + ((attachMsg->ePSMobileId.v[i])>>4);
-            mobid = mobid*10 + ((attachMsg->ePSMobileId.v[i+1])&0x0F);
-        }
-        if(((ePSMobileId_header_t*)attachMsg->ePSMobileId.v)->parity == 1){
-            mobid = mobid*10 + ((attachMsg->ePSMobileId.v[i])>>4);
-        }
-        log_msg(LOG_DEBUG, 0,"Attach Received from IMSI : %llu", mobid);
-        emm->imsi = mobid;
-    }else if(((ePSMobileId_header_t*)attachMsg->ePSMobileId.v)->type == 6 ){    /*GUTI*/
-        memcpy(&(emm->msg_guti), (guti_t *)(attachMsg->ePSMobileId.v+1), 10);
-    }
-
-    memcpy(emm->ueCapabilities,
-           attachMsg->uENetworkCapability.v,
-           attachMsg->uENetworkCapability.l);
-    emm->ueCapabilitiesLen = attachMsg->uENetworkCapability.l;
-
-    /*Optionals*/
-    /* Last visited registered TAI: 0x52*/
-    nas_NASOpt_lookup(attachMsg->optionals, 17, 0x52, &optIE);
-    if(optIE){
-        /* optIE->tv_t3_l.v; */
-    }
-    /*MS network capability: 0x58*/
-    nas_NASOpt_lookup(attachMsg->optionals, 17, 0x31, &optIE);
-    if(optIE){
-        memcpy(emm->msNetCap, optIE->tlv_t4.v, optIE->tlv_t4.l);
-        emm->msNetCapLen = optIE->tlv_t4.l;
-    }
-    /* Additional Update type: 0xF*/
-    nas_NASOpt_lookup(attachMsg->optionals, 17, 0xF, &optIE);
-    emm->msg_additionalUpdateType = FALSE;
-    if(optIE){
-        emm->msg_additionalUpdateType = TRUE;
-        emm->msg_smsOnly = (gboolean)optIE->v_t1_l.v;
-    }
-}
 
 void attachContinuationSwitch(gpointer emm_h, guint8 ksi_msg){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;

@@ -18,20 +18,15 @@
 #ifndef EMM_CTX_IFACE_H
 #define EMM_CTX_IFACE_H
 
+#include <glib.h>
+#include "NAS_Definitions.h"
+
 typedef void* EMMCtx;
 
-/**
- * @brief EMMCtx Constructor
- * @return empty subscription
- *
- *  Allocates the EMMCtx handler
- */
-EMMCtx emm_init();
+const guint64 emmCtx_getIMSI(const EMMCtx emm);
 
-/**
- * @brief Dealocates the EMMCtx Handler
- * @param [in]  s EMMCtx handler to be removed.
- */
-void emm_free(EMMCtx s);
+const guint64 emmCtx_getMSISDN(const EMMCtx emm);
+
+const guti_t *emmCtx_getGUTI(const EMMCtx emm);
 
 #endif /* EMM_CTX_IFACE_H*/
