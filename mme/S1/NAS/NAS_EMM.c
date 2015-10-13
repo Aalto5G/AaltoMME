@@ -17,6 +17,7 @@
 
 #include <glib.h>
 #include <arpa/inet.h>
+#include <string.h>
 #include "MME_S6a.h"
 #include "NAS_EMM_priv.h"
 #include "NAS.h"
@@ -769,6 +770,7 @@ void emm_sendIdentityReq(EMMCtx emm_h){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     guint8 *pointer;
     guint8 buffer[150];
+    bzero(buffer, 150);
 
     log_msg(LOG_DEBUG, 0, "Building Identity Request");
 
