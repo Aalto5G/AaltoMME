@@ -152,11 +152,11 @@ static guint8 emm_nextKSI(guint8 k){
 }
 
 static guint8 emm_generateNewKSI(guint8 k1, guint k2){
-    k1 = emm_nextKSI(k1);
+    k2 = emm_nextKSI(k2);
     if(k1 == k2){
-        k1 = emm_nextKSI(k1);
+        k2 = emm_nextKSI(k2);
     }
-    return k1;
+    return k2;
 }
 
 void emm_processS6aError(EMMCtx emm_h, GError *err){

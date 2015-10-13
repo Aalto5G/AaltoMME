@@ -92,8 +92,8 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         ecmSession_getTAI(emm->ecm, sn, &tac);
         if(tac != emm->tac || memcmp(sn, emm->sn, 3)!=0){
             log_msg(LOG_INFO, 0,
-                    "UE (IMSI %ull) TA changed from (TAC:%u) to (TAC:%u)",
-                    emm->imsi, emm->tac, tac);
+                    "UE (IMSI %llu) TA changed from (TAC:%x) to (TAC:%x)",
+                    emm->imsi, ntohs(emm->tac), ntohs(tac));
             ecmSession_getTAI(emm->ecm, emm->sn, &(emm->tac));
         }
         emm_processTAUReq(emm, &msg);
