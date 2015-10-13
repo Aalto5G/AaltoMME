@@ -63,9 +63,12 @@ static void free_timer(Timer_t *t){
  */
 static void timer_cb(int sock, short which, void *arg){
     Timer_t * t = (Timer_t*)arg;
+    TimerMgr_t *tm;
     Timer_cb cb_max_To;
     guint32 rtx, max_rtx;
+    gboolean timerExists = FALSE;
 
+    tm = t->mgr;
     t->rtx++;
     if(t->rtx <= t->max_rtx ){
         /* Store variables just in case the Timer is freed in the cb */
@@ -76,8 +79,10 @@ static void timer_cb(int sock, short which, void *arg){
         /* Process CB*/
         t->cb_to((Timer)t, t->cb_args);
 
+        /* Check if timer still exists*/
+        timerExists = g_hash_table_contains(tm->timers, t);
         /*Last timer and cb_maxTo is NULL*/
-        if(!cb_max_To && rtx == max_rtx){
+        if(!cb_max_To && rtx == max_rtx && timerExists){
             tm_stop_timer(t);
         }
         return;
@@ -85,7 +90,11 @@ static void timer_cb(int sock, short which, void *arg){
 
     /* Max Retransmission reached*/
     t->cb_maxTo((Timer)t, t->cb_args);
-    tm_stop_timer(t);
+
+    timerExists = g_hash_table_contains(tm->timers, t);
+    if(timerExists){
+        tm_stop_timer(t);
+    }
 }
 
 TimerMgr init_timerMgr(struct event_base *ev_base){
@@ -148,7 +157,12 @@ Timer tm_add_timer(TimerMgr h, const struct timeval *tv, const uint32_t max_rtx,
 void tm_stop_timer(Timer timer){
 
     Timer_t *t = (Timer_t*)timer;
-    TimerMgr_t *tm = t->mgr;
+    TimerMgr_t *tm;
+    if(!t){
+        /* Timer doesn't exist anymore*/
+        return;
+    }
+    tm = t->mgr;
 
     if(evtimer_del(t->ev) == -1){
         /* Error occurred, was the timer deleted in the last

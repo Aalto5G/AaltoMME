@@ -115,7 +115,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
             return;
         }
 
-        if(!isAuth || TRUE){
+        if(!isAuth){
             emm_triggerAKAprocedure(emm);
             return;
         }
