@@ -83,7 +83,9 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
             g_error("Received malformed NAS packet");
         }else if(res==2){
             /* EH trigger AKA procedure */
-            log_msg(LOG_WARNING, 0, "Wrong SQN Count");
+            log_msg(LOG_WARNING, 0, "Wrong SQN Count. Local sqn: %#x, packet sqn: %#x",
+                    nas_getLastCount(emm->parser, NAS_UpLink),
+                    ((guint8*)buf)[5]);
             return;
         }
 

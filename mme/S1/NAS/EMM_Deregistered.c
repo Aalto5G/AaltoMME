@@ -45,6 +45,7 @@ static void emmProcessMsg(gpointer emm_h,  GenericNASMsg_t* msg){
     switch(msg->plain.eMM.messageType){
 
     case AttachRequest:
+        ecmSession_getTAI(emm->ecm, emm->sn, &(emm->tac));
         processAttach(emm, msg);
         if(!emm_selectAttachType(emm)){
             return;
@@ -89,7 +90,9 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
             g_error("Received malformed NAS packet");
         }else if(res==2){
             /* EH trigger AKA procedure */
-            log_msg(LOG_WARNING, 0, "Wrong SQN Count");
+            log_msg(LOG_WARNING, 0, "Wrong SQN Count. Local sqn: %#x, packet sqn: %#x",
+                    nas_getLastCount(emm->parser, NAS_UpLink),
+                    ((guint8*)buf)[5]);
             return;
         }
 
@@ -107,6 +110,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
 
     switch(msg.plain.eMM.messageType){
     case AttachRequest:
+        ecmSession_getTAI(emm->ecm, emm->sn, &(emm->tac));
         processAttach(emm, &msg);
         /* Check last TAI and trigger S6a if different from current*/
         if(!emm_selectAttachType(emm)){

@@ -79,6 +79,8 @@ typedef struct{
     guint8       msg_bearerCtx[2];
 
     /* **** Start of MM context **** */
+    guint8       sn[3];         /* Serving network (TBCD PLMN) */
+    guint16      tac;           /* Tracking Area Code */
     guint8       type;          /**< MM type */
     guint8       securityMode;
     gboolean     nhi;           /**< Next Hop Indicator */

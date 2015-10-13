@@ -39,6 +39,8 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     guint8 isAuth = 0, res=0;
     guti_t msg_guti;
     guint8 msg_ksi;
+    guint8 sn[3] = {0};
+    guint16 tac=0;
 
     nas_getHeader(buf, len, &s, &p);
 
@@ -47,7 +49,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     }
 
     res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
-    log_msg(LOG_INFO, 0, "Local sqn %#x, packet sqn: %#x",
+    log_msg(LOG_DEBUG, 0, "Local sqn %#x, packet sqn: %#x",
             nas_getLastCount(emm->parser, NAS_UpLink),
             ((guint8*)buf)[5]);
     if(res==0){
@@ -55,7 +57,9 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         g_error("Received malformed NAS packet");
     }else if(res==2){
         /* EH trigger AKA procedure */
-        log_msg(LOG_WARNING, 0, "Wrong SQN Count");
+        log_msg(LOG_WARNING, 0, "Wrong SQN Count. Local sqn: %#x, packet sqn: %#x",
+            nas_getLastCount(emm->parser, NAS_UpLink),
+            ((guint8*)buf)[5]);
         return;
     }
 
@@ -85,6 +89,13 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         esm_detach(emm->esm, emm_detachAccept, emm);
         break;
     case TrackingAreaUpdateRequest:
+        ecmSession_getTAI(emm->ecm, sn, &tac);
+        if(tac != emm->tac || memcmp(sn, emm->sn, 3)!=0){
+            log_msg(LOG_INFO, 0,
+                    "UE (IMSI %ull) TA changed from (TAC:%u) to (TAC:%u)",
+                    emm->imsi, emm->tac, tac);
+            ecmSession_getTAI(emm->ecm, emm->sn, &(emm->tac));
+        }
         emm_processTAUReq(emm, &msg);
         if(!emm_selectUpdateType(emm)){
             return;
@@ -122,7 +133,7 @@ static void emm_processSrvReq(gpointer emm_h, gpointer buf, gsize len){
     }
 
     res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
-    log_msg(LOG_INFO, 0, "Local sqn %#x, packet sqn: %#x",
+    log_msg(LOG_DEBUG, 0, "Local sqn %#x, packet sqn: %#x",
             nas_getLastCount(emm->parser, NAS_UpLink),
             ((guint8*)buf)[1]&0x1F);
     if(res==0){
@@ -130,7 +141,9 @@ static void emm_processSrvReq(gpointer emm_h, gpointer buf, gsize len){
         g_error("Received malformed NAS packet");
     }else if(res==2){
         /* EH trigger AKA procedure */
-        log_msg(LOG_WARNING, 0, "Wrong SQN Count");
+        log_msg(LOG_WARNING, 0, "Wrong SQN Count. Local sqn: %#x, packet sqn: %#x",
+                nas_getLastCount(emm->parser, NAS_UpLink),
+                ((guint8*)buf)[1]&0x1F);
         return;
     }
 

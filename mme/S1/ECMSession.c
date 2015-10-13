@@ -351,6 +351,12 @@ void ecmSession_getTAIlist(const ECMSession h, NAS_tai_list_t *tAIl, gsize *len)
     *len=6;
 }
 
+void ecmSession_getTAI(const ECMSession h, guint8 *sn, guint16 *tac){
+    ECMSession_t *self = (ECMSession_t *)h;
+    memcpy(sn, self->tAI.sn, 3);
+    *tac = self->tAI.tAC;
+}
+
 void ecmSession_getGUMMEI(const ECMSession h, guint32* sn, guint16 *mmegi, guint8 *mmec){
     ECMSession_t *self = (ECMSession_t *)h;
     struct mme_t *mme = s1_getMME(s1Assoc_getS1(self->assoc));
