@@ -130,10 +130,13 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     /*     /\* End of HACK*\/ */
 
     default:
-        emm_stop(emm);
         log_msg(LOG_WARNING, 0,
                 "NAS Message type (%x) not recognized in EMM SPI",
                 msg.plain.eMM.messageType);
+        if(!emm->s1BearersActive || !emm->attachStarted){
+            /* Disconnect ECM */
+            ecm_sendUEContextReleaseCommand(emm->ecm, CauseNas, CauseNas_normal_release);
+        }
     }
 
 }

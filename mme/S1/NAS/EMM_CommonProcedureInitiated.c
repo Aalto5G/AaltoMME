@@ -136,6 +136,10 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         log_msg(LOG_WARNING, 0,
                 "NAS Message type (%x) not recognized in EMM CPI",
                 msg.plain.eMM.messageType);
+        if(!emm->s1BearersActive || !emm->attachStarted){
+            /* Disconnect ECM */
+            ecm_sendUEContextReleaseCommand(emm->ecm, CauseNas, CauseNas_normal_release);
+        }
     }
 }
 
@@ -154,11 +158,9 @@ static void emm_processError(gpointer emm_h, GError *err){
                                  NULL, 0);
         }
         emm_stop(emm);
-        /* emmChangeState(emm, EMM_Deregistered); */
     }else{
         log_msg(LOG_ERR, 0, "Error not recognized, transition to EMM Deregisted");
         emm_stop(emm);
-        /* emmChangeState(emm, EMM_Deregistered); */
     }
 }
 

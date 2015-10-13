@@ -57,6 +57,9 @@ void emm_free(gpointer emm_h){
 
 void emm_registerECM(EMMCtx emm_h, gpointer ecm){
     EMMCtx_t *self = (EMMCtx_t*)emm_h;
+    if(self->ecm){
+        ecm_sendUEContextReleaseCommand(self->ecm, CauseNas, CauseNas_normal_release);
+    }
     self->ecm = ecm;
 }
 

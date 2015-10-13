@@ -147,6 +147,10 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         log_msg(LOG_WARNING, 0,
                 "NAS Message type (%u) not recognized in EMM Registered",
                 msg.plain.eMM.messageType);
+        if(!emm->s1BearersActive){
+            /* Disconnect ECM */
+            ecm_sendUEContextReleaseCommand(emm->ecm, CauseNas, CauseNas_normal_release);
+        }
     }
 
 }
