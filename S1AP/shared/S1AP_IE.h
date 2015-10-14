@@ -2389,4 +2389,120 @@ typedef struct SONConfigurationTransfer_c{
  * */
 SONConfigurationTransfer_t *new_SONConfigurationTransfer();
 
+
+
+
+
+
+
+
+
+
+
+
+/**@brief UE-associatedLogicalS1-ConnectionItem
+ *
+ * UE-associatedLogicalS1-ConnectionItem ::= SEQUENCE { 
+ *     mME-UE-S1AP-ID  MME-UE-S1AP-ID OPTIONAL, 
+ *     eNB-UE-S1AP-ID  ENB-UE-S1AP-ID OPTIONAL, 
+ *     iE-Extensions   ProtocolExtensionContainer { { UE-associatedLogicalS1-ConnectionItemExtIEs} } OPTIONAL,
+ *     ... 
+ * }
+ */
+typedef struct UE_associatedLogicalS1_ConnectionItem_c {
+    void                            (*freeIE)(void *);
+    void                            (*showIE)(void *);
+    uint8_t                         ext;
+    uint8_t                         opt;
+    MME_UE_S1AP_ID_t                *mME_UE_S1AP_ID;
+    ENB_UE_S1AP_ID_t                *eNB_UE_S1AP_ID;
+    ProtocolExtensionContainer_t    *iEext;
+}UE_associatedLogicalS1_ConnectionItem_t;
+
+/** @brief Constructor of UE_associatedLogicalS1_ConnectionItem type
+ *  @return UE_associatedLogicalS1_ConnectionItem_t allocated  and initialized structure
+ * */
+UE_associatedLogicalS1_ConnectionItem_t *new_UE_associatedLogicalS1_ConnectionItem();
+
+
+/**@brief UE-associatedLogicalS1-ConnectionListRes
+ * 
+ * UE-associatedLogicalS1-ConnectionListRes ::= SEQUENCE (SIZE(1.. maxnoofIndividualS1ConnectionsToReset)) OF ProtocolIE-SingleContainer { { UE-associatedLogicalS1-ConnectionItemRes } }
+ *
+ * UE-associatedLogicalS1-ConnectionItemRes S1AP-PROTOCOL-IES ::= {
+ *     { ID id-UE-associatedLogicalS1-ConnectionItem       CRITICALITY reject TYPE UE-associatedLogicalS1-ConnectionItem  PRESENCE mandatory },
+ *     ...
+ * }
+ */
+typedef struct UE_associatedLogicalS1_ConnectionListRes_c{
+    void                                (*freeIE)(void *);
+    void                                (*showIE)(void *);
+    void                                (*additem)(struct UE_associatedLogicalS1_ConnectionListRes_c*, ProtocolIE_SingleContainer_t* ie);
+    void                                *(*newItem)(struct UE_associatedLogicalS1_ConnectionListRes_c*);
+
+    uint8_t                             size;               /*<Number of items*/
+    ProtocolIE_SingleContainer_t        **item;             /*<Item Array */
+}UE_associatedLogicalS1_ConnectionListRes_t;
+
+/** @brief Constructor of UE-associatedLogicalS1-ConnectionListRes type
+ *  @return UE_associatedLogicalS1_ConnectionListRes_t allocated  and initialized structure
+ * */
+UE_associatedLogicalS1_ConnectionListRes_t *new_UE_associatedLogicalS1_ConnectionListRes();
+
+/**@brief UE-associatedLogicalS1-ConnectionListResAck
+ *
+ * UE-associatedLogicalS1-ConnectionListResAck ::= SEQUENCE (SIZE(1.. maxnoofIndividualS1ConnectionsToReset)) OF ProtocolIE-SingleContainer { 
+ *     { UE-associatedLogicalS1-ConnectionItemResAck } 
+ * }
+ *
+ * UE-associatedLogicalS1-ConnectionItemResAck       S1AP-PROTOCOL-IES ::= {
+ *    { ID id-UE-associatedLogicalS1-ConnectionItem        CRITICALITY ignore      TYPE UE-associatedLogicalS1-ConnectionItem         PRESENCE mandatory },
+ *    ...
+ * }
+ */
+typedef UE_associatedLogicalS1_ConnectionListRes_t UE_associatedLogicalS1_ConnectionListResAck_t;
+
+#define new_UE_associatedLogicalS1_ConnectionListResAck new_UE_associatedLogicalS1_ConnectionListRes;
+
+/** @brief ResetAll
+ *
+ * ResetAll ::= ENUMERATED {
+ *     reset-all,
+ *     ...
+ * }
+ */
+typedef enum ResetAll_c{
+    reset_all,
+}ResetAll_e;
+
+extern const char *ResetAllName[];
+
+
+/**@brief ResetType
+ *
+ * ASN.1:
+ * ResetType ::= CHOICE {
+ *     s1-Interface                ResetAll,
+ *     partOfS1-Interface          UE-associatedLogicalS1-ConnectionListRes,
+ *     ...
+ * }
+ * */
+typedef struct ResetType_c{
+    void                (*freeIE)(void*);
+    void                (*showIE)(void*);
+    uint8_t             ext;        /*< Extension flag*/
+    uint8_t             choice;     /*< Choice*/
+    union{
+        ResetAll_e s1_Interface;   /*< */
+        UE_associatedLogicalS1_ConnectionListRes_t *partOfS1_Interface;    /*< */
+    }type;
+}ResetType_t;
+
+/**@brief Constructor of ResetType type
+ * @return ResetType_t allocated  and initialized structure
+ * */
+ResetType_t *new_ResetType();
+
+
+
 #endif /* S1AP_IE_H_ */

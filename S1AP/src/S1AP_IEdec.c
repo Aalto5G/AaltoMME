@@ -660,6 +660,24 @@ CGI_t *dec_CGI(struct BinaryData *bytes){
 }
 
 
+void dec_UE_associatedLogicalS1_ConnectionListRes(struct BinaryData *bytes){
+    uint8_t i, length;
+    UE_associatedLogicalS1_ConnectionListRes_t *v;
+
+    v = new_UE_associatedLogicalS1_ConnectionListRes();
+
+    /*Decode length*/
+    length = decode_constrained_number(bytes, 1, maxNrOfIndividualS1ConnectionsToReset);
+
+    /*Decode Bearers_SubjectToStatusTransfer_Item_t, tyep Bearers_SubjectToStatusTransfer_Item*/
+    for(i=0 ; i < length ; i++){
+        v->additem(v, (ProtocolIE_SingleContainer_t*)dec_protocolIEs(bytes));
+    }
+    return v;	
+}
+
+
+
 void dec_Global_ENB_ID(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
     Global_ENB_ID_t *v;
     struct BinaryData opt, extensions;
@@ -2162,6 +2180,39 @@ void dec_S_TMSI(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
 }
 
 
+void dec_ResetType(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
+    ResetType_t *v = new_ResetType();
+    ie->value=v;
+
+    /*Link functions*/
+    ie->showValue = v->showIE;
+    ie->freeValue = v->freeIE;
+    ie->value=v;
+
+    /*Get Extension flag*/
+    getbit(bytes, &(v->ext));
+
+    /*Get Extension choice*/
+    v->choice = getchoice(bytes, 2, v->ext);
+
+    //align_dec(bytes);
+    switch(v->choice+v->ext*2){
+    case 0:
+	    /* ResetAll_e s1_Interface; */
+        v->type.s1_Interface = decode_enumerated(bytes, 0, 1);
+        break;
+    case 1:
+        /* UE_associatedLogicalS1_ConnectionListRes_t *partOfS1_Interface;*/
+        v->type.partOfS1_Interface = dec_UE_associatedLogicalS1_ConnectionListRes(bytes);
+        break;
+    default:
+        s1ap_msg(WARN, 0, "Extension not implemented\n");
+        /*Extension not implemented*/
+        break;
+    }
+}
+
+
 const getDecS1AP_IE getdec_S1AP_IE[] = {
         dec_MME_UE_S1AP_ID,/*"id-MME-UE-S1AP-ID"*/
         dec_HandoverType,/*"id-HandoverType"*/
@@ -2254,9 +2305,9 @@ const getDecS1AP_IE getdec_S1AP_IE[] = {
         dec_MME_UE_S1AP_ID,/*"id-SourceMME-UE-S1AP-ID"*/
         dec_Bearers_SubjectToStatusTransfer_Item,/*"id-Bearers-SubjectToStatusTransfer-Item"*/
         dec_ENB_StatusTransfer_TransparentContainer,/*"id-eNB-StatusTransfer-TransparentContainer"*/
-        NULL,/*"id-UE-associatedLogicalS1-ConnectionItem"*/
-        NULL,/*"id-ResetType"*/
-        NULL,/*"id-UE-associatedLogicalS1-ConnectionListResAck"*/
+        dec_UE_associatedLogicalS1_ConnectionListRes,/*"id-UE-associatedLogicalS1-ConnectionItem"*/
+        dec_ResetType,/*"id-ResetType"*/
+        dec_UE_associatedLogicalS1_ConnectionListRes,/*"id-UE-associatedLogicalS1-ConnectionListResAck"*/
         dec_E_RABSetupItemBearerSURes,/*"id-E-RABToBeSwitchedULItem"*/
         dec_E_RABSetupListBearerSURes,/*"id-E-RABToBeSwitchedULList"*/
         dec_S_TMSI,/*"id-S-TMSI"*/

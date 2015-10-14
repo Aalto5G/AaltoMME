@@ -49,6 +49,8 @@ const char *Pre_emptionVulnerabilityName[] = {"not-pre-emptable", "pre-emptable"
 
 const char *HandoverTypeName[] = {"intralte", "ltetoutran", "ltetogeran", "utrantolte", "gerantolte"};
 
+const char *ResetAllName[] = {"reset-all"};
+
 iEconstructor getconstructor[]={
         (iEconstructor)new_MME_UE_S1AP_ID,
         (iEconstructor)new_HandoverType,
@@ -4994,6 +4996,237 @@ E_RABToBeSwitchedULList_t *new_E_RABToBeSwitchedULList(){
 
     return self;
 }
+
+
+/* ********** UE-associatedLogicalS1-ConnectionItem ************ */
+/** @brief UE_associatedLogicalS1_ConnectionItem IE Destructor
+ *
+ * Deallocate the UE_associatedLogicalS1_ConnectionItem_t structure.
+ * */
+void free_UE_associatedLogicalS1_ConnectionItem(void* data){
+	UE_associatedLogicalS1_ConnectionItem_t *self = (UE_associatedLogicalS1_ConnectionItem_t*)data;
+    if(!self){
+        return;
+    }
+
+    if(self->mME_UE_S1AP_ID){
+	    if(self->mME_UE_S1AP_ID->freeIE){
+		    self->mME_UE_S1AP_ID->freeIE(self->mME_UE_S1AP_ID);
+	    }
+    }
+    if(self->eNB_UE_S1AP_ID){
+	    if(self->eNB_UE_S1AP_ID->freeIE){
+		    self->eNB_UE_S1AP_ID->freeIE(self->eNB_UE_S1AP_ID);
+	    }
+    }
+    if(self->iEext){
+        if(self->iEext->freeExtensionContainer){
+            self->iEext->freeExtensionContainer(self->iEext);
+        }
+    }
+
+    free(self);
+}
+
+/** @brief Show IE information
+ *
+ * Tool function to print the information on stdout
+ * */
+void show_UE_associatedLogicalS1_ConnectionItem(void* data){
+    UE_associatedLogicalS1_ConnectionItem_t *self = (UE_associatedLogicalS1_ConnectionItem_t*)data;
+
+    if(self->mME_UE_S1AP_ID!=NULL && (self->opt&0x80)== 0x80){
+        printf("\t\t\t*mME_UE_S1AP_ID: \n");
+        self->mME_UE_S1AP_ID->showIE(self->mME_UE_S1AP_ID);
+    }
+
+    if(&(self->eNB_UE_S1AP_ID)!=NULL && (self->opt&0x40)== 0x40){
+	    self->eNB_UE_S1AP_ID->showIE(self->eNB_UE_S1AP_ID);
+    }
+
+    if((self->opt&0x20)== 0x20 && self->iEext!=NULL){
+        self->iEext->showExtensionContainer(self->iEext);
+    }
+}
+
+/** @brief Constructor of UE_associatedLogicalS1_ConnectionItem type
+ *  @return UE_associatedLogicalS1_ConnectionItem_t allocated  and initialized structure
+ * */
+UE_associatedLogicalS1_ConnectionItem_t *new_UE_associatedLogicalS1_ConnectionItem(){
+    UE_associatedLogicalS1_ConnectionItem_t *self;
+
+    self = malloc(sizeof(UE_associatedLogicalS1_ConnectionItem_t));
+    if(!self){
+        s1ap_msg(ERROR, 0, "S1AP UE_associatedLogicalS1_ConnectionItem_t not allocated correctly");
+        return NULL;
+    }
+    memset(self, 0, sizeof(UE_associatedLogicalS1_ConnectionItem_t));
+
+    self->freeIE=free_UE_associatedLogicalS1_ConnectionItem;
+    self->showIE=show_UE_associatedLogicalS1_ConnectionItem;
+
+    /*printf("\ntest new_UE_associatedLogicalS1_ConnectionItem() self(%p)->freeIE(%p)\n", self, *self->freeIE);
+    printf("test new_UE_associatedLogicalS1_ConnectionItem() self(%p)->showIE(%p)\n\n", self, *self->showIE);*/
+
+    return self;
+}
+
+
+/* ******** UE_associatedLogicalS1_ConnectionListRes *********** */
+/** @brief UE_associatedLogicalS1_ConnectionListRes IE Destructor
+ *
+ * Deallocate the UE_associatedLogicalS1_ConnectionListRes_t structure.
+ * */
+void free_UE_associatedLogicalS1_ConnectionListRes(void * data){
+    uint16_t i;
+    UE_associatedLogicalS1_ConnectionListRes_t *self = (UE_associatedLogicalS1_ConnectionListRes_t*)data;
+    if(!self){
+        return;
+    }
+
+    for(i=0; i<self->size;i++){
+        if(self->item[i]->freeIE){
+            self->item[i]->freeIE(self->item[i]);
+        }
+    }
+    free(self->item);
+    free(self);
+}
+
+/** @brief Show IE information
+ *
+ * Tool function to print the information on stdout
+ * */
+void show_UE_associatedLogicalS1_ConnectionListRes(void * data){
+    UE_associatedLogicalS1_ConnectionListRes_t *self = (UE_associatedLogicalS1_ConnectionListRes_t*)data;
+    S1AP_PROTOCOL_IES_t *item;
+    uint16_t i;
+
+    for(i=0; i < self->size; i++){
+        if(&(self->item[i]) == NULL){
+            printf("\t\t\tUE_associatedLogicalS1_ConnectionItem_t Item #%u not found\n", i);
+            continue;
+        }
+
+        item = (S1AP_PROTOCOL_IES_t*) self->item[i];
+        if(item->showIE){
+            item->showIE(item);
+        }else{
+            printf("\t\t\tUE_associatedLogicalS1_ConnectionItem_t Item #%u: show function not found\n", i);
+        }
+    }
+
+}
+
+void UE_associatedLogicalS1_ConnectionListRes_addItem(UE_associatedLogicalS1_ConnectionListRes_t* c, ProtocolIE_SingleContainer_t* item){
+    ProtocolIE_SingleContainer_t** vector;
+    if(c->size+1==maxNrOfIndividualS1ConnectionsToReset){
+        s1ap_msg(ERROR, 0, "maxnoofIndividualS1ConnectionsToReset reached");
+        return;
+    }
+
+    c->size++;
+    vector = (ProtocolIE_SingleContainer_t**) realloc (c->item, c->size * sizeof(ProtocolIE_SingleContainer_t*));
+
+    /*Error Check*/
+    if (vector!=NULL) {
+        c->item=vector;
+        c->item[c->size-1]=item;
+    }
+    else {
+      free (c->item);
+      s1ap_msg(ERROR, 0, "Error (re)allocating memory");
+    }
+}
+
+void *UE_associatedLogicalS1_ConnectionListRes_newItem(struct UE_associatedLogicalS1_ConnectionListRes_c* list){
+    S1AP_PROTOCOL_IES_t* ie = newProtocolIE();
+    UE_associatedLogicalS1_ConnectionItem_t *item = new_UE_associatedLogicalS1_ConnectionItem();
+    ie->value = item;
+    ie->showValue = item->showIE;
+    ie->freeValue = item->freeIE;
+    ie->id = id_UE_associatedLogicalS1_ConnectionItem;
+    ie->presence = mandatory;
+    ie->criticality = ignore;
+    list->additem(list, ie);
+    return item;
+}
+
+/** @brief Constructor of UE_associatedLogicalS1_ConnectionListRes type
+ *  @return UE_associatedLogicalS1_ConnectionListRes_t allocated  and initialized structure
+ * */
+UE_associatedLogicalS1_ConnectionListRes_t *new_UE_associatedLogicalS1_ConnectionListRes(){
+    UE_associatedLogicalS1_ConnectionListRes_t *self;
+
+    self = malloc(sizeof(UE_associatedLogicalS1_ConnectionListRes_t));
+    if(!self){
+        s1ap_msg(ERROR, 0, "S1AP UE_associatedLogicalS1_ConnectionListRes_t not allocated correctly");
+        return NULL;
+    }
+    memset(self, 0, sizeof(UE_associatedLogicalS1_ConnectionListRes_t));
+
+    self->freeIE=free_UE_associatedLogicalS1_ConnectionListRes;
+    self->showIE=show_UE_associatedLogicalS1_ConnectionListRes;
+    self->additem=UE_associatedLogicalS1_ConnectionListRes_addItem;
+    self->newItem = UE_associatedLogicalS1_ConnectionListRes_newItem;
+
+    return self;
+}
+
+
+/* ************************* ResetType ************************ */
+/** @brief ResetType  Destructor
+ *
+ * Deallocate the ResetType_t structure.
+ * */
+void free_ResetType(void * data){
+    ResetType_t *self = (ResetType_t*)data;
+    if(!self){
+        return;
+    }
+
+    if(self->choice==0){
+    }else if(self->choice==1){
+        self->type.partOfS1_Interface->freeIE(self->type.partOfS1_Interface);
+    }
+
+    free(self);
+}
+
+/** @brief Show IE information
+ *
+ * Tool function to print the information on stdout
+ * */
+void show_ResetType(void * data){
+    ResetType_t *self = (ResetType_t*)data;
+    printf("\tResetType\n");
+    if(self->choice==0){
+	    printf("\t\t%s\n", ResetAllName[self->type.s1_Interface]);
+    }else if(self->choice==1){
+        self->type.partOfS1_Interface->showIE(self->type.partOfS1_Interface);
+    }
+}
+
+/** @brief Constructor of ResetType
+ *  @return ResetType_t allocated  and initialized structure
+ * */
+ResetType_t *new_ResetType(){
+    ResetType_t *self;
+
+    self = malloc(sizeof(ResetType_t));
+    if(!self){
+        s1ap_msg(ERROR, 0, "S1AP ResetType_t not allocated correctly");
+        return NULL;
+    }
+    memset(self, 0, sizeof(ResetType_t));
+
+    self->freeIE=free_ResetType;
+    self->showIE=show_ResetType;
+
+    return self;
+}
+
+
 
 /* ********************** Generic Template ********************* */
 /** @brief (*ie_name)  Destructor
