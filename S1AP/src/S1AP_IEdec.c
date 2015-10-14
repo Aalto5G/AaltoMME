@@ -660,7 +660,7 @@ CGI_t *dec_CGI(struct BinaryData *bytes){
 }
 
 
-void dec_UE_associatedLogicalS1_ConnectionListRes(struct BinaryData *bytes){
+UE_associatedLogicalS1_ConnectionListRes_t *dec_UE_associatedLogicalS1_ConnectionListRes(struct BinaryData *bytes){
     uint8_t i, length;
     UE_associatedLogicalS1_ConnectionListRes_t *v;
 
