@@ -75,11 +75,13 @@ void s1Assoc_send(gpointer s1, guint32 streamId, S1AP_Message_t *s1msg);
 /**
  * @brief S1 get ECM session
  * @param [in] h  S1 Association handler
- * @param [in] id MME UE S1AP ID of the ECM session
+ * @param [in] id eNB UE S1AP ID of the ECM session
  *
- * This function returns the ECM session by MME UE S1AP ID
+ * This function returns the ECM session by eNB UE S1AP ID
  * */
 gpointer *s1Assoc_getECMSession(const S1Assoc h, guint32 id);
+
+void s1Assoc_resetECM(S1Assoc s1, gpointer ecm);
 
 /* ************************************************** */
 /*                      Accessors                     */

@@ -528,6 +528,70 @@ void enc_CGI(struct BinaryData *bytes, CGI_t *v){
 }
 
 
+void enc_UE_associatedLogicalS1_ConnectionListRes(struct BinaryData *bytes,
+                                                  UE_associatedLogicalS1_ConnectionListRes_t *v){
+    uint8_t i;
+
+    /*Encode length*/
+    encode_constrained_number(bytes, v->size, 1, maxNrOfIndividualS1ConnectionsToReset);
+
+    /*Encode Bearers_SubjectToStatusTransfer_Item_t, tyep Bearers_SubjectToStatusTransfer_Item*/
+    for(i=0 ; i < v->size ; i++){
+        enc_protocolIEs(bytes, v->item[i]);
+    }
+}
+
+
+void enc_UE_associatedLogicalS1_ConnectionItem(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
+    S1AP_PROTOCOL_IES_t fakeie1, fakeie2;
+
+    UE_associatedLogicalS1_ConnectionItem_t  *v;
+    v = (UE_associatedLogicalS1_ConnectionItem_t *)ie->value;
+
+    /*Get extension flag*/
+    setbits(bytes, 1, v->ext);
+
+    /*Set optionals*/
+    setbits(bytes, 3, v->opt);
+
+    /* attribute number 1 with type MME_UE_S1AP_ID */
+    if((v->opt&0x80) == 0x80){
+        fakeie1.value = v->mME_UE_S1AP_ID;
+        enc_MME_UE_S1AP_ID(bytes, &fakeie1);
+    }
+    /* attribute number 2 with type ENB_UE_S1AP_ID */
+    if((v->opt&0x40) == 0x40){
+        fakeie2.value = v->eNB_UE_S1AP_ID;
+        enc_ENB_UE_S1AP_ID(bytes, &fakeie2);
+    }
+
+    /* attribute number 3 (iE-Extensions) with type (ProtocolExtensionContainer) SEQUENCE OF */
+    if((v->opt&0x20) == 0x20){
+        enc_protocolIEs(bytes, (S1AP_PROTOCOL_IES_t*)v->iEext);
+    }
+
+    /*Extensions*/
+    if(v->ext!=0){
+        s1ap_msg(ERROR, 0, "Extensions are present, encoding not included in current version.\n");
+        /*TODO extensions encoding*/
+    }
+}
+
+
+void enc_UE_associatedLogicalS1_ConnectionListResAck(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
+
+    uint32_t i;
+    UE_associatedLogicalS1_ConnectionListRes_t *v = (UE_associatedLogicalS1_ConnectionListRes_t *)ie->value;
+
+    /*Encode length*/
+    encode_constrained_number(bytes, v->size, 1, maxNrOfIndividualS1ConnectionsToReset);
+
+    /*Encode SupportedTAs_Items*/
+    for(i=0 ; i < v->size ; i++){
+        enc_UE_associatedLogicalS1_ConnectionItem(bytes, v->item[i]);
+    }
+}
+
 
 void enc_Global_ENB_ID(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
     Global_ENB_ID_t *v;
@@ -1652,6 +1716,29 @@ void enc_S_TMSI(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
 }
 
 
+void enc_ResetType(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
+    ResetType_t *v;
+
+    v = (ResetType_t*)ie->value;
+
+    set_choice_ext(bytes, v->choice, 2, v->ext);
+
+    if(v->ext!=0 || v->choice>1){
+        s1ap_msg(ERROR, 0, "Extensions not implemented or choice not correct");
+        return;
+    }
+
+    //align_enc(bytes);
+    if(v->choice == 0){
+        /* ResetAll_e */
+        encode_constrained_number(bytes, v->type.s1_Interface, 0, 1);
+    }else if(v->choice == 1){
+        /* UE_associatedLogicalS1_ConnectionListRes_t */
+        enc_UE_associatedLogicalS1_ConnectionListRes(bytes, v->type.partOfS1_Interface);
+    }
+}
+
+
 const getEncS1AP_IE getenc_S1AP_IE[] = {
         enc_MME_UE_S1AP_ID,/*"id-MME-UE-S1AP-ID"*/
         enc_HandoverType,/*"id-HandoverType"*/
@@ -1744,9 +1831,9 @@ const getEncS1AP_IE getenc_S1AP_IE[] = {
         enc_MME_UE_S1AP_ID,/*"id-SourceMME-UE-S1AP-ID"*/
         enc_Bearers_SubjectToStatusTransfer_Item,/*"id-Bearers-SubjectToStatusTransfer-Item"*/
         enc_ENB_StatusTransfer_TransparentContainer,/*"id-eNB-StatusTransfer-TransparentContainer"*/
-        NULL,/*"id-UE-associatedLogicalS1-ConnectionItem"*/
-        NULL,/*"id-ResetType"*/
-        NULL,/*"id-UE-associatedLogicalS1-ConnectionListResAck"*/
+        enc_UE_associatedLogicalS1_ConnectionItem,/*"id-UE-associatedLogicalS1-ConnectionItem"*/
+        enc_ResetType,/*"id-ResetType"*/
+        enc_UE_associatedLogicalS1_ConnectionListResAck,/*"id-UE-associatedLogicalS1-ConnectionListResAck"*/
         enc_E_RABSetupItemBearerSURes,/*"id-E-RABToBeSwitchedULItem"*/
         enc_E_RABSetupListBearerSURes,/*"id-E-RABToBeSwitchedULList"*/
         enc_S_TMSI,/*"id-S-TMSI"*/

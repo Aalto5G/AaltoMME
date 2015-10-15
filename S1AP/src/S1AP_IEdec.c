@@ -673,9 +673,71 @@ UE_associatedLogicalS1_ConnectionListRes_t *dec_UE_associatedLogicalS1_Connectio
     for(i=0 ; i < length ; i++){
         v->additem(v, (ProtocolIE_SingleContainer_t*)dec_protocolIEs(bytes));
     }
-    return v;	
+    return v;
 }
 
+
+void dec_UE_associatedLogicalS1_ConnectionItem(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
+    S1AP_PROTOCOL_IES_t fakeie1, fakeie2;
+    struct BinaryData opt, extensions;
+    uint8_t buffer[MAXDATABYTES];
+    UE_associatedLogicalS1_ConnectionItem_t *v;
+    v = new_UE_associatedLogicalS1_ConnectionItem();
+
+    /*Link functions*/
+    ie->showValue = v->showIE;
+    ie->freeValue = v->freeIE;
+    ie->value=v;
+
+    /*Get extension flag*/
+    getbit(bytes, &(v->ext));
+    /*Get optionals*/
+    opt.data=buffer;
+    getbits(&opt, bytes, 3);
+    v->opt=opt.data[0];
+
+    /* attribute number 1 with type MME_UE_S1AP_ID */
+    if((v->opt&0x80) == 0x80){
+        dec_MME_UE_S1AP_ID(&fakeie1, bytes);
+        v->mME_UE_S1AP_ID = fakeie1.value;
+    }
+    /* attribute number 2 with type ENB_UE_S1AP_ID */
+    if((v->opt&0x40) == 0x40){
+        dec_ENB_UE_S1AP_ID(&fakeie2, bytes);
+        v->eNB_UE_S1AP_ID = fakeie2.value;
+    }
+    /* attribute number 3 (iE-Extensions) with type (ProtocolExtensionContainer) SEQUENCE OF */
+    if((v->opt&0x20) == 0x20){
+        v->iEext->addIe(v->iEext, dec_protocolIEs(bytes));
+    }
+
+    /*Extensions*/
+    if(v->ext!=0){
+        s1ap_msg(ERROR, 0, "Extensions are present, decoding not included in current version.\n");
+        /*TODO extensions encoding*/
+    }
+}
+
+
+void dec_UE_associatedLogicalS1_ConnectionListResAck(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
+    uint8_t i, length;
+    S1AP_PROTOCOL_IES_t *fakeie;
+    UE_associatedLogicalS1_ConnectionListRes_t *v = new_UE_associatedLogicalS1_ConnectionListRes();
+
+    /*Link functions*/
+    ie->showValue = v->showIE;
+    ie->freeValue = v->freeIE;
+    ie->value=v;
+
+    /*Decode length*/
+    length = decode_constrained_number(bytes, 1, maxNrOfIndividualS1ConnectionsToReset);
+
+    /*Decode Bearers_SubjectToStatusTransfer_Item_t, tyep Bearers_SubjectToStatusTransfer_Item*/
+    for(i=0 ; i < length ; i++){
+        fakeie = dec_protocolIEs(bytes);
+        v->additem(v, (ProtocolIE_SingleContainer_t*)fakeie);
+    }
+}
 
 
 void dec_Global_ENB_ID(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
@@ -2198,7 +2260,7 @@ void dec_ResetType(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
     //align_dec(bytes);
     switch(v->choice+v->ext*2){
     case 0:
-	    /* ResetAll_e s1_Interface; */
+        /* ResetAll_e s1_Interface; */
         v->type.s1_Interface = decode_enumerated(bytes, 0, 1);
         break;
     case 1:
@@ -2305,9 +2367,9 @@ const getDecS1AP_IE getdec_S1AP_IE[] = {
         dec_MME_UE_S1AP_ID,/*"id-SourceMME-UE-S1AP-ID"*/
         dec_Bearers_SubjectToStatusTransfer_Item,/*"id-Bearers-SubjectToStatusTransfer-Item"*/
         dec_ENB_StatusTransfer_TransparentContainer,/*"id-eNB-StatusTransfer-TransparentContainer"*/
-        dec_UE_associatedLogicalS1_ConnectionListRes,/*"id-UE-associatedLogicalS1-ConnectionItem"*/
+        dec_UE_associatedLogicalS1_ConnectionItem,/*"id-UE-associatedLogicalS1-ConnectionItem"*/
         dec_ResetType,/*"id-ResetType"*/
-        dec_UE_associatedLogicalS1_ConnectionListRes,/*"id-UE-associatedLogicalS1-ConnectionListResAck"*/
+        dec_UE_associatedLogicalS1_ConnectionListResAck,/*"id-UE-associatedLogicalS1-ConnectionListResAck"*/
         dec_E_RABSetupItemBearerSURes,/*"id-E-RABToBeSwitchedULItem"*/
         dec_E_RABSetupListBearerSURes,/*"id-E-RABToBeSwitchedULList"*/
         dec_S_TMSI,/*"id-S-TMSI"*/

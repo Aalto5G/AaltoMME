@@ -32,6 +32,8 @@ ECMSession ecmSession_init(S1Assoc s1, S1AP_Message_t *s1msg, int r_sid);
 
 void ecmSession_free(ECMSession h);
 
+void ecmSession_reset(ECMSession h);
+
 S1Assoc ecmSession_getS1Assoc(ECMSession h);
 
 void ecmSession_pathSwitchReq(ECMSession h, S1Assoc newAssoc,
@@ -42,6 +44,10 @@ void ecmSession_processMsg(ECMSession h, S1AP_Message_t *s1msg, int r_sid);
 const guint32 ecmSession_getMMEUEID(const ECMSession h);
 
 guint32 *ecmSession_getMMEUEID_p(const ECMSession h);
+
+guint32 *ecmSession_geteNBUEID_p(const ECMSession h);
+
+const guint32 ecmSession_getLocalSid(const ECMSession h);
 
 
 #endif /* ECMSession_HFILE */

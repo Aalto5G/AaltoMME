@@ -66,6 +66,11 @@ S1Assoc ecmSession_getS1Assoc(ECMSession h){
     return self->assoc;
 }
 
+void ecmSession_reset(ECMSession h){
+    ECMSession_t *self = (ECMSession_t *)h;
+    emm_stop(self->emm);
+}
+
 void ecmSession_setEMM(ECMSession h, gpointer emm){
     ECMSession_t *self = (ECMSession_t *)h;
     self->emm = emm;
@@ -194,6 +199,20 @@ guint32 *ecmSession_getMMEUEID_p(const ECMSession h){
     ECMSession_t *self = (ECMSession_t *)h;
     return &(self->mmeUEId);
 }
+
+guint32 *ecmSession_geteNBUEID_p(const ECMSession h){
+    ECMSession_t *self = (ECMSession_t *)h;
+    return &(self->eNBUEId);
+}
+
+const guint32 ecmSession_getLocalSid(const ECMSession h){
+    ECMSession_t *self = (ECMSession_t *)h;
+    if(!self){
+        return 0;
+    }
+    return (self->r_sid_valid)?self->l_sid:0;
+}
+
 
 /* API to NAS */
 void ecm_send(ECMSession h, gpointer msg, size_t len){

@@ -220,12 +220,12 @@ void s1Assoc_registerECMSession(S1Assoc h, gpointer  ecm){
     S1Assoc_t *self = (S1Assoc_t *)h;
     struct mme_t * mme = s1_getMME(self->s1);
 
-    g_hash_table_insert(self->ecm_sessions, ecmSession_getMMEUEID_p(ecm), ecm);
+    g_hash_table_insert(self->ecm_sessions, ecmSession_geteNBUEID_p(ecm), ecm);
 }
 
 void s1Assoc_deregisterECMSession(S1Assoc h, gpointer ecm){
     S1Assoc_t *self = (S1Assoc_t *)h;
-    if(!g_hash_table_remove(self->ecm_sessions, ecmSession_getMMEUEID_p(ecm))){
+    if(!g_hash_table_remove(self->ecm_sessions, ecmSession_geteNBUEID_p(ecm))){
         log_msg(LOG_ERR,  0, "ECM session not found in S1 Association");
     }
 }
@@ -238,6 +238,15 @@ gpointer *s1Assoc_getECMSession(const S1Assoc h, guint32 id){
 void s1Assoc_setState(S1Assoc s1, S1Assoc_State *s){
     S1Assoc_t *self = (S1Assoc_t *)s1;
     self->state = s;
+}
+
+void s1Assoc_resetECM(S1Assoc s1, gpointer ecm){
+    S1Assoc_t *self = (S1Assoc_t *)s1;
+    struct mme_t * mme = s1_getMME(self->s1);
+
+    ecmSession_reset(ecm);
+    mme_deregisterECM(mme, ecm);
+    /*The ecmSession_free(value); is executed in the previous function*/
 }
 
 /**@brief S1 Send message
