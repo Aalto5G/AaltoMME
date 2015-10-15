@@ -537,7 +537,7 @@ void enc_UE_associatedLogicalS1_ConnectionListRes(struct BinaryData *bytes,
 
     /*Encode Bearers_SubjectToStatusTransfer_Item_t, tyep Bearers_SubjectToStatusTransfer_Item*/
     for(i=0 ; i < v->size ; i++){
-        enc_protocolIEs(bytes, v->item[i]);
+        enc_protocolIEs(bytes, (S1AP_PROTOCOL_IES_t*)v->item[i]);
     }
 }
 
@@ -552,7 +552,7 @@ void enc_UE_associatedLogicalS1_ConnectionItem(struct BinaryData *bytes, S1AP_PR
     setbits(bytes, 1, v->ext);
 
     /*Set optionals*/
-    setbits(bytes, 3, v->opt);
+    setbits(bytes, 3, v->opt>>(8-3));
 
     /* attribute number 1 with type MME_UE_S1AP_ID */
     if((v->opt&0x80) == 0x80){
@@ -581,14 +581,15 @@ void enc_UE_associatedLogicalS1_ConnectionItem(struct BinaryData *bytes, S1AP_PR
 void enc_UE_associatedLogicalS1_ConnectionListResAck(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
 
     uint32_t i;
-    UE_associatedLogicalS1_ConnectionListRes_t *v = (UE_associatedLogicalS1_ConnectionListRes_t *)ie->value;
+    UE_associatedLogicalS1_ConnectionListResAck_t *v;
+    v = (UE_associatedLogicalS1_ConnectionListResAck_t *)ie->value;
 
     /*Encode length*/
     encode_constrained_number(bytes, v->size, 1, maxNrOfIndividualS1ConnectionsToReset);
 
     /*Encode SupportedTAs_Items*/
     for(i=0 ; i < v->size ; i++){
-        enc_UE_associatedLogicalS1_ConnectionItem(bytes, v->item[i]);
+        enc_protocolIEs(bytes, (S1AP_PROTOCOL_IES_t*)v->item[i]);
     }
 }
 

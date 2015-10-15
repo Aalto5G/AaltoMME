@@ -1865,7 +1865,7 @@ typedef struct E_RABSetupListBearerSURes_c{
     void                                (*freeIE)(void *);
     void                                (*showIE)(void *);
     void                                (*additem)(struct E_RABSetupListBearerSURes_c*, ProtocolIE_SingleContainer_t* ie);
-	void                                *(*newItem)(struct E_RABSetupListBearerSURes_c*);
+    void                                *(*newItem)(struct E_RABSetupListBearerSURes_c*);
     uint8_t                             size;               /*<Number of items*/
     ProtocolIE_SingleContainer_t        **item;             /*<Item Array */
 }E_RABSetupListBearerSURes_t;
@@ -2402,11 +2402,11 @@ SONConfigurationTransfer_t *new_SONConfigurationTransfer();
 
 /**@brief UE-associatedLogicalS1-ConnectionItem
  *
- * UE-associatedLogicalS1-ConnectionItem ::= SEQUENCE { 
- *     mME-UE-S1AP-ID  MME-UE-S1AP-ID OPTIONAL, 
- *     eNB-UE-S1AP-ID  ENB-UE-S1AP-ID OPTIONAL, 
+ * UE-associatedLogicalS1-ConnectionItem ::= SEQUENCE {
+ *     mME-UE-S1AP-ID  MME-UE-S1AP-ID OPTIONAL,
+ *     eNB-UE-S1AP-ID  ENB-UE-S1AP-ID OPTIONAL,
  *     iE-Extensions   ProtocolExtensionContainer { { UE-associatedLogicalS1-ConnectionItemExtIEs} } OPTIONAL,
- *     ... 
+ *     ...
  * }
  */
 typedef struct UE_associatedLogicalS1_ConnectionItem_c {
@@ -2426,7 +2426,7 @@ UE_associatedLogicalS1_ConnectionItem_t *new_UE_associatedLogicalS1_ConnectionIt
 
 
 /**@brief UE-associatedLogicalS1-ConnectionListRes
- * 
+ *
  * UE-associatedLogicalS1-ConnectionListRes ::= SEQUENCE (SIZE(1.. maxnoofIndividualS1ConnectionsToReset)) OF ProtocolIE-SingleContainer { { UE-associatedLogicalS1-ConnectionItemRes } }
  *
  * UE-associatedLogicalS1-ConnectionItemRes S1AP-PROTOCOL-IES ::= {
@@ -2451,8 +2451,8 @@ UE_associatedLogicalS1_ConnectionListRes_t *new_UE_associatedLogicalS1_Connectio
 
 /**@brief UE-associatedLogicalS1-ConnectionListResAck
  *
- * UE-associatedLogicalS1-ConnectionListResAck ::= SEQUENCE (SIZE(1.. maxnoofIndividualS1ConnectionsToReset)) OF ProtocolIE-SingleContainer { 
- *     { UE-associatedLogicalS1-ConnectionItemResAck } 
+ * UE-associatedLogicalS1-ConnectionListResAck ::= SEQUENCE (SIZE(1.. maxnoofIndividualS1ConnectionsToReset)) OF ProtocolIE-SingleContainer {
+ *     { UE-associatedLogicalS1-ConnectionItemResAck }
  * }
  *
  * UE-associatedLogicalS1-ConnectionItemResAck       S1AP-PROTOCOL-IES ::= {
@@ -2462,7 +2462,7 @@ UE_associatedLogicalS1_ConnectionListRes_t *new_UE_associatedLogicalS1_Connectio
  */
 typedef UE_associatedLogicalS1_ConnectionListRes_t UE_associatedLogicalS1_ConnectionListResAck_t;
 
-#define new_UE_associatedLogicalS1_ConnectionListResAck new_UE_associatedLogicalS1_ConnectionListRes;
+UE_associatedLogicalS1_ConnectionListResAck_t *new_UE_associatedLogicalS1_ConnectionListResAck();
 
 /** @brief ResetAll
  *

@@ -89,13 +89,6 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid,
         mme_id = s1ap_findIe(s1msg, id_SourceMME_UE_S1AP_ID);
         mme_lookupECM(mme, mme_id->mme_id, &ecm);
         ecmSession_pathSwitchReq(ecm, assoc, s1msg, r_sid);
-    }else if(s1msg->pdu->procedureCode == id_Reset &&
-             s1msg->choice == initiating_message){
-        /* ************************************************** */
-        /*                        Reset                       */
-        /* ************************************************** */
-        log_msg(LOG_DEBUG, 0, "Received Reset");
-        process_reset_uas(assoc, s1msg, r_sid);
     }else{
         /* ************************************************** */
         /*               UE associated signaling              */
@@ -176,48 +169,13 @@ static void process_reset(S1Assoc_t *assoc, S1AP_Message_t *s1msg){
     struct mme_t * mme = s1_getMME(assoc->s1);
     Cause_t *c;
     ResetType_t *t;
-    S1AP_Message_t *out;
-
-
-    /* Check Procedure*/
-    if(s1msg->pdu->procedureCode != id_Reset &&
-       s1msg->choice != initiating_message){
-        g_error("Not a S1 Reset message");
-    }
-
-    c = s1ap_findIe(s1msg, id_Cause);
-    t = s1ap_findIe(s1msg, id_ResetType);
-
-    if(t->choice==0){
-        log_msg(LOG_INFO, 0, "S1 Reset - Reset All: (%s)", assoc->eNBname->str);
-
-        /* Reset All ECM*/
-        g_hash_table_foreach_remove(assoc->ecm_sessions, s1Assoc_resetECM_adaptor, assoc);
-
-        /* Send Reset Ack*/
-        out = S1AP_newMsg();
-        out->choice = successful_outcome;
-        out->pdu->procedureCode = id_Reset;
-        out->pdu->criticality = reject;
-        s1Assoc_sendNonUE(assoc, out);
-        out->freemsg(out);
-
-    }else if(t->choice == 1){
-        log_msg(LOG_WARNING, 0, "S1 Reset, not a reset-all, unexpected");
-        return;
-    }
-}
-
-static void process_reset_uas(S1Assoc_t *assoc, S1AP_Message_t *s1msg,
-                              guint8 r_sid){
-    Cause_t *c;
-    ResetType_t *t;
-    UE_associatedLogicalS1_ConnectionListResAck_t *l;
-    UE_associatedLogicalS1_ConnectionItem_t *item;
+    UE_associatedLogicalS1_ConnectionListResAck_t *l_ack;
+    UE_associatedLogicalS1_ConnectionListRes_t *l;
+    UE_associatedLogicalS1_ConnectionItem_t *item, *item_ack;
     S1AP_Message_t *s1out;
     guint i = 0;
     ECMSession ecm;
-    struct mme_t * mme = s1_getMME(assoc->s1);
+
 
     /* Check Procedure*/
     if(s1msg->pdu->procedureCode != id_Reset &&
@@ -228,40 +186,54 @@ static void process_reset_uas(S1Assoc_t *assoc, S1AP_Message_t *s1msg,
     c = s1ap_findIe(s1msg, id_Cause);
     t = s1ap_findIe(s1msg, id_ResetType);
 
-    if(t->choice==0){
-        log_msg(LOG_WARNING, 0, "S1 Reset, not a reset-all, unexpected");
-    }else if(t->choice == 1){
-        log_msg(LOG_INFO, 0, "S1 Reset - Reset (%s). "
-                "Remote sid: %u S1AP-MME-UE-id %u",
-                assoc->eNBname->str, r_sid, 0);
+    s1out = S1AP_newMsg();
+    s1out->choice = successful_outcome;
+    s1out->pdu->procedureCode = id_Reset;
+    s1out->pdu->criticality = reject;
 
+    if(t->choice==0){
+        log_msg(LOG_INFO, 0, "S1 Reset - Reset All: (%s)", assoc->eNBname->str);
+        /* Reset All ECM*/
+        g_hash_table_foreach_remove(assoc->ecm_sessions, s1Assoc_resetECM_adaptor, assoc);
+    }else if(t->choice == 1){
         l = t->type.partOfS1_Interface;
-        /* t->type.partOfS1_Interface */
+
+        /* l_ack = s1ap_newIE(s1out, id_UE_associatedLogicalS1_ConnectionListResAck, */
+        /*                    mandatory, ignore); */
+
         for(i=0; i < l->size ; i++){
             item = (UE_associatedLogicalS1_ConnectionItem_t *)(l->item[i]->value);
+            /* item_ack = l_ack->newItem(l_ack); */
             if((item->opt&0x40)==0x40){
                 ecm = s1Assoc_getECMSession(assoc,
                                             item->eNB_UE_S1AP_ID->eNB_id);
+                if(!ecm){
+                    log_msg(LOG_WARNING, 0,  "S1AP-eNB-UE-id %u not found",
+                            item->eNB_UE_S1AP_ID->eNB_id);
+                    continue;
+                }
             }else if((item->opt&0x80)==0x80){
                 mme_lookupECM(mme, item->mME_UE_S1AP_ID->mme_id, &ecm);
+                if(!ecm){
+                    log_msg(LOG_WARNING, 0,  "S1AP-MME-UE-id %u not found",
+                            item->mME_UE_S1AP_ID->mme_id);
+                    continue;
+                }
             }else{
                 log_msg(LOG_WARNING, 0, "Empty UE associated Logical "
                         "S1 Connection Item");
                 continue;
             }
+            log_msg(LOG_INFO, 0, "S1 Reset - Reset (%s). "
+                    "S1AP-MME-UE-id %u",
+                    assoc->eNBname->str, ecmSession_getMMEUEID(ecm));
             s1Assoc_resetECM(assoc, ecm);
         }
-        /* Send Reset Ack*/
-        s1out = S1AP_newMsg();
-        s1out->choice = successful_outcome;
-        s1out->pdu->procedureCode = id_Reset;
-        s1out->pdu->criticality = reject;
         s1ap_setValueOnNewIE(s1out,
                              id_UE_associatedLogicalS1_ConnectionListResAck,
-                             mandatory, ignore, (GenericVal_t *)t);
-
-        s1Assoc_send(assoc, ecmSession_getLocalSid(ecm), s1out);
-        s1out->freemsg(s1out);
-        return;
+                             mandatory, ignore, (GenericVal_t *)l);
     }
+    /* Send Reset Ack*/
+    s1Assoc_sendNonUE(assoc, s1out);
+    s1out->freemsg(s1out);
 }

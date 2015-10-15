@@ -5004,20 +5004,20 @@ E_RABToBeSwitchedULList_t *new_E_RABToBeSwitchedULList(){
  * Deallocate the UE_associatedLogicalS1_ConnectionItem_t structure.
  * */
 void free_UE_associatedLogicalS1_ConnectionItem(void* data){
-	UE_associatedLogicalS1_ConnectionItem_t *self = (UE_associatedLogicalS1_ConnectionItem_t*)data;
+    UE_associatedLogicalS1_ConnectionItem_t *self = (UE_associatedLogicalS1_ConnectionItem_t*)data;
     if(!self){
         return;
     }
 
     if(self->mME_UE_S1AP_ID){
-	    if(self->mME_UE_S1AP_ID->freeIE){
-		    self->mME_UE_S1AP_ID->freeIE(self->mME_UE_S1AP_ID);
-	    }
+        if(self->mME_UE_S1AP_ID->freeIE){
+            self->mME_UE_S1AP_ID->freeIE(self->mME_UE_S1AP_ID);
+        }
     }
     if(self->eNB_UE_S1AP_ID){
-	    if(self->eNB_UE_S1AP_ID->freeIE){
-		    self->eNB_UE_S1AP_ID->freeIE(self->eNB_UE_S1AP_ID);
-	    }
+        if(self->eNB_UE_S1AP_ID->freeIE){
+            self->eNB_UE_S1AP_ID->freeIE(self->eNB_UE_S1AP_ID);
+        }
     }
     if(self->iEext){
         if(self->iEext->freeExtensionContainer){
@@ -5041,7 +5041,7 @@ void show_UE_associatedLogicalS1_ConnectionItem(void* data){
     }
 
     if(&(self->eNB_UE_S1AP_ID)!=NULL && (self->opt&0x40)== 0x40){
-	    self->eNB_UE_S1AP_ID->showIE(self->eNB_UE_S1AP_ID);
+        self->eNB_UE_S1AP_ID->showIE(self->eNB_UE_S1AP_ID);
     }
 
     if((self->opt&0x20)== 0x20 && self->iEext!=NULL){
@@ -5147,7 +5147,7 @@ void *UE_associatedLogicalS1_ConnectionListRes_newItem(struct UE_associatedLogic
     ie->freeValue = item->freeIE;
     ie->id = id_UE_associatedLogicalS1_ConnectionItem;
     ie->presence = mandatory;
-    ie->criticality = ignore;
+    ie->criticality = reject;
     list->additem(list, ie);
     return item;
 }
@@ -5169,6 +5169,42 @@ UE_associatedLogicalS1_ConnectionListRes_t *new_UE_associatedLogicalS1_Connectio
     self->showIE=show_UE_associatedLogicalS1_ConnectionListRes;
     self->additem=UE_associatedLogicalS1_ConnectionListRes_addItem;
     self->newItem = UE_associatedLogicalS1_ConnectionListRes_newItem;
+
+    return self;
+}
+
+
+void *UE_associatedLogicalS1_ConnectionListResAck_newItem(struct UE_associatedLogicalS1_ConnectionListRes_c* list){
+    S1AP_PROTOCOL_IES_t* ie = newProtocolIE();
+    UE_associatedLogicalS1_ConnectionItem_t *item = new_UE_associatedLogicalS1_ConnectionItem();
+    ie->value = item;
+    ie->showValue = item->showIE;
+    ie->freeValue = item->freeIE;
+    ie->id = id_UE_associatedLogicalS1_ConnectionItem;
+    ie->presence = mandatory;
+    ie->criticality = ignore;
+    list->additem(list, ie);
+    return item;
+}
+
+
+/** @brief Constructor of UE_associatedLogicalS1_ConnectionListRes type
+ *  @return UE_associatedLogicalS1_ConnectionListRes_t allocated  and initialized structure
+ * */
+UE_associatedLogicalS1_ConnectionListResAck_t *new_UE_associatedLogicalS1_ConnectionListResAck(){
+    UE_associatedLogicalS1_ConnectionListResAck_t *self;
+
+    self = malloc(sizeof(UE_associatedLogicalS1_ConnectionListResAck_t));
+    if(!self){
+        s1ap_msg(ERROR, 0, "S1AP UE_associatedLogicalS1_ConnectionListResAck_t not allocated correctly");
+        return NULL;
+    }
+    memset(self, 0, sizeof(UE_associatedLogicalS1_ConnectionListResAck_t));
+
+    self->freeIE=free_UE_associatedLogicalS1_ConnectionListRes;
+    self->showIE=show_UE_associatedLogicalS1_ConnectionListRes;
+    self->additem=UE_associatedLogicalS1_ConnectionListRes_addItem;
+    self->newItem = UE_associatedLogicalS1_ConnectionListResAck_newItem;
 
     return self;
 }
@@ -5201,7 +5237,7 @@ void show_ResetType(void * data){
     ResetType_t *self = (ResetType_t*)data;
     printf("\tResetType\n");
     if(self->choice==0){
-	    printf("\t\t%s\n", ResetAllName[self->type.s1_Interface]);
+        printf("\t\t%s\n", ResetAllName[self->type.s1_Interface]);
     }else if(self->choice==1){
         self->type.partOfS1_Interface->showIE(self->type.partOfS1_Interface);
     }
