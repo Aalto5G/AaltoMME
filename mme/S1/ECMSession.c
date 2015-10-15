@@ -166,12 +166,14 @@ void ecmSession_pathSwitchReq(ECMSession h, S1Assoc newAssoc,
             s1Assoc_getName(newAssoc));
 
     s1Assoc_deregisterECMSession(ecmSession_getS1Assoc(self), self);
-    s1Assoc_registerECMSession(newAssoc, self);
     self->assoc = newAssoc;
     self->r_sid = r_sid;
     /* eNB-UE-S1AP-ID*/
     eNBUEId = (ENB_UE_S1AP_ID_t *)s1ap_findIe(s1msg, id_eNB_UE_S1AP_ID);
     self->eNBUEId = eNBUEId->eNB_id;
+
+    s1Assoc_registerECMSession(newAssoc, self);
+
     /*Update TAI*/
     tAI = (TAI_t*)s1ap_findIe(s1msg, id_TAI);
     memcpy(self->tAI.sn, tAI->pLMNidentity->tbc.s, 3);
