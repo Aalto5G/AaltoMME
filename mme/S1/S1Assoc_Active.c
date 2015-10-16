@@ -228,6 +228,7 @@ static void process_reset(S1Assoc_t *assoc, S1AP_Message_t *s1msg){
                     "S1AP-MME-UE-id %u",
                     assoc->eNBname->str, ecmSession_getMMEUEID(ecm));
             s1Assoc_resetECM(assoc, ecm);
+            g_hash_table_remove(assoc->ecm_sessions, ecmSession_geteNBUEID_p(ecm));
         }
         s1ap_setValueOnNewIE(s1out,
                              id_UE_associatedLogicalS1_ConnectionListResAck,
