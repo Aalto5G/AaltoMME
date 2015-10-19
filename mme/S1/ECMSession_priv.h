@@ -23,6 +23,7 @@
 #include "NAS.h"
 #include "ECMSession.h"
 #include "ECMSession_State.h"
+#include "ECMSession_FSMConfig.h"
 
 /*API HACK*/
 typedef  E_RABSetupListCtxtSURes_t E_RABsToBeModified_t;
@@ -31,6 +32,7 @@ typedef struct{
     S1Assoc          assoc;        /**< Lower layer*/
     gpointer         emm;          /**< Higher layer*/
     ECMSession_State *state;       /**< FSM */
+    ECMSessionState  stateName;
     guint32          l_sid;        /**< SCTP local  Stream ID*/
     gboolean         r_sid_valid;  /**< SCTP remote sid valid flag*/
     guint32          r_sid;        /**< SCTP remote Stream ID*/
@@ -52,7 +54,12 @@ typedef struct{
     Cause_t     *causeRelease;
 }ECMSession_t;
 
-void ecmSession_setState(ECMSession ecm, ECMSession_State *s);
+#define ecm_log(self, p, en, ...) ecm_log_(self, p, __FILE__, __func__, __LINE__, en, __VA_ARGS__)
+
+void ecm_log_(ECMSession ecm, int pri, char *fn, const char *func, int ln,
+              int en, char *fmt, ...);
+
+void ecmSession_setState(ECMSession ecm, ECMSession_State *s, ECMSessionState name);
 
 /* API to NAS */
 

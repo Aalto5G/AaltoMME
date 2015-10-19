@@ -76,15 +76,13 @@ static void ecm_processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
 
         if(ecm->emm == NULL){
             ecm->emm = emm_init(ecm, mme_getTimerMgr(mme));
-            log_msg(LOG_INFO, 0, "New EMM created");
+            ecm_log(ecm, LOG_INFO, 0, "New EMM created");
         }else{
             emm_registerECM(ecm->emm, ecm);
         }
-        log_msg(LOG_INFO, 0, "ECM Connected: S1AP UE MME-ID/eNB-ID %u / %u",
-                ecm->mmeUEId, ecm->eNBUEId);
-
         emm_processMsg(ecm->emm, nASPDU->str, nASPDU->len);
         ecm_ChangeState(ecm, ECM_Connected);
+        ecm_log(ecm, LOG_INFO, 0, "Connected");
     }
 }
 

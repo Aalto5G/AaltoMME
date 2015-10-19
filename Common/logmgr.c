@@ -65,44 +65,50 @@ void change_logger_lvl(int priority){
     }
 }
 
+
+void log_msg_s(int pri, char *fn, const char *func, int ln, int en, const char *msg) {
+
+    char timeStr[128];
+    struct timeval tv;
+    struct tm *pTm;
+    gettimeofday( &tv, NULL );
+    pTm = localtime ( (const time_t*)&tv.tv_sec );
+    strftime ((char*) timeStr, 128, "%d/%m/%Y %T", pTm );
+    if(logger.priority >= LOG_DEBUG){
+        sprintf((char*)(timeStr + strlen((char*)timeStr)),
+                ".%06u",
+                (unsigned int)tv.tv_usec);
+    }
+
+    /* if(logger.priority >= LOG_DEBUG){ */
+    if(1){
+        if (en)
+            syslog(pri, "[%s] %s - %d (%s) %s <%s(), %s:%d>",
+                   timeStr, logLevelStr[pri], en, strerror(en), msg,
+                   func, basename(fn), ln);
+        else
+            syslog(pri, "[%s] %s - %s <%s(), %s:%d>",
+                   timeStr, logLevelStr[pri], msg,
+                   func, basename(fn), ln);
+    }else{
+        if (en)
+            syslog(pri, "[%s] %s - %d (%s) %s",
+                   timeStr, logLevelStr[pri], en, strerror(en), msg);
+        else
+            syslog(pri, "[%s] %s - %s", timeStr, logLevelStr[pri], msg);
+    }
+}
+
+
 void log_msg_(int pri, char *fn, const char *func, int ln, int en, char *fmt, ...) {
   va_list args;
   char buf[SYSERR_MSGSIZE];
 
-  char timeStr[128];
-  struct timeval tv;
-  struct tm *pTm;
-  gettimeofday( &tv, NULL );
-  pTm = localtime ( (const time_t*)&tv.tv_sec );
-  strftime ((char*) timeStr, 128, "%d/%m/%Y %T", pTm );
-  if(logger.priority >= LOG_DEBUG){
-      sprintf((char*)(timeStr + strlen((char*)timeStr)),
-              ".%06u",
-              (unsigned int)tv.tv_usec);
-  }
-
   va_start(args, fmt);
   vsnprintf(buf, SYSERR_MSGSIZE, fmt, args);
-  va_end(args);
   buf[SYSERR_MSGSIZE-1] = 0; /* Make sure it is null terminated */
-
-  /* if(logger.priority >= LOG_DEBUG){ */
-  if(1){
-      if (en)
-          syslog(pri, "[%s] %s - %d (%s) %s <%s(), %s:%d>",
-                 timeStr, logLevelStr[pri], en, strerror(en), buf,
-                 func, basename(fn), ln);
-      else
-          syslog(pri, "[%s] %s - %s <%s(), %s:%d>",
-                 timeStr, logLevelStr[pri], buf,
-                 func, basename(fn), ln);
-  }else{
-      if (en)
-          syslog(pri, "[%s] %s - %d (%s) %s",
-                 timeStr, logLevelStr[pri], en, strerror(en), buf);
-      else
-          syslog(pri, "[%s] %s - %s", timeStr, logLevelStr[pri], buf);
-  }
+  log_msg_s(pri, fn, func, ln, en, buf);
+  va_end(args);
 }
 
 

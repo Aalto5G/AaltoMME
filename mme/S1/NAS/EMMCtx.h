@@ -26,6 +26,8 @@
 #include "EMM_FSMConfig.h"
 #include "timermgr.h"
 
+#define emm_log(self, p, en, ...) emm_log_(self, p, __FILE__, __func__, __LINE__, en, __VA_ARGS__)
+
 typedef struct{
     guint8       rAND[16];
     guint8       xRES[8];
@@ -133,6 +135,9 @@ typedef struct{
 
     /*Voice Domain Preference and UE's Usage Setting*/
 }EMMCtx_t;
+
+void emm_log_(EMMCtx s, int pri, char *fn, const char *func, int ln,
+              int en, char *fmt, ...);
 
 EMMCtx emmCtx_init();
 

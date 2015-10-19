@@ -36,7 +36,7 @@ static void emmProcessMsg(gpointer emm_h,  GenericNASMsg_t* msg){
     guint8 ksi_msg;
 
     if(msg->header.securityHeaderType.v != PlainNAS){
-        log_msg(LOG_ERR, 0, "NAS Integrity or security not implemented");
+        emm_log(emm, LOG_ERR, 0, "NAS Integrity or security not implemented");
         return;
     }
 
@@ -51,13 +51,13 @@ static void emmProcessMsg(gpointer emm_h,  GenericNASMsg_t* msg){
         emm_triggerAKAprocedure(emm);
         break;
     case TrackingAreaUpdateRequest:
-        log_msg(LOG_INFO, 0,
-                "Received TAU Req on EMM Deregistered. "
+        emm_log(emm, LOG_INFO, 0,
+                "Received TAU Req "
                 "Sending TAU Reject. Implicitly Detached");
         emm_sendTAUReject(emm, EMM_ImplicitlyDetached);
         break;
     default:
-        log_msg(LOG_WARNING, 0,
+        emm_log(emm, LOG_WARNING, 0,
                 "NAS Message type (%x) not recognized in this context",
                 msg->plain.eMM.messageType);
     }
@@ -88,7 +88,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
             g_error("Received malformed NAS packet");
         }else if(res==2){
             /* EH trigger AKA procedure */
-            log_msg(LOG_WARNING, 0, "Wrong SQN Count. Local sqn: %#x, packet sqn: %#x",
+            emm_log(emm, LOG_WARNING, 0, "Wrong SQN Count. Local sqn: %#x, packet sqn: %#x",
                     nas_getLastCount(emm->parser, NAS_UpLink),
                     ((guint8*)buf)[5]);
             return;
@@ -102,7 +102,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     }
 
     if(!isAuth && nas_isAuthRequired(msg.plain.eMM.messageType)){
-        log_msg(LOG_INFO, 0, "Received Message with wrong MAC");
+        emm_log(emm, LOG_INFO, 0, "Received Message with wrong MAC");
         return;
     }
 
@@ -125,17 +125,17 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         emm_processFirstESMmsg(emm);
         break;
     case TrackingAreaUpdateRequest:
-        log_msg(LOG_INFO, 0,
-                "Received TAU Req on EMM Deregistered. "
+        emm_log(emm, LOG_INFO, 0,
+                "Received TAU Req. "
                 "Sending TAU Reject. Implicitly Detached");
         emm_sendTAUReject(emm, EMM_ImplicitlyDetached);
         break;
     case DetachRequest:
         /* HACK ? */
-        log_msg(LOG_INFO, 0, "Received DetachRequest");
+        emm_log(emm, LOG_INFO, 0, "Received DetachRequest");
         processDetachReq(emm, &msg);
         if(emm->ksi != emm->msg_ksi){
-            log_msg(LOG_ALERT, 0, "DetachRequest, ksi mismatch");
+            emm_log(emm, LOG_ALERT, 0, "DetachRequest, ksi mismatch");
             return;
         }
         esm_detach(emm->esm, emm_detachAccept, emm);
@@ -145,20 +145,20 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     case AuthenticationFailure:
     case SecurityModeReject:
     case DetachAccept:
-        log_msg(LOG_INFO, 0,
-                "NAS Message type (%x) not valid in EMM Deregistered",
+        emm_log(emm, LOG_INFO, 0,
+                "NAS Message type (%x) not valid",
                 msg.plain.eMM.messageType);
         break;
     default:
-        log_msg(LOG_WARNING, 0,
-                "NAS Message type (%x) not recognized in EMM Deregistered",
+        emm_log(emm, LOG_WARNING, 0,
+                "NAS Message type (%x) not recognized",
                 msg.plain.eMM.messageType);
     }
 }
 
 static void emm_processSrvReq(gpointer emm_h, gpointer buf, gsize len){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
-    log_msg(LOG_INFO, 0, "Received Service request while in EMM Deregistered, "
+    emm_log(emm, LOG_INFO, 0, "Received Service request. "
             "Service Reject sent");
     emm_sendServiceReject(emm, EMM_ImplicitlyDetached);
 }
@@ -166,14 +166,14 @@ static void emm_processSrvReq(gpointer emm_h, gpointer buf, gsize len){
 static void emm_processError(gpointer emm_h, GError *err){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
 
-    log_msg(LOG_INFO, 0, "Received Error");
+    emm_log(emm, LOG_INFO, 0, "Received Error");
     if(g_error_matches(err, MME_S6a, S6a_UNKNOWN_EPS_SUBSCRIPTION)){
         if(emm->attachStarted){
             emm_sendAttachReject(emm, EMM_EPSServicesAndNonEPSServicesNotAllowed,
                                  NULL, 0);
         }
     }else{
-        log_msg(LOG_ERR, 0, "Error not recognized, transition to EMM Deregisted");
+        emm_log(emm, LOG_ERR, 0, "Error not recognized");
     }
 }
 
@@ -181,7 +181,7 @@ static void emm_processError(gpointer emm_h, GError *err){
 static void emm_processTimeout(gpointer emm_h, gpointer buf, gsize len,
                                EMM_TimerCode c){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
-    log_msg(LOG_WARNING, 0, "Timeout %s, not supported in EMM Deregistered",
+    emm_log(emm, LOG_WARNING, 0, "Timeout %s, not supported",
             EMM_TimerStr[c]);
 }
 
@@ -189,7 +189,7 @@ static void emm_processTimeout(gpointer emm_h, gpointer buf, gsize len,
 static void emm_processTimeoutMax(gpointer emm_h, gpointer buf, gsize len,
                                   EMM_TimerCode c){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
-    log_msg(LOG_WARNING, 0, "Timeout Max %s, not supported in EMM Deregistered",
+    emm_log(emm, LOG_WARNING, 0, "Timeout Max %s, not supported",
             EMM_TimerStr[c]);
 }
 
@@ -217,7 +217,7 @@ void attachContinuationSwitch(gpointer emm_h, guint8 ksi_msg){
 
     /* Check Auth, Proof down*/
     if( emm->ksi == 7 && !emm->authQuadrsLen>0){
-        log_msg(LOG_DEBUG, 0,"Getting info from HSS");
+        emm_log(emm, LOG_DEBUG, 0,"Getting info from HSS");
         s6a_GetAuthInformation(emm->s6a, emm, emm_AuthInfoAvailable, emm_processS6aError, emm);
         return;
     }else if(emm->ksi == 7 && emm->authQuadrsLen>0

@@ -30,12 +30,6 @@
 
 EMM_State *emm_states;
 
-const char *EMMStateName[] = {"Deregistered",
-                              "Registered",
-                              "SpecificProcedureInitiated",
-                              "CommonProcedureInitiated",
-                              "DeregisteredInitiated"};
-
 void emmConfigureFSM(){
     emm_states = g_new(EMM_State, 5);
 
@@ -54,10 +48,9 @@ void emmDestroyFSM(){
 }
 
 void emmChangeState(gpointer ctx, EMMState s){
-    log_msg(LOG_INFO, 0, "Change to EMM %s", EMMStateName[s]);
     emm_setState(ctx, &(emm_states[s]), s);
 }
 
 void emmNotImplemented(gpointer self){
-    log_msg(LOG_ERR, 0, "Not Implemented");
+    emm_log(self, LOG_ERR, 0, "Not Implemented");
 }

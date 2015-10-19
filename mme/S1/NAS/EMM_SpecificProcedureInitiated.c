@@ -27,7 +27,8 @@
 static void processAttachComplete(EMMCtx_t *emm, GenericNASMsg_t *msg);
 
 static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
-    log_msg(LOG_ERR, 0, "Not Implemented");
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+    emm_log(emm, LOG_ERR, 0, "Not Implemented");
 }
 
 static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
@@ -44,7 +45,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     }
 
     res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
-    log_msg(LOG_DEBUG, 0, "Local sqn %#x, packet sqn: %#x",
+    emm_log(emm, LOG_DEBUG, 0, "Local sqn %#x, packet sqn: %#x",
             nas_getLastCount(emm->parser, NAS_UpLink),
             ((guint8*)buf)[5]);
     if(res==0){
@@ -52,7 +53,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         g_error("Received malformed NAS packet");
     }else if(res==2){
         /* EH trigger AKA procedure */
-        log_msg(LOG_WARNING, 0, "Wrong SQN Count. Local sqn: %#x, packet sqn: %#x",
+        emm_log(emm, LOG_WARNING, 0, "Wrong SQN Count. Local sqn: %#x, packet sqn: %#x",
             nas_getLastCount(emm->parser, NAS_UpLink),
             ((guint8*)buf)[5]);
         return;
@@ -63,7 +64,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     }
 
     if(!isAuth && nas_isAuthRequired(msg.plain.eMM.messageType)){
-        log_msg(LOG_INFO, 0, "Received Message with wrong MAC");
+        emm_log(emm, LOG_INFO, 0, "Received Message with wrong MAC");
         return;
     }
 
@@ -76,12 +77,12 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     switch(msg.plain.eMM.messageType){
     case AttachComplete:
         emm_stopTimer(emm, T3450);
-        log_msg(LOG_DEBUG, 0, "Received AttachComplete");
+        emm_log(emm, LOG_DEBUG, 0, "Received AttachComplete");
         processAttachComplete(emm, &msg);
         break;
     case TrackingAreaUpdateComplete:
         emm_stopTimer(emm, T3450);
-        log_msg(LOG_INFO, 0, "Received TrackingAreaUpdateComplete");
+        emm_log(emm, LOG_INFO, 0, "Received TrackingAreaUpdateComplete");
 
         if(!emm->s1BearersActive){
             /* Disconnect ECM */
@@ -91,17 +92,17 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         break;
     case DetachRequest:
         emm_stopTimer(emm, T3450);
-        log_msg(LOG_DEBUG, 0, "Received DetachRequest");
+        emm_log(emm, LOG_DEBUG, 0, "Received DetachRequest");
         processDetachReq(emm, &msg);
         if(emm->ksi != emm->msg_ksi){
-            log_msg(LOG_ALERT, 0, "DetachRequest, ksi mismatch");
+            emm_log(emm, LOG_ALERT, 0, "DetachRequest, ksi mismatch");
             return;
         }
         esm_detach(emm->esm, emm_detachAccept, emm);
         break;
     /* /\*HACK: 2 extra cases*\/ */
     /* case AttachRequest: */
-    /*     log_msg(LOG_ALERT, 0, "Wrong State (SPI): HACK"); */
+    /*     emm_log(emm, LOG_ALERT, 0, "Wrong State (SPI): HACK"); */
     /*     processAttach(emm, &msg); */
 
     /*     if(!isAuth){ */
@@ -114,7 +115,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     /*     emm_processFirstESMmsg(emm); */
     /*     break; */
     /* case TrackingAreaUpdateRequest: */
-    /*     log_msg(LOG_ALERT, 0, "Wrong State (SPI): HACK"); */
+    /*     emm_log(emm, LOG_ALERT, 0, "Wrong State (SPI): HACK"); */
     /*     emm_processTAUReq(emm, &msg); */
 
     /*     if(!isAuth){ */
@@ -130,8 +131,8 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     /*     /\* End of HACK*\/ */
 
     default:
-        log_msg(LOG_WARNING, 0,
-                "NAS Message type (%x) not recognized in EMM SPI",
+        emm_log(emm, LOG_WARNING, 0,
+                "NAS Message type (%x) not recognized",
                 msg.plain.eMM.messageType);
         if(!emm->s1BearersActive || !emm->attachStarted){
             /* Disconnect ECM */
@@ -211,7 +212,7 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
         /*          !emm->msg_additionalUpdateType){ */
         /*     cause = EMM_CSDomainNotAvailable; */
         /*     nasIe_tv_t3(&pointer, 0x53, (uint8_t*)&cause, 1); */
-        /*     log_msg(LOG_WARNING, 0, "Attach with non EPS service requested. " */
+        /*     emm_log(emm, LOG_WARNING, 0, "Attach with non EPS service requested. " */
         /*             "CS Fallback not supported"); */
         /* } */
 
@@ -231,7 +232,7 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
 
 static void emm_processSrvReq(gpointer emm_h, gpointer buf, gsize len){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
-    log_msg(LOG_WARNING, 0, "Received Service request, not supported in EMM SPI");
+    emm_log(emm, LOG_WARNING, 0, "Received Service request, not supported");
     /* HACK */
     emm_stop(emm);
 }
@@ -239,7 +240,7 @@ static void emm_processSrvReq(gpointer emm_h, gpointer buf, gsize len){
 
 static void emm_processError(gpointer emm_h, GError *err){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
-    log_msg(LOG_WARNING, 0, "Received Error, not supported in EMM SPI");
+    emm_log(emm, LOG_WARNING, 0, "Received Error, not supported");
 }
 
 
@@ -252,7 +253,7 @@ static void emm_processTimeout(gpointer emm_h, gpointer buf, gsize len,
 
     switch (c) {
     case T3450: /* Attach Accept, TAU with GUTI*/
-        log_msg(LOG_INFO, 0, "%s expiration. UE IMSI %llu", EMM_TimerStr[c], emm->imsi);
+        emm_log(emm, LOG_INFO, 0, "%s expiration", EMM_TimerStr[c]);
         if(emm->sci){
             newNASMsg_sec(emm->parser, out, &olen,
                           EPSMobilityManagementMessages,
@@ -263,19 +264,19 @@ static void emm_processTimeout(gpointer emm_h, gpointer buf, gsize len,
         }
         break;
     case TMOBILE_REACHABLE:
-        log_msg(LOG_ERR, 0, "%s expiration. UE IMSI %llu. Setting Implicit detach timer",
-                EMM_TimerStr[c], emm->imsi);
+        emm_log(emm, LOG_ERR, 0, "%s expiration. Setting Implicit detach timer",
+                EMM_TimerStr[c]);
         emm_stopTimer(emm, TMOBILE_REACHABLE);
         emm_setTimer(emm, TIMPLICIT_DETACH, NULL, 0);
         break;
     case TIMPLICIT_DETACH:
         emm_stopTimer(emm, TIMPLICIT_DETACH);
-        log_msg(LOG_ERR, 0, "%s expiration. UE IMSI %llu. Implicit detach",
-                EMM_TimerStr[c], emm->imsi);
+        emm_log(emm, LOG_ERR, 0, "%s expiration. Implicit detach",
+                EMM_TimerStr[c]);
         emm_stop(emm);
         break;
     default:
-        log_msg(LOG_ERR, 0, "Timer (%s) not recognized", EMM_TimerStr[c]);
+        emm_log(emm, LOG_ERR, 0, "Timer (%s) not recognized", EMM_TimerStr[c]);
         break;
     }
 }
@@ -287,8 +288,8 @@ static void emm_processTimeoutMax(gpointer emm_h, gpointer buf, gsize len,
     NASMessageType_t type = (NASMessageType_t)((guint8*)buf)[1];
     switch (c) {
     case T3450:  /* Attach Accept, TAU with GUTI*/
-        log_msg(LOG_NOTICE, 0, "%s Max expirations reached for UE IMSI %llu. "
-                "Deregistering.", EMM_TimerStr[c], emm->imsi);
+        emm_log(emm, LOG_NOTICE, 0, "%s Max expirations reached. "
+                "Deregistering.", EMM_TimerStr[c]);
         if(type == AttachComplete){
             emm_stop(emm);
         }else{
@@ -298,10 +299,10 @@ static void emm_processTimeoutMax(gpointer emm_h, gpointer buf, gsize len,
         break;
     case TMOBILE_REACHABLE:
     case TIMPLICIT_DETACH:
-        log_msg(LOG_ERR, 0, "Timer (%s) not implemented", EMM_TimerStr[c]);
+        emm_log(emm, LOG_ERR, 0, "Timer (%s) not implemented", EMM_TimerStr[c]);
         break;
     default:
-        log_msg(LOG_ERR, 0, "Timer (%s) not recognized", EMM_TimerStr[c]);
+        emm_log(emm, LOG_ERR, 0, "Timer (%s) not recognized", EMM_TimerStr[c]);
         break;
     }
 }
@@ -329,7 +330,7 @@ static void processAttachComplete(EMMCtx_t *emm, GenericNASMsg_t *msg){
             complete->eSM_MessageContainer.v,
             complete->eSM_MessageContainer.l);
     emm->attachStarted = FALSE;
-    log_msg(LOG_INFO, 0, "UE (IMSI: %llu) NAS Attach", emmCtx_getIMSI(emm));
+    emm_log(emm, LOG_INFO, 0, "NAS Attach");
     emmChangeState(emm, EMM_Registered);
     esm_processMsg(emm->esm, &(esm_msg.plain.eSM));
 }

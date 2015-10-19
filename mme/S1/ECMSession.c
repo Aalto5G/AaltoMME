@@ -32,6 +32,28 @@
 #include <string.h>
 
 
+void ecm_log_(ECMSession ecm, int pri, char *fn, const char *func, int ln,
+              int en, char *fmt, ...){
+    ECMSession_t *self = (ECMSession_t *)ecm;
+    va_list args;
+    char buf[SYSERR_MSGSIZE];
+    size_t len;
+    bzero(buf, SYSERR_MSGSIZE);
+
+    snprintf(buf, SYSERR_MSGSIZE, "%s %s (%u/%u): ",
+             ECMStateName[self->stateName],
+             s1Assoc_getName(self->assoc),
+             self->eNBUEId, self->mmeUEId);
+
+    len = strlen(buf);
+    va_start(args, fmt);
+    vsnprintf(buf+len, SYSERR_MSGSIZE, fmt, args);
+    buf[SYSERR_MSGSIZE-1] = 0; /* Make sure it is null terminated */
+    log_msg_s(pri, fn, func, ln, en, buf);
+    va_end(args);
+}
+
+
 /* API to S1AP */
 ECMSession ecmSession_init(S1Assoc s1, S1AP_Message_t *s1msg, int r_sid){
     ECMSession_t *self = g_new0(ECMSession_t, 1);
@@ -101,7 +123,7 @@ static void ecmSession_sendPathSwitchReqAck(ECMSession h){
     guint8 ncc;
 
     if(!self){
-        log_msg(LOG_INFO, 0, "ECM: failed to send message. Not connected");
+        ecm_log(self, LOG_INFO, 0, "failed to send message. Not connected");
         return;
     }
 
@@ -160,7 +182,7 @@ void ecmSession_pathSwitchReq(ECMSession h, S1Assoc newAssoc,
     E_RABsToBeModified_t *list;
     ENB_UE_S1AP_ID_t *eNBUEId;
 
-    log_msg(LOG_INFO, 0, "UE (%llu) X2 HO from %s to %s",
+    ecm_log(self, LOG_INFO, 0, "UE (%llu) X2 HO from %s to %s",
             emm_getIMSI(self->emm),
             s1Assoc_getName(self->assoc),
             s1Assoc_getName(newAssoc));
@@ -185,9 +207,10 @@ void ecmSession_pathSwitchReq(ECMSession h, S1Assoc newAssoc,
     emm_modifyE_RABList(self->emm, list, ecmSession_sendPathSwitchReqAck, self);
 }
 
-void ecmSession_setState(ECMSession ecm, ECMSession_State *s){
+void ecmSession_setState(ECMSession ecm, ECMSession_State *s, ECMSessionState name){
     ECMSession_t *self = (ECMSession_t *)ecm;
     self->state = s;
+    self->stateName = name;
 }
 
 const guint32 ecmSession_getMMEUEID(const ECMSession h){
@@ -225,7 +248,7 @@ void ecm_send(ECMSession h, gpointer msg, size_t len){
     ECMSession_t *self = (ECMSession_t *)h;
 
     if(!self){
-        log_msg(LOG_INFO, 0, "ECM: failed to send message. Not connected");
+        ecm_log(self, LOG_INFO, 0, "failed to send message. Not connected");
         return;
     }
 
@@ -272,7 +295,7 @@ void ecm_sendCtxtSUReq(ECMSession h, gpointer msg, size_t len, GList *bearers){
     gsize fteid_size=0;
 
     if(!self){
-        log_msg(LOG_INFO, 0, "ECM: failed to send message. Not connected");
+        ecm_log(self, LOG_INFO, 0, "failed to send message. Not connected");
         return;
     }
 
@@ -431,7 +454,7 @@ void ecm_sendUEContextReleaseCommand(const ECMSession h, cause_choice_t choice, 
     ECMSession_t *self = (ECMSession_t *)h;
 
     if(!self){
-        log_msg(LOG_INFO, 0, "ECM: failed to send message. Not connected");
+        ecm_log(self, LOG_INFO, 0, "failed to send message. Not connected");
         return;
     }
 

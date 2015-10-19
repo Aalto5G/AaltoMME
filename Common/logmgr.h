@@ -68,6 +68,19 @@ extern void change_logger_lvl(int priority);
  * @param [in] filename
  * @param [in] line
  * @param [in] errno error number
+ * @param [in] msg Message to be printed
+ *
+ * Used by other libraries.
+ */
+extern void log_msg_s(int pri, char *fn, const char *func, int ln, int en, const char *msg);
+
+
+/**
+ * @brief send log message
+ * @param [in] priority priority level acording to syslog levels
+ * @param [in] filename
+ * @param [in] line
+ * @param [in] errno error number
  * @param [in] fmt format, printf equivalent
  *
  * Use the macro log_msg that fills the filename, the function

@@ -38,8 +38,8 @@ static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
         emm_triggerAKAprocedure(emm);
         break;
     default:
-        log_msg(LOG_WARNING, 0,
-                "NAS Message type (%u) not recognized in EMM Registered",
+        emm_log(emm, LOG_WARNING, 0,
+                "NAS Message type (%u) not recognized",
                 msg->plain.eMM.messageType);
     }
 }
@@ -63,7 +63,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     }
 
     res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
-    log_msg(LOG_DEBUG, 0, "Local sqn %#x, packet sqn: %#x",
+    emm_log(emm, LOG_DEBUG, 0, "Local sqn %#x, packet sqn: %#x",
             nas_getLastCount(emm->parser, NAS_UpLink),
             ((guint8*)buf)[5]);
     if(res==0){
@@ -71,7 +71,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         g_error("Received malformed NAS packet");
     }else if(res==2){
         /* EH trigger AKA procedure */
-        log_msg(LOG_WARNING, 0, "Wrong SQN Count. Local sqn: %#x, packet sqn: %#x",
+        emm_log(emm, LOG_WARNING, 0, "Wrong SQN Count. Local sqn: %#x, packet sqn: %#x",
             nas_getLastCount(emm->parser, NAS_UpLink),
             ((guint8*)buf)[5]);
         return;
@@ -82,7 +82,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     }
 
     if(!isAuth && nas_isAuthRequired(msg.plain.eMM.messageType)){
-        log_msg(LOG_INFO, 0, "Received Message with wrong MAC");
+        emm_log(emm, LOG_INFO, 0, "Received Message with wrong MAC");
         return;
     }
 
@@ -112,10 +112,10 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         emm_processFirstESMmsg(emm);
         break;
     case DetachRequest:
-        log_msg(LOG_DEBUG, 0, "Received DetachRequest");
+        emm_log(emm, LOG_DEBUG, 0, "Received DetachRequest");
         processDetachReq(emm, &msg);
         if(emm->ksi != emm->msg_ksi){
-            log_msg(LOG_ALERT, 0, "DetachRequest, ksi mismatch");
+            emm_log(emm, LOG_ALERT, 0, "DetachRequest, ksi mismatch");
             return;
         }
         esm_detach(emm->esm, emm_detachAccept, emm);
@@ -123,8 +123,8 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     case TrackingAreaUpdateRequest:
         ecmSession_getTAI(emm->ecm, sn, &tac);
         if(tac != emm->tac || memcmp(sn, emm->sn, 3)!=0){
-            log_msg(LOG_INFO, 0,
-                    "UE (IMSI %llu) TA changed from (TAC:%x) to (TAC:%x)",
+            emm_log(emm, LOG_INFO, 0,
+                    "TA changed from (TAC:%x) to (TAC:%x)",
                     emm->imsi, ntohs(emm->tac), ntohs(tac));
             ecmSession_getTAI(emm->ecm, emm->sn, &(emm->tac));
         }
@@ -144,8 +144,8 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         emmChangeState(emm, EMM_SpecificProcedureInitiated);
         break;
     default:
-        log_msg(LOG_WARNING, 0,
-                "NAS Message type (%u) not recognized in EMM Registered",
+        emm_log(emm, LOG_WARNING, 0,
+                "NAS Message type (%u) not recognized",
                 msg.plain.eMM.messageType);
         if(!emm->s1BearersActive){
             /* Disconnect ECM */
@@ -165,11 +165,11 @@ static void emm_processSrvReq(gpointer emm_h, gpointer buf, gsize len){
     nas_getHeader(buf, len, &s, &p);
 
     if(!emm->sci){
-        g_error("Wrong state (EMM Reg) to be without a security context");
+        g_error("Wrong state to be without a security context");
     }
 
     res = nas_authenticateMsg(emm->parser, buf, len, NAS_UpLink, (uint8_t*)&isAuth);
-    log_msg(LOG_DEBUG, 0, "Local sqn %#x, packet sqn: %#x",
+    emm_log(emm, LOG_DEBUG, 0, "Local sqn %#x, packet sqn: %#x",
             nas_getLastCount(emm->parser, NAS_UpLink),
             ((guint8*)buf)[1]&0x1F);
     if(res==0){
@@ -177,25 +177,25 @@ static void emm_processSrvReq(gpointer emm_h, gpointer buf, gsize len){
         g_error("Received malformed NAS packet");
     }else if(res==2){
         /* EH trigger AKA procedure */
-        log_msg(LOG_WARNING, 0, "Wrong SQN Count. Local sqn: %#x, packet sqn: %#x",
+        emm_log(emm, LOG_WARNING, 0, "Wrong SQN Count. Local sqn: %#x, packet sqn: %#x",
                 nas_getLastCount(emm->parser, NAS_UpLink),
                 ((guint8*)buf)[1]&0x1F);
         return;
     }
 
     if(p != EPSMobilityManagementMessages){
-        log_msg(LOG_INFO, 0, "Malformed packet");
+        emm_log(emm, LOG_INFO, 0, "Malformed packet");
         return;
     }
     emm->msg_ksi = (*((guint8*)buf+1)&0xe0)>>5;
     if(emm->ksi != emm->msg_ksi || !isAuth){
-        log_msg(LOG_INFO, 0, "Received Message with wrong MAC");
+        emm_log(emm, LOG_INFO, 0, "Received Message with wrong MAC");
         /* Trigger AKA*/
         return;
     }
     emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink);
 
-    log_msg(LOG_INFO, 0, "UE (IMSI %llu): Service Request", emm->imsi);
+    emm_log(emm, LOG_INFO, 0, "Service Request");
     emm->s1BearersActive = TRUE;
     esm_getSessions(emm->esm, &sessions);
     ecm_sendCtxtSUReq(emm->ecm, NULL, 0, sessions);
@@ -205,7 +205,7 @@ static void emm_processSrvReq(gpointer emm_h, gpointer buf, gsize len){
 
 static void emm_processError(gpointer emm_h, GError *err){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
-    log_msg(LOG_WARNING, 0, "Received Error, not supported in EMM Registered");
+    emm_log(emm, LOG_WARNING, 0, "Received Error, not supported");
 }
 
 
@@ -215,19 +215,19 @@ static void emm_processTimeout(gpointer emm_h, gpointer buf, gsize len,
 
     switch (c) {
     case TMOBILE_REACHABLE:
-        log_msg(LOG_ERR, 0, "%s expiration. UE IMSI %llu. Setting Implicit detach timer",
-                EMM_TimerStr[c], emm->imsi);
+        emm_log(emm, LOG_ERR, 0, "%s expiration. Setting Implicit detach timer",
+                EMM_TimerStr[c]);
         emm_stopTimer(emm, TMOBILE_REACHABLE);
         emm_setTimer(emm, TIMPLICIT_DETACH, NULL, 0);
         break;
     case TIMPLICIT_DETACH:
         emm_stopTimer(emm, TIMPLICIT_DETACH);
-        log_msg(LOG_ERR, 0, "%s expiration. UE IMSI %llu. Implicit detach",
-                EMM_TimerStr[c], emm->imsi);
+        emm_log(emm, LOG_ERR, 0, "%s expiration. Implicit detach",
+                EMM_TimerStr[c]);
         emm_stop(emm);
         break;
     default:
-        log_msg(LOG_ERR, 0, "Timer (%s) not recognized", EMM_TimerStr[c]);
+        emm_log(emm, LOG_ERR, 0, "Timer (%s) not recognized", EMM_TimerStr[c]);
         break;
     }
 }
@@ -236,7 +236,7 @@ static void emm_processTimeout(gpointer emm_h, gpointer buf, gsize len,
 static void emm_processTimeoutMax(gpointer emm_h, gpointer buf, gsize len,
                                   EMM_TimerCode c){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
-    log_msg(LOG_WARNING, 0, "Timeout Max %s, not supported in EMM Registered",
+    emm_log(emm, LOG_WARNING, 0, "Timeout Max %s, not supported",
             EMM_TimerStr[c]);
 }
 
@@ -266,7 +266,7 @@ static int emm_selectUpdateType(EMMCtx_t * emm){
         if(emm->msg_additionalUpdateType && emm->msg_smsOnly){
             emm->updateResult = 1;
         }else{
-            /* log_msg(LOG_ALERT, 0, */
+            /* emm_log(emm, LOG_ALERT, 0, */
             /*         "Answering Combined TA/LA updating with TA updated"); */
             /* emm->updateResult = 0; */
             /* HACK */
@@ -279,7 +279,7 @@ static int emm_selectUpdateType(EMMCtx_t * emm){
         if(emm->msg_additionalUpdateType && emm->msg_smsOnly){
             emm->updateResult = 1;
         }else{
-            /* log_msg(LOG_ALERT, 0, */
+            /* emm_log(emm, LOG_ALERT, 0, */
             /*         "Answering Combined TA/LA updating with IMSI attach " */
             /*         "with TA updated"); */
             /* emm->updateResult = 0; */
@@ -297,7 +297,7 @@ static int emm_selectUpdateType(EMMCtx_t * emm){
     default:
         /*Reserved*/
         /*Reject*/
-        log_msg(LOG_ERR, 0,
+        emm_log(emm, LOG_ERR, 0,
                 "Reserved Updating type received");
         return 0;
     }

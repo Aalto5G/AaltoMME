@@ -27,6 +27,7 @@
 
 ECMSession_State *ecm_states;
 
+
 void ecm_ConfigureFSM(){
     ecm_states = g_new(ECMSession_State, 2);
 
@@ -43,7 +44,7 @@ void ecm_DestroyFSM(){
 
 
 void ecm_ChangeState(gpointer ecm, ECMSessionState s){
-    ecmSession_setState(ecm, &(ecm_states[s]));
+    ecmSession_setState(ecm, &(ecm_states[s]), s);
 }
 
 void ecm_notImplemented(gpointer self){

@@ -19,9 +19,31 @@
 #include "EMMCtx.h"
 #include "logmgr.h"
 #include "ECMSession_priv.h"
+#include "EMM_FSMConfig.h"
 
 #include <time.h>
 #include <stdlib.h>
+
+void emm_log_(EMMCtx s, int pri, char *fn, const char *func, int ln,
+              int en, char *fmt, ...){
+    EMMCtx_t *self = (EMMCtx_t*)s;
+
+    va_list args;
+    char buf[SYSERR_MSGSIZE];
+    size_t len;
+    bzero(buf, SYSERR_MSGSIZE);
+
+    snprintf(buf, SYSERR_MSGSIZE, "%s %llu: ",
+             EMMStateName[self->stateName],
+             self->imsi);
+
+    len = strlen(buf);
+    va_start(args, fmt);
+    vsnprintf(buf+len, SYSERR_MSGSIZE, fmt, args);
+    buf[SYSERR_MSGSIZE-1] = 0; /* Make sure it is null terminated */
+    log_msg_s(pri, fn, func, ln, en, buf);
+    va_end(args);
+}
 
 void freeESMmsg(gpointer msg){
     GByteArray *array = (GByteArray *)msg;
@@ -63,8 +85,10 @@ void emmCtx_free(EMMCtx s){
 
 void emm_setState(EMMCtx emm_h, EMM_State *s, EMMState stateName){
     EMMCtx_t *self = (EMMCtx_t*)emm_h;
+    EMMState old = self->stateName;
     self->state = s;
     self->stateName = stateName;
+    emm_log(self, LOG_INFO, 0, "state change from %s", EMMStateName[old]);
 }
 
 const guint64 emmCtx_getIMSI(const EMMCtx emm){

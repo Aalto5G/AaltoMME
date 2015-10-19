@@ -42,7 +42,7 @@ static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
     case IdentityResponse:
         emm_stopTimer(emm, T3470);
         processIdentityRsp(emm, msg);
-        log_msg(LOG_DEBUG, 0, "Received IdentityResponse from: %llu", emm->imsi);
+        emm_log(emm, LOG_DEBUG, 0, "Received IdentityResponse");
         s6a_GetAuthInformation(emm->s6a, emm, emm_sendAuthRequest, emm_processS6aError, emm);
         break;
     case AuthenticationResponse:
@@ -55,10 +55,10 @@ static void emmProcessMsg(gpointer emm_h, GenericNASMsg_t* msg){
         break;
     case SecurityModeReject:
         emm_stopTimer(emm, T3460);
-        log_msg(LOG_ERR, 0, "Received SecurityModeReject, not implemented");
+        emm_log(emm, LOG_ERR, 0, "Received SecurityModeReject, not implemented");
         break;
     default:
-        log_msg(LOG_WARNING, 0,
+        emm_log(emm, LOG_WARNING, 0,
                 "NAS Message type (%x) not recognized in this context",
                 msg->plain.eMM.messageType);
     }
@@ -83,7 +83,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
             g_error("Received malformed NAS packet");
         }else if(res==2){
             /* EH trigger AKA procedure */
-            log_msg(LOG_WARNING, 0, "Wrong SQN Count. Local sqn: %#x, packet sqn: %#x",
+            emm_log(emm, LOG_WARNING, 0, "Wrong SQN Count. Local sqn: %#x, packet sqn: %#x",
                     nas_getLastCount(emm->parser, NAS_UpLink),
                     ((guint8*)buf)[5]);
             return;
@@ -97,7 +97,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     }
 
     if(!isAuth && nas_isAuthRequired(msg.plain.eMM.messageType)){
-        log_msg(LOG_INFO, 0, "Received Message with wrong MAC");
+        emm_log(emm, LOG_INFO, 0, "Received Message with wrong MAC");
         return;
     }
 
@@ -105,7 +105,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     case IdentityResponse:
         emm_stopTimer(emm, T3470);
         processIdentityRsp(emm, &msg);
-        log_msg(LOG_DEBUG, 0, "Received IdentityResponse from: %llu", emm->imsi);
+        emm_log(emm, LOG_DEBUG, 0, "Received IdentityResponse");
         s6a_GetAuthInformation(emm->s6a, emm, emm_sendAuthRequest, emm_processS6aError, emm);
         break;
     case AuthenticationResponse:
@@ -118,7 +118,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         break;
     case SecurityModeReject:
         emm_stopTimer(emm, T3460);
-        log_msg(LOG_ERR, 0, "Received SecurityModeReject, not implemented EMM CPI");
+        emm_log(emm, LOG_ERR, 0, "Received SecurityModeReject");
         break;
     case SecurityModeComplete:
         emm_stopTimer(emm, T3460);
@@ -133,8 +133,8 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
                            (gpointer)emm);
         break;
     default:
-        log_msg(LOG_WARNING, 0,
-                "NAS Message type (%x) not recognized in EMM CPI",
+        emm_log(emm, LOG_WARNING, 0,
+                "NAS Message type (%x) not recognized",
                 msg.plain.eMM.messageType);
         if(!emm->s1BearersActive || !emm->attachStarted){
             /* Disconnect ECM */
@@ -145,13 +145,13 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
 
 static void emm_processSrvReq(gpointer emm_h, gpointer buf, gsize len){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
-    log_msg(LOG_WARNING, 0, "Received Service request, not supported in EMM CPI");
+    emm_log(emm, LOG_WARNING, 0, "Received Service request, not supported");
 }
 
 static void emm_processError(gpointer emm_h, GError *err){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
 
-    log_msg(LOG_INFO, 0, "Received Error");
+    emm_log(emm, LOG_INFO, 0, "Received Error");
     if(g_error_matches(err, MME_S6a, S6a_UNKNOWN_EPS_SUBSCRIPTION)){
         if(emm->attachStarted){
             emm_sendAttachReject(emm, EMM_EPSServicesAndNonEPSServicesNotAllowed,
@@ -159,7 +159,7 @@ static void emm_processError(gpointer emm_h, GError *err){
         }
         emm_stop(emm);
     }else{
-        log_msg(LOG_ERR, 0, "Error not recognized, transition to EMM Deregisted");
+        emm_log(emm, LOG_ERR, 0, "Error not recognized, transition to EMM Deregisted");
         emm_stop(emm);
     }
 }
@@ -175,7 +175,7 @@ static void emm_processTimeout(gpointer emm_h, gpointer buf, gsize len,
 
     switch (c) {
     case T3460: /* Auth Req or Security Mode Command*/
-        log_msg(LOG_INFO, 0, "%s expiration. UE IMSI %llu", EMM_TimerStr[c], emm->imsi);
+        emm_log(emm, LOG_INFO, 0, "%s expiration", EMM_TimerStr[c]);
         if(emm->sci || type == SecurityModeCommand){
             s = IntegrityProtectedAndCiphered;
             if(type==SecurityModeCommand){
@@ -193,32 +193,32 @@ static void emm_processTimeout(gpointer emm_h, gpointer buf, gsize len,
         break;
     case T3470: /* Identity Req*/
         if(emm->imsi){
-            log_msg(LOG_INFO, 0, "%s expiration. UE IMSI %llu",
-                    EMM_TimerStr[c], emm->imsi);
+            emm_log(emm, LOG_INFO, 0, "%s expiration.",
+                    EMM_TimerStr[c]);
         }else if(emm->guti.mtmsi){
-            log_msg(LOG_INFO, 0, "%s expiration. UE TMSI %x",
+            emm_log(emm, LOG_INFO, 0, "%s expiration. UE TMSI %x",
                     EMM_TimerStr[c], emm->guti.mtmsi);
         }else{
-            log_msg(LOG_INFO, 0, "%s expiration. unidentified UE",
+            emm_log(emm, LOG_INFO, 0, "%s expiration. unidentified UE",
                     EMM_TimerStr[c]);
         }
         /* Retransmission */
         ecm_send(emm->ecm, buf, len);
         break;
     case TMOBILE_REACHABLE:
-        log_msg(LOG_ERR, 0, "%s expiration. UE IMSI %llu. Setting Implicit detach timer",
-                EMM_TimerStr[c], emm->imsi);
+        emm_log(emm, LOG_ERR, 0, "%s expiration. Setting Implicit detach timer",
+                EMM_TimerStr[c]);
         emm_stopTimer(emm, TMOBILE_REACHABLE);
         emm_setTimer(emm, TIMPLICIT_DETACH, NULL, 0);
         break;
     case TIMPLICIT_DETACH:
         emm_stopTimer(emm, TIMPLICIT_DETACH);
-        log_msg(LOG_ERR, 0, "%s expiration. UE IMSI %llu. Implicit detach",
-                EMM_TimerStr[c], emm->imsi);
+        emm_log(emm, LOG_ERR, 0, "%s expiration. Implicit detach",
+                EMM_TimerStr[c]);
         emm_stop(emm);
         break;
     default:
-        log_msg(LOG_ERR, 0, "Timer (%s) not recognized", EMM_TimerStr[c]);
+        emm_log(emm, LOG_ERR, 0, "Timer (%s) not recognized", EMM_TimerStr[c]);
         break;
     }
 }
@@ -230,8 +230,8 @@ static void emm_processTimeoutMax(gpointer emm_h, gpointer buf, gsize len,
     NASMessageType_t type = (NASMessageType_t)((guint8*)buf)[1];
     switch (c) {
     case T3460: /* Auth Req or Security Mode Command*/
-        log_msg(LOG_NOTICE, 0, "%s Max expirations reached for UE IMSI %llu. "
-                "Deregistering.", EMM_TimerStr[c], emm->imsi);
+        emm_log(emm, LOG_NOTICE, 0, "%s Max expirations reached"
+                "Deregistering.", EMM_TimerStr[c]);
         if(type == AuthenticationRequest){
             emm_stop(emm);
         }else{
@@ -241,16 +241,16 @@ static void emm_processTimeoutMax(gpointer emm_h, gpointer buf, gsize len,
         }
         break;
     case T3470: /* Identity Req*/
-        log_msg(LOG_NOTICE, 0, "%s Max expirations reached for UE IMSI %llu. "
-                "Deregistering.", EMM_TimerStr[c], emm->imsi);
+        emm_log(emm, LOG_NOTICE, 0, "%s Max expirations reached. "
+                "Deregistering.", EMM_TimerStr[c]);
         emm_stop(emm);
         break;
     case TMOBILE_REACHABLE:
     case TIMPLICIT_DETACH:
-        log_msg(LOG_ERR, 0, "Timer (%s) not implemented", EMM_TimerStr[c]);
+        emm_log(emm, LOG_ERR, 0, "Timer (%s) not implemented", EMM_TimerStr[c]);
         break;
     default:
-        log_msg(LOG_ERR, 0, "Timer (%s) not recognized", EMM_TimerStr[c]);
+        emm_log(emm, LOG_ERR, 0, "Timer (%s) not recognized", EMM_TimerStr[c]);
         break;
     }
 }
@@ -282,7 +282,7 @@ void sendAuthReject(EMMCtx_t * emm){
 }
 
 void test(EMMCtx_t *emm){
-    log_msg(LOG_ERR, 0, "Upsated NAS SQN");
+    emm_log(emm, LOG_ERR, 0, "Upsated NAS SQN");
 }
 
 static void processAuthResp(EMMCtx_t * emm,  GenericNASMsg_t* msg, guint8 *isAuth){
@@ -299,13 +299,13 @@ static void processAuthResp(EMMCtx_t * emm,  GenericNASMsg_t* msg, guint8 *isAut
 
     /* Check XRES == RES*/
     if(authRsp->authParam.l != 8){
-        log_msg(LOG_ERR, 0, "NAS: Authentication Parameter has a wrong lenght");
+        emm_log(emm, LOG_ERR, 0, "NAS: Authentication Parameter has a wrong lenght");
         return;
     }
 
     /* Check Commented for testing*/
     if(memcmp(authRsp->authParam.v, sec->xRES, 8)!=0){
-        log_msg(LOG_WARNING, 0, "NAS: Authentication Failed for user: %llu", emm->imsi);
+        emm_log(emm, LOG_WARNING, 0, "NAS: Authentication Failed");
         sendAuthReject(emm);
         return;
     }
@@ -322,13 +322,13 @@ static void processAuthFailure(EMMCtx_t *emm, GenericNASMsg_t *msg){
     authFail = (AuthenticationFailure_t*)&(msg->plain.eMM);
 
     if(authFail->eMMCause == EMM_SynchFailure){
-        log_msg(LOG_ERR, 0, "Received AuthenticationFailure, Syncing NAS SQN");
+        emm_log(emm, LOG_ERR, 0, "Received AuthenticationFailure, Syncing NAS SQN");
 
         s6a_SynchAuthVector(emm->s6a, emm, authFail->optionals[0].tlv_t4.v,
                             emm_sendAuthRequest,
                             emm);
     }else{
-        log_msg(LOG_ERR, 0, "Received AuthenticationFailure,"
+        emm_log(emm, LOG_ERR, 0, "Received AuthenticationFailure,"
                 " Cause not Recognized");
     }
 }

@@ -109,7 +109,7 @@ void emm_processMsg(gpointer emm_h, gpointer buffer, gsize len){
     }else if(s == SecurityHeaderForServiceRequestMessage){
         self->state->processSrvReq(self, buffer, len);
     }else{
-        log_msg(LOG_INFO, 0, "Invalid Security Header received: Ignoring");
+        emm_log(self, LOG_INFO, 0, "Invalid Security Header received: Ignoring");
     }
 }
 
@@ -209,8 +209,8 @@ void processAttach(gpointer emm_h,  GenericNASMsg_t* msg){
         if(((ePSMobileId_header_t*)attachMsg->ePSMobileId.v)->parity == 1){
             mobid = mobid*10 + ((attachMsg->ePSMobileId.v[i])>>4);
         }
-        log_msg(LOG_DEBUG, 0,"Attach Received from IMSI : %llu", mobid);
         emm->imsi = mobid;
+        emm_log(emm, LOG_DEBUG, 0,"Attach Received");
     }else if(((ePSMobileId_header_t*)attachMsg->ePSMobileId.v)->type == 6 ){    /*GUTI*/
         memcpy(&(emm->msg_guti), (guti_t *)(attachMsg->ePSMobileId.v+1), 10);
     }
@@ -251,7 +251,7 @@ int emm_selectAttachType(EMMCtx_t * emm){
             return 1;
         }else{
             /* /\*Reject*\/ */
-            /* log_msg(LOG_ERR, 0, */
+            /* emm_log(self, LOG_ERR, 0, */
             /*         "Combined EPS/IMSI attach not supported"); */
             /* return 1; */
             /* HACK */
@@ -261,13 +261,13 @@ int emm_selectAttachType(EMMCtx_t * emm){
     case 4:
         /*EPS emergency attach */
         /*Reject*/
-        log_msg(LOG_ERR, 0,
+        emm_log(emm, LOG_ERR, 0,
                 "Emergency attach not supported");
         return 0;
     case 7:
         /*Reserved*/
         /*Reject*/
-        log_msg(LOG_ERR, 0,
+        emm_log(emm, LOG_ERR, 0,
                 "Reserved attach type received");
         return 0;
     case 1:
@@ -365,7 +365,7 @@ void emm_sendAuthRequest(EMMCtx emm_h){
 
     memset(buffer, 0, 150);
 
-    log_msg(LOG_DEBUG, 0, "Initiating UE authentication");
+    emm_log(emm, LOG_DEBUG, 0, "Initiating UE authentication");
 
     /* Build Auth Request */
     sec = (AuthQuadruplet *)g_ptr_array_index(emm->authQuadrs,0);
@@ -616,13 +616,13 @@ void processDetachReq(EMMCtx_t *emm, GenericNASMsg_t *msg){
             mobid = mobid*10 + ((detachMsg->ePSMobileId.v[i])>>4);
         }
         if(emm->imsi != mobid){
-            log_msg(LOG_ERR, 0, "received IMSI doesn't match.");
+            emm_log(emm, LOG_ERR, 0, "received IMSI (%llu) doesn't match.", mobid);
             return;
         }
     }else if(((ePSMobileId_header_t*)detachMsg->ePSMobileId.v)->type == 6 ){    /*GUTI*/
         guti = (guti_t  *)(detachMsg->ePSMobileId.v+1);
         if(memcmp(guti, &(emm->guti), 10)!=0){
-            log_msg(LOG_ERR, 0, "GUTI incorrect. GUTI reallocation not implemented yet.");
+            emm_log(emm, LOG_ERR, 0, "GUTI incorrect. GUTI reallocation not implemented yet.");
             return;
         }
     }
@@ -752,7 +752,7 @@ void emm_sendTAUAccept(EMMCtx emm_h){
     /*          !emm->msg_additionalUpdateType){ */
     /*     cause = EMM_CSDomainNotAvailable; */
     /*     nasIe_tv_t3(&pointer, 0x53, (uint8_t*)&cause, 1); */
-    /*     log_msg(LOG_WARNING, 0, "Attach with non EPS service requested. " */
+    /*     emm_log(self, LOG_WARNING, 0, "Attach with non EPS service requested. " */
     /*             "CS Fallback not supported"); */
     /* } */
 
@@ -860,16 +860,16 @@ void emm_triggerAKAprocedure(EMMCtx emm_h){
     EMMCtx_t *self = (EMMCtx_t*)emm_h;
     emm_removeCurrentSC(self);
     if(!emm_checkIdentity(self)){
-        log_msg(LOG_DEBUG, 0, "Sent Identity Request");
+        emm_log(self, LOG_DEBUG, 0, "Sent Identity Request");
         emmChangeState(self, EMM_CommonProcedureInitiated);
         return;
     }
     if(!emm_checkAuthInformation(self)){
-        log_msg(LOG_DEBUG, 0,"Getting info from HSS");
+        emm_log(self, LOG_DEBUG, 0,"Getting info from HSS");
         return;
     }
     if(!emm_checkSCAvailability(self)){
-        log_msg(LOG_DEBUG, 0,"Sent Authentication Request");
+        emm_log(self, LOG_DEBUG, 0,"Sent Authentication Request");
         /* Set T3460 */
         emmChangeState(self, EMM_CommonProcedureInitiated);
         return;
@@ -883,7 +883,7 @@ void emm_sendIdentityReq(EMMCtx emm_h){
     guint8 buffer[150];
     bzero(buffer, 150);
 
-    log_msg(LOG_DEBUG, 0, "Building Identity Request");
+    emm_log(emm, LOG_DEBUG, 0, "Building Identity Request");
 
     pointer = buffer;
     newNASMsg_EMM(&pointer, EPSMobilityManagementMessages, PlainNAS);
@@ -927,7 +927,7 @@ void emm_detachAccept(gpointer emm_h){
         ecm_send(emm->ecm, buffer, pointer-buffer);
     }
 
-    log_msg(LOG_INFO, 0, "UE (IMSI: %llu) NAS Detach", emm->imsi);
+    emm_log(emm, LOG_INFO, 0, "Detach", emm->imsi);
     emmChangeState(emm, EMM_Deregistered);
     ecm_sendUEContextReleaseCommand(emm->ecm, CauseNas, CauseNas_detach);
 }

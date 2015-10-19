@@ -27,6 +27,9 @@ typedef enum{
     ECM_Connected,
 }ECMSessionState;
 
+static const char *ECMStateName[] = {"ECM-Idle",
+                                     "ECM-Conn"};
+
 void ecm_ConfigureFSM();
 
 void ecm_DestroyFSM();
