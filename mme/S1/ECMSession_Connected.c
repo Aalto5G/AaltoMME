@@ -67,8 +67,7 @@ static void processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
             ecm->causeRelease->freeIE(ecm->causeRelease);
             ecm->causeRelease=NULL;
         }
-        ecm_log(ecm, LOG_INFO, 0, "ECM Idle: S1AP UE MME-ID/eNB-ID %u / %u",
-                ecm->mmeUEId, ecm->eNBUEId);
+        ecm_log(ecm, LOG_INFO, 0, "Transition to Idle");
         s1Assoc_deregisterECMSession(ecm->assoc, ecm);
         mme = s1_getMME(s1Assoc_getS1(ecm->assoc));
         mme_deregisterECM(mme, ecm);

@@ -80,14 +80,14 @@ static void ecm_processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
         }else{
             emm_registerECM(ecm->emm, ecm);
         }
-        emm_processMsg(ecm->emm, nASPDU->str, nASPDU->len);
         ecm_ChangeState(ecm, ECM_Connected);
         ecm_log(ecm, LOG_INFO, 0, "Connected");
+        emm_processMsg(ecm->emm, nASPDU->str, nASPDU->len);
     }
 }
 
 static void release(gpointer _ecm, cause_choice_t choice, uint32_t cause){
-
+	ecm_log(_ecm, LOG_ERR, 0, "Cannot release an Idle ECM");
 }
 
 void linkECMSessionIdle(ECMSession_State* s){

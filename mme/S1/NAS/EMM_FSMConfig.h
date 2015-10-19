@@ -30,11 +30,12 @@ typedef enum{
     EMM_DeregisteredInitiated,
 }EMMState;
 
-static const char *EMMStateName[] = {"EMM-Deregistered",
-                                     "EMM-Registered",
-                                     "EMM-SpecificProcedureInitiated",
-                                     "EMM-CommonProcedureInitiated",
-                                     "EMM-DeregisteredInitiated"};
+static const char *EMMStateName[] = {"EMM-DER", /**< EMM-Deregistered */
+                                     "EMM-REG", /**< EMM-Registered */
+                                     "EMM-SPI", /**< EMM-SpecificProcedureInitiated */
+                                     "EMM-CPI", /**< EMM-CommonProcedureInitiated */
+                                     "EMM-DEI", /**< EMM-DeregisteredInitiated" */
+                                     };
 
 void emmConfigureFSM();
 
