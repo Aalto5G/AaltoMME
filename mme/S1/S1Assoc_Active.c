@@ -227,6 +227,7 @@ static void process_reset(S1Assoc_t *assoc, S1AP_Message_t *s1msg){
             log_msg(LOG_INFO, 0, "S1 Reset - Reset (%s). "
                     "S1AP-MME-UE-id %u",
                     assoc->eNBname->str, ecmSession_getMMEUEID(ecm));
+            g_hash_table_remove(assoc->ecm_sessions, ecmSession_geteNBUEID_p(ecm));
             s1Assoc_resetECM(assoc, ecm);
         }
         s1ap_setValueOnNewIE(s1out,
