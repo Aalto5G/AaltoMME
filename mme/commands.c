@@ -214,7 +214,7 @@ gpointer servcommand_init(gpointer mme, const int servPort){
 
     memset(&sin, 0, sizeof(sin));
     sin.sin_family = AF_INET;
-    sin.sin_addr.s_addr = INADDR_ANY;
+    inet_pton(AF_INET, mme_getLocalAddress(self->mme), &(sin.sin_addr));
     sin.sin_port = htons(servPort);
 
     self->listener = evconnlistener_new_bind(base, accept_conn_cb, self,

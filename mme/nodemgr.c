@@ -26,6 +26,7 @@
 #include "logmgr.h"
 
 #include <libconfig.h>
+#include <stdlib.h>
 
 #define CFGFILENAME "/etc/cumucore/mme.cfg"
 
@@ -33,10 +34,16 @@
 config_t cfg;
 
 int init_nodemgr(){
+	char *defaultCfg = CFGFILENAME;
+	char *cfgFile = NULL;
     config_init(&cfg);
-    if(!config_read_file(&cfg, CFGFILENAME)){
+    cfgFile = getenv("MME_CONFIG");
+    if(!cfgFile){
+	    cfgFile = defaultCfg;
+    }
+    if(!config_read_file(&cfg, cfgFile)){
       if (config_error_file(&cfg)== NULL){
-          log_msg(LOG_ERR ,0, "Node Config file not found \"%s\"", CFGFILENAME);
+          log_msg(LOG_ERR ,0, "Node Config file not found \"%s\"", cfgFile);
       }
       else{
           log_msg(LOG_ERR ,0, "%s:%d - %s\n", config_error_file(&cfg), config_error_line(&cfg), config_error_text(&cfg));
@@ -45,7 +52,7 @@ int init_nodemgr(){
       }
     }
     else{
-        log_msg(LOG_INFO, 0, "Node file opened: %s", CFGFILENAME);
+        log_msg(LOG_INFO, 0, "Node file opened: %s", cfgFile);
     }
     return 1;
 }
