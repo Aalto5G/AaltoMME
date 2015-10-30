@@ -216,6 +216,7 @@ static void emm_processTimeout(gpointer emm_h, gpointer buf, gsize len,
         emm_log(emm, LOG_ERR, 0, "%s expiration. Implicit detach",
                 EMM_TimerStr[c]);
         emm_stop(emm);
+        /* @TODO: Delete EMM if IMSI == 0*/
         break;
     default:
         emm_log(emm, LOG_ERR, 0, "Timer (%s) not recognized", EMM_TimerStr[c]);

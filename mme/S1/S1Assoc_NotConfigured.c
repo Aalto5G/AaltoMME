@@ -37,7 +37,7 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid, GError
     /* Check Procedure*/
     if(s1msg->pdu->procedureCode != id_S1Setup &&
        s1msg->choice != initiating_message){
-        log_msg(LOG_WARNING, 0, "Not a S1-Setup Request but %s, ignoring",
+        s1Assoc_log(assoc, LOG_WARNING, 0, "Not a S1-Setup Request but %s, ignoring",
                 elementaryProcedureName[s1msg->pdu->procedureCode]);
         return;
     }
@@ -60,7 +60,7 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid, GError
 
     if(!mme_containsSupportedTAs(mme, assoc->supportedTAs)){
         sendS1SetupReject_UnknownPLMN(assoc);
-        log_msg(LOG_INFO, 0, "S1-Setup Rejected: %s - Unknown PLMN", assoc->eNBname->str);
+        s1Assoc_log(assoc, LOG_INFO, 0, "S1-Setup Rejected: %s - Unknown PLMN", assoc->eNBname->str);
         g_set_error(err,
                     1,//s1Assoc_quark(),   // error domain
                     1,                 // error code
@@ -68,9 +68,9 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid, GError
         return;
     }
 
-    log_msg(LOG_INFO, 0, "S1-Setup : new eNB \"%s\", connection added", assoc->eNBname->str);
+    s1Assoc_log(assoc, LOG_INFO, 0, "S1-Setup : new eNB \"%s\", connection added", assoc->eNBname->str);
     sendS1SetupResponse(assoc);
-    s1ChangeState(assoc, Active);
+    s1ChangeState(assoc, S1_Active);
 }
 
 
@@ -101,7 +101,7 @@ static void sendS1SetupResponse(S1Assoc_t *assoc){
     /* Served GUMMEIs*/
     ie=newProtocolIE();
     if(ie == NULL){
-        log_msg(LOG_ERR, 0, "S1AP: Coudn't allocate new Protocol IE structure");
+        s1Assoc_log(assoc, LOG_ERR, 0, "Coudn't allocate new Protocol IE structure");
     }
 
     /* gummeis = s1ap_newIE(s1msg, id_ServedGUMMEIs, optional, reject); */

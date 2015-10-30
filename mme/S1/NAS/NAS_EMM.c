@@ -131,7 +131,7 @@ void emm_getGUTIfromMsg(gpointer buffer, gsize len, guti_t* guti){
         log_msg(LOG_DEBUG, 0, "Cannot get GUTI from cyphered message");
         return;
     }
-    log_msg(LOG_DEBUG, 0, "Get GUTI from message type %u",
+    log_msg(LOG_DEBUG, 0, "Get GUTI from message type %x",
             msg.plain.eMM.messageType);
 
     switch(msg.plain.eMM.messageType){

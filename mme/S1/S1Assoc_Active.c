@@ -42,35 +42,35 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid,
         /*             Non UE Associated Signaling            */
         /* ************************************************** */
         if(s1msg->pdu->procedureCode == id_Reset){
-            log_msg(LOG_DEBUG, 0, "Received Reset");
+            s1Assoc_log(assoc, LOG_DEBUG, 0, "Received Reset");
             process_reset(assoc, s1msg);
         }else if(s1msg->pdu->procedureCode == id_initialUEMessage &&
                  s1msg->choice == initiating_message){
             ecm = ecmSession_init(assoc, s1msg, r_sid);
         }else if(s1msg->pdu->procedureCode == id_ErrorIndication &&
                  s1msg->choice == initiating_message){
-            log_msg(LOG_WARNING, 0, "Received Error Indication");
+            s1Assoc_log(assoc, LOG_WARNING, 0, "Received Error Indication");
         }else if(s1msg->pdu->procedureCode == id_eNBConfigurationTransfer &&
                  s1msg->choice == initiating_message){
             process_eNBConfigurationTransfer(assoc, s1msg);
-            log_msg(LOG_DEBUG, 0, "Received eNB Configuration Transfer");
+            s1Assoc_log(assoc, LOG_DEBUG, 0, "Received eNB Configuration Transfer");
         }else if(s1msg->pdu->procedureCode == id_ENBConfigurationUpdate &&
                  s1msg->choice == initiating_message){
-            log_msg(LOG_WARNING, 0, "Received eNB Configuration Update");
+            s1Assoc_log(assoc, LOG_WARNING, 0, "Received eNB Configuration Update");
         }else if(s1msg->pdu->procedureCode == id_PathSwitchRequest &&
                  s1msg->choice == initiating_message){
-            log_msg(LOG_WARNING, 0, "Received Path Switch Request");
+            s1Assoc_log(assoc, LOG_DEBUG, 0, "Received Path Switch Request");
             mme_id = s1ap_findIe(s1msg, id_SourceMME_UE_S1AP_ID);
             mme_lookupECM(mme, mme_id->mme_id, ecm);
             ecmSession_pathSwitchReq(ecm, assoc, s1msg, r_sid);
         }else if(s1msg->pdu->procedureCode == id_WriteReplaceWarning &&
                  s1msg->choice == successful_outcome){
-            log_msg(LOG_WARNING, 0, "Received Write ReplaceWarning Response");
+            s1Assoc_log(assoc, LOG_WARNING, 0, "Received Write ReplaceWarning Response");
         }else if(s1msg->pdu->procedureCode == id_Kill &&
                  s1msg->choice == successful_outcome){
-            log_msg(LOG_WARNING, 0, "Received Kill Response");
+            s1Assoc_log(assoc, LOG_WARNING, 0, "Received Kill Response");
         }else{
-            log_msg(LOG_WARNING, 0, "Received %s on non UE associated signaling, ignoring",
+            s1Assoc_log(assoc, LOG_WARNING, 0, "Received %s on non UE associated signaling, ignoring",
                     elementaryProcedureName[s1msg->pdu->procedureCode]);
             return;
         }
@@ -85,7 +85,7 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid,
         /* ************************************************** */
         /*                 Path Switch Request                */
         /* ************************************************** */
-        log_msg(LOG_DEBUG, 0, "Received Path Switch Request");
+        s1Assoc_log(assoc, LOG_DEBUG, 0, "Received Path Switch Request");
         mme_id = s1ap_findIe(s1msg, id_SourceMME_UE_S1AP_ID);
         mme_lookupECM(mme, mme_id->mme_id, &ecm);
         ecmSession_pathSwitchReq(ecm, assoc, s1msg, r_sid);
@@ -93,17 +93,17 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid,
         /* ************************************************** */
         /*               UE associated signaling              */
         /* ************************************************** */
-        log_msg(LOG_DEBUG, 0, "Received UE associated signaling message");
+        s1Assoc_log(assoc, LOG_DEBUG, 0, "Received UE associated signaling message");
         mme_id = s1ap_findIe(s1msg, id_MME_UE_S1AP_ID);
         enb_id = s1ap_findIe(s1msg, id_eNB_UE_S1AP_ID);
         ecm = s1Assoc_getECMSession(assoc, enb_id->eNB_id);
         if (!ecm){
-            log_msg(LOG_ERR, 0, "eNB UE S1AP (%u) not recognized",
+            s1Assoc_log(assoc, LOG_ERR, 0, "eNB UE S1AP (%u) not recognized",
                     enb_id->eNB_id);
             return;
         }
         if(mme_id->mme_id != ecmSession_getMMEUEID(ecm)){
-            log_msg(LOG_ERR, 0, "MME UE S1AP (%u) not matching the eNB UE S1AP (%u)",
+            s1Assoc_log(assoc, LOG_ERR, 0, "MME UE S1AP (%u) not matching the eNB UE S1AP (%u)",
                     mme_id->mme_id, enb_id->eNB_id);
             return;
         }
@@ -192,7 +192,7 @@ static void process_reset(S1Assoc_t *assoc, S1AP_Message_t *s1msg){
     s1out->pdu->criticality = reject;
 
     if(t->choice==0){
-        log_msg(LOG_INFO, 0, "S1 Reset - Reset All: (%s)", assoc->eNBname->str);
+        s1Assoc_log(assoc, LOG_INFO, 0, "S1 Reset - Reset All: (%s)", assoc->eNBname->str);
         /* Reset All ECM*/
         g_hash_table_foreach_remove(assoc->ecm_sessions, s1Assoc_resetECM_adaptor, assoc);
     }else if(t->choice == 1){
@@ -208,23 +208,23 @@ static void process_reset(S1Assoc_t *assoc, S1AP_Message_t *s1msg){
                 ecm = s1Assoc_getECMSession(assoc,
                                             item->eNB_UE_S1AP_ID->eNB_id);
                 if(!ecm){
-                    log_msg(LOG_WARNING, 0,  "S1AP-eNB-UE-id %u not found",
+                    s1Assoc_log(assoc, LOG_WARNING, 0,  "S1AP-eNB-UE-id %u not found",
                             item->eNB_UE_S1AP_ID->eNB_id);
                     continue;
                 }
             }else if((item->opt&0x80)==0x80){
                 mme_lookupECM(mme, item->mME_UE_S1AP_ID->mme_id, &ecm);
                 if(!ecm){
-                    log_msg(LOG_WARNING, 0,  "S1AP-MME-UE-id %u not found",
+                    s1Assoc_log(assoc, LOG_WARNING, 0,  "S1AP-MME-UE-id %u not found",
                             item->mME_UE_S1AP_ID->mme_id);
                     continue;
                 }
             }else{
-                log_msg(LOG_WARNING, 0, "Empty UE associated Logical "
+                s1Assoc_log(assoc, LOG_WARNING, 0, "Empty UE associated Logical "
                         "S1 Connection Item");
                 continue;
             }
-            log_msg(LOG_INFO, 0, "S1 Reset - Reset (%s). "
+            s1Assoc_log(assoc, LOG_INFO, 0, "S1 Reset - Reset (%s). "
                     "S1AP-MME-UE-id %u",
                     assoc->eNBname->str, ecmSession_getMMEUEID(ecm));
             g_hash_table_remove(assoc->ecm_sessions, ecmSession_geteNBUEID_p(ecm));

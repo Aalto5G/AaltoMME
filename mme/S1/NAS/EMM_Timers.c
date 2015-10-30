@@ -50,6 +50,9 @@ void emm_setTimer(EMMCtx_t *emm, EMM_TimerCode c, guint8 *msg, gsize len){
     EMM_Timer *t;
     Timer tm_t;
 
+    emm_log(emm, LOG_DEBUG, 0,"Setting EMM timer: %s",
+            EMM_TimerStr[c]);
+
     t = g_new0(EMM_Timer, 1);
     t->emm = emm;
     t->code = c;

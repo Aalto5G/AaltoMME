@@ -28,6 +28,7 @@
 #include "MME_S1.h"
 #include "S1AP.h"
 #include "MMEutils.h"
+#include "S1Assoc_FSMConfig.h"
 
 /** Macro to check mandatory IE presence */
 #define CHECKIEPRESENCE(p) if(p==NULL){ \
@@ -42,6 +43,7 @@ typedef struct{
     guint16             nonue_rsid;     /**< non-UE associated signaling remote stream id*/
     guint16             nonue_lsid;     /**< non-UE associated signaling remote stream id*/
     S1Assoc_State       *state;
+    S1AssocState        stateName;
     GString             *eNBname;
     mme_GlobaleNBid     global_eNB_ID;
     //Global_ENB_ID_t     *global_eNB_ID;
@@ -52,6 +54,10 @@ typedef struct{
     gpointer            args;
 }S1Assoc_t;
 
+#define s1Assoc_log(self, p, en, ...) s1Assoc_log_(self, p, __FILE__, __func__, __LINE__, en, __VA_ARGS__)
+
+void s1Assoc_log_(S1Assoc assoc, int pri, char *fn, const char *func, int ln,
+                  int en, char *fmt, ...);
 
 /**
  * @brief S1 Send message to non UE signaling
@@ -87,7 +93,7 @@ void s1Assoc_resetECM(S1Assoc s1, gpointer ecm);
 /*                      Accessors                     */
 /* ************************************************** */
 
-void s1Assoc_setState(gpointer s1, S1Assoc_State *s);
+void s1Assoc_setState(gpointer s1, S1Assoc_State *s, S1AssocState name);
 
 void s1Assoc_setGlobalID(gpointer h, const Global_ENB_ID_t *gid);
 

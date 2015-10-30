@@ -42,7 +42,7 @@ void s1DestroyFSM(){
 
 
 void s1ChangeState(gpointer s1, S1AssocState s){
-    s1Assoc_setState(s1, &(s1_states[s]));
+    s1Assoc_setState(s1, &(s1_states[s]), s);
 }
 
 void s1notImplemented(gpointer self){

@@ -23,9 +23,13 @@
  * S1Assoc states
  */
 typedef enum{
-	NotConfigured,
-	Active,
+    S1_NotConfigured,
+    S1_Active,
 }S1AssocState;
+
+
+static const char *S1AssocStateName[] = {"S1-NoConf",
+                                         "S1-Active"};
 
 void s1ConfigureFSM();
 

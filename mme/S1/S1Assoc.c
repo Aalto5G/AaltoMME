@@ -34,6 +34,28 @@
 #include "MME.h"
 #include "MME_S1_priv.h"
 
+void s1Assoc_log_(S1Assoc assoc, int pri, char *fn, const char *func, int ln,
+              int en, char *fmt, ...){
+    S1Assoc_t *self = (S1Assoc_t *)assoc;
+    va_list args;
+    char buf[SYSERR_MSGSIZE];
+    size_t len;
+    bzero(buf, SYSERR_MSGSIZE);
+
+    if(self){
+        snprintf(buf, SYSERR_MSGSIZE, "%s %s: ",
+                 S1AssocStateName[self->stateName],
+                 s1Assoc_getName(self));
+    }
+
+    len = strlen(buf);
+    va_start(args, fmt);
+    vsnprintf(buf+len, SYSERR_MSGSIZE, fmt, args);
+    buf[SYSERR_MSGSIZE-1] = 0; /* Make sure it is null terminated */
+    log_msg_s(pri, fn, func, ln, en, buf);
+    va_end(args);
+}
+
 /* API to MME_S1 */
 S1Assoc s1Assoc_init(S1 s1){
     S1Assoc_t *self = g_new0(S1Assoc_t, 1);
@@ -43,7 +65,7 @@ S1Assoc s1Assoc_init(S1 s1){
                                                g_int_equal,
                                                NULL,
                                                NULL);
-    s1ChangeState(self, NotConfigured);
+    s1ChangeState(self, S1_NotConfigured);
     return self;
 }
 
@@ -60,7 +82,7 @@ static gboolean s1Assoc_free_deleteECM(gpointer key,
 
 void s1Assoc_free(gpointer h){
     S1Assoc_t *self = (S1Assoc_t *)h;
-    log_msg(LOG_DEBUG, 0, "Enter");
+    s1Assoc_log(self, LOG_DEBUG, 0, "Enter");
     g_hash_table_foreach_remove(self->ecm_sessions, s1Assoc_free_deleteECM, self);
 
     if(self->ecm_sessions)
@@ -127,7 +149,7 @@ static void s1_accept(evutil_socket_t fd, short event, void *arg){
                                 &flags );
 
     if (flags & MSG_NOTIFICATION){
-        log_msg(LOG_INFO, 0, "Received SCTP notification");
+        s1Assoc_log(self, LOG_INFO, 0, "Received SCTP notification");
     }
 
     /*Check errors*/
@@ -146,7 +168,7 @@ static void s1_accept(evutil_socket_t fd, short event, void *arg){
         return;
     }
 
-    log_msg(LOG_DEBUG, 0, "S1AP: Received %u bytes on stream %x",
+    s1Assoc_log(self, LOG_DEBUG, 0, "Received %u bytes on stream %x",
             msg->length,
             sndrcvinfo.sinfo_stream);
 
@@ -182,7 +204,7 @@ void s1Assoc_accept(S1Assoc h, int ss){
                       &(self->peerAddr),
                       &(self->socklen) );
     if(self->fd==-1){
-        log_msg(LOG_ERR, errno,
+        s1Assoc_log(self, LOG_ERR, errno,
                 "Error accepting connection, fd = %d, addr %#x, endpoint %#x",
                 ss,
                 &(self->peerAddr),
@@ -194,7 +216,7 @@ void s1Assoc_accept(S1Assoc h, int ss){
               &(addr_in->sin_addr),
               ipStr,
               INET_ADDRSTRLEN);
-    log_msg(LOG_DEBUG, 0, "Accepted SCTP association from %s:%u",
+    s1Assoc_log(self, LOG_DEBUG, 0, "Accepted SCTP association from %s:%u",
             ipStr, ntoh16(addr_in->sin_port));
 
     /* Enable reception of SCTP Snd/Rcv Data via sctp_recvmsg */
@@ -226,7 +248,7 @@ void s1Assoc_registerECMSession(S1Assoc h, gpointer  ecm){
 void s1Assoc_deregisterECMSession(S1Assoc h, gpointer ecm){
     S1Assoc_t *self = (S1Assoc_t *)h;
     if(!g_hash_table_remove(self->ecm_sessions, ecmSession_geteNBUEID_p(ecm))){
-        log_msg(LOG_ERR,  0, "ECM session not found in S1 Association");
+        s1Assoc_log(self, LOG_ERR,  0, "ECM session not found in S1 Association");
     }
 }
 
@@ -235,9 +257,10 @@ gpointer *s1Assoc_getECMSession(const S1Assoc h, guint32 id){
     return g_hash_table_lookup(self->ecm_sessions, &id);
 }
 
-void s1Assoc_setState(S1Assoc s1, S1Assoc_State *s){
+void s1Assoc_setState(S1Assoc s1, S1Assoc_State *s, S1AssocState name){
     S1Assoc_t *self = (S1Assoc_t *)s1;
     self->state = s;
+    self->stateName = name;
 }
 
 void s1Assoc_resetECM(S1Assoc s1, gpointer ecm){
@@ -262,7 +285,7 @@ void s1Assoc_send(gpointer s1, uint32_t streamId, S1AP_Message_t *s1msg){
     S1Assoc_t *self = (S1Assoc_t *)s1;
 
     memset(buf, 0, 10000);
-    log_msg(LOG_DEBUG, 0, "S1AP: Send %s", elementaryProcedureName[s1msg->pdu->procedureCode]);
+    s1Assoc_log(self, LOG_DEBUG, 0, "Send %s", elementaryProcedureName[s1msg->pdu->procedureCode]);
     s1ap_encode(buf, &bsize, s1msg);
 
     /*printfbuffer(buf, bsize);*/
@@ -271,7 +294,7 @@ void s1Assoc_send(gpointer s1, uint32_t streamId, S1AP_Message_t *s1msg){
     ret = sctp_sendmsg( self->fd, (void *)buf, (size_t)bsize, NULL, 0, SCTP_S1AP_PPID, 0, streamId, 0, 0 );
 
     if(ret==-1){
-        log_msg(LOG_ERR, errno, "S1AP : Error sending SCTP message to eNB %s", self->eNBname->str);
+        s1Assoc_log(self, LOG_ERR, errno, "Error sending SCTP message to eNB %s", self->eNBname->str);
     }
 }
 

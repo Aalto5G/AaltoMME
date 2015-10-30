@@ -40,10 +40,14 @@ void ecm_log_(ECMSession ecm, int pri, char *fn, const char *func, int ln,
     size_t len;
     bzero(buf, SYSERR_MSGSIZE);
 
-    snprintf(buf, SYSERR_MSGSIZE, "%s %s (%u/%u): ",
-             ECMStateName[self->stateName],
-             s1Assoc_getName(self->assoc),
-             self->eNBUEId, self->mmeUEId);
+    if(self){
+        snprintf(buf, SYSERR_MSGSIZE, "%s %s (%u/%u): ",
+                 ECMStateName[self->stateName],
+                 s1Assoc_getName(self->assoc),
+                 self->eNBUEId, self->mmeUEId);
+    }else{
+        snprintf(buf, SYSERR_MSGSIZE, "%s: ", ECMStateName[0]);
+    }
 
     len = strlen(buf);
     va_start(args, fmt);
