@@ -463,11 +463,27 @@ void mme_free(MME mme){
 }
 
 void mme_main(){
+    char *logLvl = NULL;
+    int lvl=0;
     /*Create event base structure*/
     struct event_base *evbase = event_base_new();
 
     /*Init syslog entity*/
-    init_logger("MME", LOG_INFO);
+    logLvl = getenv("MME_LOGLEVEL");
+    if(!logLvl){
+        init_logger("MME", LOG_INFO);
+        log_msg(LOG_INFO, 0, "MME_LOGLEVEL not set. "
+                "Using default log level INFO");
+    }else {
+        lvl = atoi(logLvl);
+        if(lvl<1 || lvl>7){
+            init_logger("MME", LOG_INFO);
+            log_msg(LOG_INFO, 0, "MME_LOGLEVEL with invalid value %d. "
+                    "Default log level INFO set", lvl);
+        }else{
+            init_logger("MME", lvl);
+        }
+    }
 
     MME mme = mme_init(evbase);
     if(!mme){
