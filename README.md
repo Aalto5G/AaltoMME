@@ -105,7 +105,8 @@ Jenkins Job Configuration (Old)
 -------------------------------
 
 ### Shell 1 (Build Code):
-```libtoolize -i
+```
+libtoolize -i
 autoreconf -i
 ./configure --enable-debug --enable-gcov
 make
