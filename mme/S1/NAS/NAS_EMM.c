@@ -686,7 +686,7 @@ void emm_sendTAUAccept(EMMCtx emm_h){
     guint16 bearerStatus;
     gsize len=0, tlen;
     NAS_tai_list_t tAIl;
-    guti_t guti;
+    const guti_t *guti;
     uint8_t lAI[5], addRes;
     Cause_t *cause;
 
@@ -707,7 +707,7 @@ void emm_sendTAUAccept(EMMCtx emm_h){
     /* T3412 value */
     nasIe_tv_t3(&pointer, 0x5A, &(emm->t3412), 1);
     /* GUTI */
-    emmCtx_newGUTI(emm, &guti);
+    guti = emmCtx_getGUTI(emm);
     guti_b[0]=0xF6;   /*1111 0 110 - spare, odd/even , GUTI id*/
     memcpy(guti_b+1, &guti, 10);
     nasIe_tlv_t4(&pointer, 0x50, guti_b, 11);
@@ -732,7 +732,7 @@ void emm_sendTAUAccept(EMMCtx emm_h){
             nasIe_tv_t3(&pointer, 0x13, lAI, 5);
             /* MS identity : TMSI*/
             tmsi[0]=0xf4;
-            memcpy(tmsi+1, &(guti.mtmsi), 4);
+            memcpy(tmsi+1, &(guti->mtmsi), 4);
             nasIe_tlv_t4(&pointer, 0x23, tmsi, 5);
         }
 

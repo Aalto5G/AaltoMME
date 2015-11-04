@@ -28,7 +28,13 @@
 GQuark diameter_quark();
 
 typedef enum{
-    DIAMETER_UNKNOWN_EPS_SUBSCRIPTION,
+    DIAMETER_AUTHENTICATION_DATA_UNAVAILABLE = 4181,
+    DIAMETER_ERROR_USER_UNKNOWN = 5001,
+    DIAMETER_ERROR_ROAMING_NOT_ALLOWED = 5004,
+    DIAMETER_UNKNOWN_EPS_SUBSCRIPTION = 5420,
+    DIAMETER_ERROR_RAT_NOT_ALLOWED = 5421,
+    DIAMETER_ERROR_EQUIPMENT_UNKNOWN = 5422,
+    DIAMETER_ERROR_UNKOWN_SERVING_NODE = 5423,
 }DiameterCause;
 
 /* Functions Called from the MME initialize and destroy methods*/
@@ -40,6 +46,6 @@ void HSS_getAuthVec(EMMCtx emm, GError **err);
 
 void HSS_UpdateLocation(EMMCtx emm, const ServedGUMMEIs_t * sGUMMEIs);
 
-void HSS_syncAuthVec(EMMCtx emm, uint8_t * auts);
+void HSS_syncAuthVec(EMMCtx emm, uint8_t * auts, GError **err);
 
 #endif /* HSS_HFILE */

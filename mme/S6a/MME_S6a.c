@@ -119,12 +119,27 @@ void s6a_GetAuthInformation(gpointer s6a_h, EMMCtx emm,
 }
 
 void s6a_SynchAuthVector(gpointer s6a_h,  EMMCtx emm, uint8_t *auts,
-                         void(*cb)(gpointer), gpointer args){
-
+                         void(*cb)(gpointer),
+                         void(*error_cb)(gpointer, GError *),
+                         gpointer args){
+    GError *err = NULL, *err_cb=NULL;
     struct s6a_t *s6a = (struct s6a_t*) s6a_h;
 
-    HSS_syncAuthVec(emm, auts);
+    HSS_syncAuthVec(emm, auts, &err);
     //generate_KeNB(user->sec_ctx.kASME, user->sec_ctx.ulNAScnt, user->sec_ctx.keNB);
+    if(err){
+        log_msg(LOG_ERR, 0, err->message);
+        if(error_cb){
+            s6a_errorTranslation(err, &err_cb);
+            error_cb(args, err_cb);
+            g_error_free(err_cb);
+        }
+        g_error_free(err);
+    }else{
+        if(cb){
+            cb(args);
+        }
+    }
     cb(args);
 }
 

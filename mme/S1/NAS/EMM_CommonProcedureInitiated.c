@@ -245,6 +245,11 @@ static void emm_processTimeoutMax(gpointer emm_h, gpointer buf, gsize len,
         emm_log(emm, LOG_NOTICE, 0, "%s Max expirations reached. "
                 "Deregistering.", EMM_TimerStr[c]);
         emm_stop(emm);
+        /*The EMM ctx is registered after the Identity Reply, if the Reply is not Received
+         * the context is freed*/
+        emm_free(emm);
+
+        ecm_sendUEContextReleaseCommand(emm->ecm, CauseNas, CauseNas_normal_release);
         break;
     case TMOBILE_REACHABLE:
     case TIMPLICIT_DETACH:
@@ -318,16 +323,19 @@ static void processAuthResp(EMMCtx_t * emm,  GenericNASMsg_t* msg, guint8 *isAut
     emm_sendSecurityModeCommand(emm);
 }
 
+static void syncError(gpointer h, GError *err){
+    EMMCtx_t *emm = (EMMCtx_t *)h;
+    emm_log(emm, LOG_ERR, 0, "Couldn't synchronize NAS SQN,");
+}
+
 static void processAuthFailure(EMMCtx_t *emm, GenericNASMsg_t *msg){
     AuthenticationFailure_t *authFail;
     authFail = (AuthenticationFailure_t*)&(msg->plain.eMM);
 
     if(authFail->eMMCause == EMM_SynchFailure){
         emm_log(emm, LOG_ERR, 0, "Received AuthenticationFailure, Syncing NAS SQN");
-
         s6a_SynchAuthVector(emm->s6a, emm, authFail->optionals[0].tlv_t4.v,
-                            emm_sendAuthRequest,
-                            emm);
+                            emm_sendAuthRequest, syncError, emm);
     }else{
         emm_log(emm, LOG_ERR, 0, "Received AuthenticationFailure,"
                 " Cause not Recognized");
@@ -350,4 +358,7 @@ static void processIdentityRsp(EMMCtx_t *emm, GenericNASMsg_t *msg){
         }
         emm->imsi = mobid;
     }
+
+    /* Create a new guti if empty*/
+    emmCtx_newGUTI(emm, NULL);
 }

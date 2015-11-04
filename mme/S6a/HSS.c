@@ -340,7 +340,7 @@ void HSS_getAuthVec(EMMCtx emm, GError **err){
 
 }
 
-void HSS_syncAuthVec(EMMCtx emm, uint8_t * auts){
+void HSS_syncAuthVec(EMMCtx emm, uint8_t * auts,  GError **err){
     uint8_t sqn[6];
     MYSQL_RES *result;
     MYSQL_ROW row;
@@ -403,56 +403,61 @@ void HSS_syncAuthVec(EMMCtx emm, uint8_t * auts){
     authVec = emmCtx_getFirstAuthQuadruplet(emm);
 
     if(milenage_auts(opc, k, authVec->rAND, auts, sqn) == 0){
-        if (memcmp(sqn, sqn_b, 6) != 0){
+        if (memcmp(sqn, sqn_b, 6) == 0){
+            log_msg(LOG_ERR, 0, "SEQ Already synchronized");
             emmCtx_freeAuthQuadruplet(emm);
-            increaseSQN(sqn);
-            log_msg(LOG_INFO, 0, "SQN sync old:0x%s, new:0x%s",
-                    bin_to_strhex(sqn_b, 6, sqn_old), bin_to_strhex(sqn, 6, sqn_new));
-
-            newAuthVec = g_new0(AuthQuadruplet, 1);
-            get_random(newAuthVec->rAND, 16);
-
-            milenage_generate(opc, amf, k, sqn, newAuthVec->rAND,
-                              newAuthVec->aUTN, ik, ck, newAuthVec->xRES, &resLen);
-
-            /* The first 6 bytes of AUTN are SQN^Ak*/
-            generate_Kasme(ck, ik, emmCtx_getServingNetwork_TBCD(emm), newAuthVec->aUTN,
-                           newAuthVec->kASME);
-
-            emmCtx_setNewAuthQuadruplet(emm, newAuthVec);
-
-            /* Store Auth vector*/
-            sprintf(query, insertAuthVector,
-                    1,
-                    mcc,
-                    mnc,
-                    imsi%10000000000ULL,
-                    bin_to_strhex(ik,16, str_ik),
-                    bin_to_strhex(ck,16, str_ck),
-                    bin_to_strhex(newAuthVec->rAND,16, str_rand),
-                    bin_to_strhex(newAuthVec->xRES,8, str_res),
-                    bin_to_strhex(newAuthVec->aUTN,16, str_autn),
-                    bin_to_strhex(sqn, 6, sqn_new),
-                    bin_to_strhex(newAuthVec->kASME,16, str_kasme),
-                    "00000000000000000000000000000000",   /*AK not stored for the moment*/
-                    bin_to_strhex(sqn, 6, sqn_new),
-                    bin_to_strhex(opc,16, str_opc),
-                    mcc,
-                    mnc,
-                    imsi%10000000000ULL);
-
-            /*log_msg(LOG_DEBUG, 0, "%s", query);*/
-
-            if (mysql_query(HSSConnection, query)){
-                log_msg(LOG_ERR, mysql_errno(HSSConnection), "%s", mysql_error(HSSConnection));
-            }
-
-            /*The last query is a multiple statement query, so it is needed to get
-              all free all potential results to avoid sync errors.*/
-            for(; mysql_next_result(HSSConnection) == 0;)/* do nothing */;
-        }else{
-            log_msg(LOG_ERR, 0, "NAS SQN Already synchronized");
+            g_set_error(err, DIAMETER, 0,
+                        "SEQ Already synchronized: %" PRIu64, imsi);
+            return;
         }
+
+        emmCtx_freeAuthQuadruplet(emm);
+        increaseSQN(sqn);
+        log_msg(LOG_INFO, 0, "SEQ sync old:0x%s, new:0x%s",
+                bin_to_strhex(sqn_b, 6, sqn_old), bin_to_strhex(sqn, 6, sqn_new));
+
+        newAuthVec = g_new0(AuthQuadruplet, 1);
+        get_random(newAuthVec->rAND, 16);
+
+        milenage_generate(opc, amf, k, sqn, newAuthVec->rAND,
+                          newAuthVec->aUTN, ik, ck, newAuthVec->xRES, &resLen);
+
+        /* The first 6 bytes of AUTN are SQN^Ak*/
+        generate_Kasme(ck, ik, emmCtx_getServingNetwork_TBCD(emm), newAuthVec->aUTN,
+                       newAuthVec->kASME);
+
+        emmCtx_setNewAuthQuadruplet(emm, newAuthVec);
+
+        /* Store Auth vector*/
+        sprintf(query, insertAuthVector,
+                1,
+                mcc,
+                mnc,
+                imsi%10000000000ULL,
+                bin_to_strhex(ik,16, str_ik),
+                bin_to_strhex(ck,16, str_ck),
+                bin_to_strhex(newAuthVec->rAND,16, str_rand),
+                bin_to_strhex(newAuthVec->xRES,8, str_res),
+                bin_to_strhex(newAuthVec->aUTN,16, str_autn),
+                bin_to_strhex(sqn, 6, sqn_new),
+                bin_to_strhex(newAuthVec->kASME,16, str_kasme),
+                "00000000000000000000000000000000",   /*AK not stored for the moment*/
+                bin_to_strhex(sqn, 6, sqn_new),
+                bin_to_strhex(opc,16, str_opc),
+                mcc,
+                mnc,
+                imsi%10000000000ULL);
+
+        /*log_msg(LOG_DEBUG, 0, "%s", query);*/
+
+        if (mysql_query(HSSConnection, query)){
+            log_msg(LOG_ERR, mysql_errno(HSSConnection), "%s", mysql_error(HSSConnection));
+        }
+
+        /*The last query is a multiple statement query, so it is needed to get
+          all free all potential results to avoid sync errors.*/
+        for(; mysql_next_result(HSSConnection) == 0;)/* do nothing */;
+
     }else{
         log_msg(LOG_ERR, 0, "Invalid AUTS");
     }

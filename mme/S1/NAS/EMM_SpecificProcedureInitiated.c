@@ -174,9 +174,8 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
         nasIe_lv_t6(&pointer, esm_msg, msgLen);
 
         /* GUTI */
-        emmCtx_newGUTI(emm, &guti);
         guti_b[0]=0xF6;   /*1111 0 110 - spare, odd/even , GUTI id*/
-        memcpy(guti_b+1, &guti, 10);
+        memcpy(guti_b+1, &(emm->guti), sizeof(guti_t));
         nasIe_tlv_t4(&pointer, 0x50, guti_b, 11);
 
         /* EMM cause if the attach type is different
