@@ -125,7 +125,7 @@ static const struct timeval EMM_tv[] = {
     {6, 0},       /* T3450 */
     {6, 0},       /* T3460 */
     {6, 0},       /* T3470 */
-    {60+4*60, 0}, /* TMOBILE_REACHABLE */ /* Network dependent 4min extra than T3412*/
+    {54*60+4*60, 0}, /* TMOBILE_REACHABLE */ /* Network dependent 4min extra than T3412*/
     {1, 0},       /* TIMPLICIT_DETACH */  /* Network dependent ISR? T3423+4min, T3324? T3412+4min*/
 };
 

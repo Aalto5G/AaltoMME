@@ -66,9 +66,9 @@ EMMCtx emmCtx_init(){
 
     /* self->t3412 = 0x06; /\* 12 seg*\/ */
     /* self->t3412 = 0x0A; /\* 20 seg*\/ */
-    self->t3412 = 0x21; /* 1 min*/
+    /* self->t3412 = 0x21; /\* 1 min*\/ */
     /* self->t3412 = 0x23; /\* 3 min*\/ */
-    /* self->t3412 = 0x49; /\* 54 min, default *\/ */
+    self->t3412 = 0x49; /* 54 min, default */
 
     return self;
 }
