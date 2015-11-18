@@ -72,7 +72,7 @@ typedef enum NASMessageType_c{
     TrackingAreaUpdateComplete                  = 0x4A,
     TrackingAreaUpdateReject                    = 0x4B,
     ExtendedServiceRequest                      = 0x4C,
-    ServiceReject                               = 0x4D,
+    ServiceReject                               = 0x4E,
     GUTIReallocationCommand                     = 0x50,
     GUTIReallocationComplete                    = 0x51,
     AuthenticationRequest                       = 0x52,

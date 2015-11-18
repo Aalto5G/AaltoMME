@@ -709,7 +709,7 @@ void emm_sendTAUAccept(EMMCtx emm_h){
     /* GUTI */
     guti = emmCtx_getGUTI(emm);
     guti_b[0]=0xF6;   /*1111 0 110 - spare, odd/even , GUTI id*/
-    memcpy(guti_b+1, &guti, 10);
+    memcpy(guti_b+1, guti, 10);
     nasIe_tlv_t4(&pointer, 0x50, guti_b, 11);
     /* TAI list */
     ecmSession_getTAIlist(emm->ecm, &tAIl, &tlen);
