@@ -174,6 +174,13 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
         nasIe_lv_t6(&pointer, esm_msg, msgLen);
 
         /* GUTI */
+        if(emm->gut.mtmsi==0){
+            /* This is a sanity check. The guti shall be allocated before
+               this point*/
+            emm_log(emm, LOG_WARNING, 0,
+                "No GUTI assigned, allocating a new one");
+            emmCtx_newGUTI(emm, NULL);
+        }
         guti_b[0]=0xF6;   /*1111 0 110 - spare, odd/even , GUTI id*/
         memcpy(guti_b+1, &(emm->guti), sizeof(guti_t));
         nasIe_tlv_t4(&pointer, 0x50, guti_b, 11);

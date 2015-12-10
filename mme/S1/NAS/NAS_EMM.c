@@ -801,13 +801,15 @@ void emm_sendTAUReject(EMMCtx emm_h, EMMCause_t cause){
 
 guint emm_checkIdentity(EMMCtx emm_h){
     EMMCtx_t *self = (EMMCtx_t*)emm_h;
-    guint res = 1;
 
     if(self->imsi == 0ULL){ /* !isIMSIavailable(self) */
         emm_sendIdentityReq(self);
-        res = 0;
+        return 0;
     }
-    return res;
+
+    /* Create a new guti if empty*/
+    emmCtx_newGUTI(self, NULL);
+    return 1;
 }
 
 void emm_removeCurrentSC(EMMCtx emm_h){
