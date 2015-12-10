@@ -174,7 +174,7 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
         nasIe_lv_t6(&pointer, esm_msg, msgLen);
 
         /* GUTI */
-        if(emm->gut.mtmsi==0){
+        if(emm->guti.mtmsi==0){
             /* This is a sanity check. The guti shall be allocated before
                this point*/
             emm_log(emm, LOG_WARNING, 0,
