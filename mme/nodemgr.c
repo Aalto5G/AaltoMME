@@ -30,6 +30,8 @@
 
 #define CFGFILENAME "/etc/cumucore/mme.cfg"
 
+G_DEFINE_QUARK(MME-Configuration, conf);
+
 /*Config structure*/
 config_t cfg;
 
@@ -159,7 +161,7 @@ void getNodeByAddr6(const struct in6_addr *addr, const enum nodeType type, struc
 
 }
 
-void loadMMEinfo(struct mme_t *mme){
+void loadMMEinfo(struct mme_t *mme, GError **err){
     config_setting_t *mmeNAMEconf, *mmeIp4, *gUMMEIsconf,
         *gummeiconf, *pLMNsconf, *gIDsconf, *mMECsconf, *pLMNconf, *relCapconf, *uE_DNS, *tmp_c;
     char const *name, *mmeIpv4str, *uE_DNSstr, *tmp_str;
@@ -169,6 +171,7 @@ void loadMMEinfo(struct mme_t *mme){
     PLMNidentity_t *pLMN;
     MME_Group_ID_t *gID;
     MME_Code_t *mmec;
+    gchar *err_msg;
 
     mmeNAMEconf =
         config_lookup(&cfg, "mme.name");
@@ -221,13 +224,16 @@ void loadMMEinfo(struct mme_t *mme){
                 continue;
             /*Parse MCC*/
             if( config_setting_lookup_int(pLMNconf, "MCC", &tmp) == CONFIG_FALSE){
-                log_msg(LOG_ERR ,0, "Couldn't parse MCC name - %s:%d - %s\n", config_error_file(&cfg), config_error_line(&cfg), config_error_text(&cfg));
+                log_msg(LOG_ERR ,0, "Couldn't parse MCC name - %s:%d - %s\n",
+                        config_error_file(&cfg), config_error_line(&cfg),
+                        config_error_text(&cfg));
             }
             pLMN->MCC = tmp;
 
             /*Parse MNC*/
             if( config_setting_lookup_int(pLMNconf, "MNC", &tmp) == CONFIG_FALSE){
-                log_msg(LOG_ERR ,0, "Couldn't parse MNC name - %s:%d - %s\n", config_error_file(&cfg), config_error_line(&cfg), config_error_text(&cfg));
+                log_msg(LOG_ERR ,0, "Couldn't parse MNC name - %s:%d - %s\n",
+                        config_error_file(&cfg), config_error_line(&cfg), config_error_text(&cfg));
             }
             pLMN->MNC = tmp;
             plmnId_MccMnc2tbcd(pLMN);
@@ -261,23 +267,51 @@ void loadMMEinfo(struct mme_t *mme){
     /*RelativeMMECapacity*/
     mme->relativeCapacity = new_RelativeMMECapacity();
     relCapconf = config_lookup(&cfg, "mme.relative_Capacity");
+    if(!relCapconf){
+        err_msg = "Couldn't find mme.relative_Capacity on the configuration file";
+        goto error;
+    }
     tmp = config_setting_get_int(relCapconf);
     mme->relativeCapacity->cap = tmp;
 
-    tmp_c= config_lookup(&cfg, "mme.S6a.host");
+    tmp_c = config_lookup(&cfg, "mme.S6a.host");
+    if(!tmp_c){
+        err_msg = "Couldn't find mme.S6a.host on the configuration file";
+        goto error;
+    }
     mme->s6a_db_host = g_strdup(config_setting_get_string(tmp_c));
 
-    tmp_c= config_lookup(&cfg, "mme.S6a.db");
+    tmp_c = config_lookup(&cfg, "mme.S6a.db");
+    if(!tmp_c){
+        err_msg = "Couldn't find mme.S6a.db on the configuration file";
+        goto error;
+    }
     mme->s6a_db = g_strdup(config_setting_get_string(tmp_c));
 
-    tmp_c= config_lookup(&cfg, "mme.S6a.user");
+    tmp_c = config_lookup(&cfg, "mme.S6a.user");
+    if(!tmp_c){
+        err_msg = "Couldn't find mme.S6a.user on the configuration file";
+        goto error;
+    }
     mme->s6a_db_user = g_strdup(config_setting_get_string(tmp_c));
 
-    tmp_c= config_lookup(&cfg, "mme.S6a.password");
+    tmp_c = config_lookup(&cfg, "mme.S6a.password");
+    if(!tmp_c){
+        err_msg = "Couldn't find mme.S6a.password on the configuration file";
+        goto error;
+    }
     mme->s6a_db_passwd = g_strdup(config_setting_get_string(tmp_c));
 
     log_msg(LOG_INFO ,0, "MME configuration loaded from file");
 
+    return;
+
+ error:
+    g_set_error(err,
+                MME_CONFIG,      // error domain
+                0,               // error code
+                err_msg);
+    return;
 }
 
 void freeMMEinfo(struct mme_t *mme){

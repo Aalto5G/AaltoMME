@@ -384,6 +384,7 @@ void kill_handler(evutil_socket_t listener, short event, void *arg){
 
 MME mme_init(struct event_base *evbase){
     struct mme_t *self;
+    GError *err = NULL;
 
 
     if (!evbase){
@@ -412,7 +413,11 @@ MME mme_init(struct event_base *evbase){
     init_nodemgr();
 
     /*Load MME information from config file*/
-    loadMMEinfo(self);
+    loadMMEinfo(self, &err);
+    if(err){
+        g_error_free(err);
+        g_error(err->message);
+    }
 
     self->ev_readers =
         g_hash_table_new_full(g_int_hash,

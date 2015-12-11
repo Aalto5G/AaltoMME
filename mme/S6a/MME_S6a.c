@@ -58,6 +58,7 @@ gpointer s6a_init(gpointer mme){
                  mme_p->s6a_db,
                  mme_p->s6a_db_user,
                  mme_p->s6a_db_passwd) != 0){
+        g_error("Couldn't initiate HSS connection");
         return  NULL;
     }
     //return (gpointer) s6a;

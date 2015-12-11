@@ -20,10 +20,16 @@
 #include <arpa/inet.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
+#include <glib.h>
 #include "MME.h"
 #include "Subscription.h"
 
 #define MAX_HOST_NAME 30
+
+#define MME_CONFIG conf_quark()
+
+GQuark conf_quark();
+
 /*connection status enum*/
 enum nodeStatus{
     down,
@@ -103,7 +109,7 @@ extern void getNodeByAddr6(const struct in6_addr *addr, const enum nodeType type
 /**@brief Load MME information from config file
  * @param [in] mme  MME structure reference
  */
-extern void loadMMEinfo(struct mme_t *mme);
+extern void loadMMEinfo(struct mme_t *mme, GError **err);
 
 /**@brief free MME information from config file
  * @param [in] mme  MME structure reference
