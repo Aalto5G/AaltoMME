@@ -449,6 +449,16 @@ void mme_free(MME mme){
 
     event_free(self->kill_event);
 
+    if(self->s6a_db_host)
+        g_free(self->s6a_db_host);
+    if(self->s6a_db)
+        g_free(self->s6a_db);
+    if(self->s6a_db_user)
+        g_free(self->s6a_db_user);
+    if(self->s6a_db_passwd)
+        g_free(self->s6a_db_passwd);
+
+
     g_hash_table_destroy(self->s1_by_GeNBid);
     g_hash_table_destroy(self->emm_sessions);
     g_hash_table_destroy(self->ecm_sessions_by_localID);

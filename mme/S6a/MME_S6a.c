@@ -29,6 +29,11 @@
 
 #include "HSS.h"
 
+#define HOST    "localhost"
+#define USER    "hss"
+#define PASSWD  "hss"
+#define HSS_DB  "hss_lte_db"
+
 G_DEFINE_QUARK(MME-S6a, mme_S6a);
 
 typedef void (*s6a_STATE)(gpointer);
@@ -45,9 +50,14 @@ struct s6a_t{
  */
 gpointer s6a_init(gpointer mme){
     struct s6a_t *s6a = g_new(struct s6a_t, 1);
+    struct mme_t *mme_p = (struct mme_t*)mme;
+
     s6a->mme = mme;
 
-    if (init_hss() != 0){
+    if (init_hss(mme_p->s6a_db_host,
+                 mme_p->s6a_db,
+                 mme_p->s6a_db_user,
+                 mme_p->s6a_db_passwd) != 0){
         return  NULL;
     }
     //return (gpointer) s6a;

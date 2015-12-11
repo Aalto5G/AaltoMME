@@ -38,7 +38,7 @@ typedef enum{
 }DiameterCause;
 
 /* Functions Called from the MME initialize and destroy methods*/
-int init_hss();
+int init_hss(const char *host, const char *db, const char *usr, const char *pw);
 
 void disconnect_hss();
 

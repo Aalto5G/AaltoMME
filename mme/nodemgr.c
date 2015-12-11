@@ -34,12 +34,12 @@
 config_t cfg;
 
 int init_nodemgr(){
-	char *defaultCfg = CFGFILENAME;
-	char *cfgFile = NULL;
+    char *defaultCfg = CFGFILENAME;
+    char *cfgFile = NULL;
     config_init(&cfg);
     cfgFile = getenv("MME_CONFIG");
     if(!cfgFile){
-	    cfgFile = defaultCfg;
+        cfgFile = defaultCfg;
     }
     if(!config_read_file(&cfg, cfgFile)){
       if (config_error_file(&cfg)== NULL){
@@ -160,8 +160,9 @@ void getNodeByAddr6(const struct in6_addr *addr, const enum nodeType type, struc
 }
 
 void loadMMEinfo(struct mme_t *mme){
-    config_setting_t *mmeNAMEconf, *mmeIp4, *gUMMEIsconf, *gummeiconf, *pLMNsconf, *gIDsconf, *mMECsconf, *pLMNconf, *relCapconf, *uE_DNS;
-    char const *name, *mmeIpv4str, *uE_DNSstr;
+    config_setting_t *mmeNAMEconf, *mmeIp4, *gUMMEIsconf,
+        *gummeiconf, *pLMNsconf, *gIDsconf, *mMECsconf, *pLMNconf, *relCapconf, *uE_DNS, *tmp_c;
+    char const *name, *mmeIpv4str, *uE_DNSstr, *tmp_str;
     uint32_t iGUMMEI, lGUMMEI, iPLMN, lPLMN, iGID, lGID, iMMEC, lMMEC;
     int tmp;
     ServedGUMMEIsItem_t *item;
@@ -169,7 +170,8 @@ void loadMMEinfo(struct mme_t *mme){
     MME_Group_ID_t *gID;
     MME_Code_t *mmec;
 
-    mmeNAMEconf = config_lookup(&cfg, "mme.name");
+    mmeNAMEconf =
+        config_lookup(&cfg, "mme.name");
     name = config_setting_get_string(mmeNAMEconf);
     if(name != NULL && name[0]!= '\0'){
         mme->name = new_MMEname();
@@ -261,6 +263,18 @@ void loadMMEinfo(struct mme_t *mme){
     relCapconf = config_lookup(&cfg, "mme.relative_Capacity");
     tmp = config_setting_get_int(relCapconf);
     mme->relativeCapacity->cap = tmp;
+
+    tmp_c= config_lookup(&cfg, "mme.S6a.host");
+    mme->s6a_db_host = g_strdup(config_setting_get_string(tmp_c));
+
+    tmp_c= config_lookup(&cfg, "mme.S6a.db");
+    mme->s6a_db = g_strdup(config_setting_get_string(tmp_c));
+
+    tmp_c= config_lookup(&cfg, "mme.S6a.user");
+    mme->s6a_db_user = g_strdup(config_setting_get_string(tmp_c));
+
+    tmp_c= config_lookup(&cfg, "mme.S6a.password");
+    mme->s6a_db_passwd = g_strdup(config_setting_get_string(tmp_c));
 
     log_msg(LOG_INFO ,0, "MME configuration loaded from file");
 

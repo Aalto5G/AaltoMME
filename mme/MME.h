@@ -74,6 +74,10 @@ struct mme_t{
     char                    ipv6[INET6_ADDRSTRLEN]; /* Not used*/
     ServedGUMMEIs_t         *servedGUMMEIs;
     RelativeMMECapacity_t   *relativeCapacity;
+    gchar                   *s6a_db_host;
+    gchar                   *s6a_db;
+    gchar                   *s6a_db_user;
+    gchar                   *s6a_db_passwd;
     GHashTable              *ev_readers;                     /*< Listener events accessed by socket*/
     gpointer                s6a;
     gpointer                s11;

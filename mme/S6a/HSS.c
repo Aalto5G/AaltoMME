@@ -26,12 +26,6 @@
 #include <mysql.h>
 #include <stdlib.h>
 
-#define HOST    "localhost"
-#define USER    "hss"
-#define PASSWD  "hss"
-#define HSS_DB  "hss_lte_db"
-
-
 /* HSS connection global variable */
 MYSQL                   *HSSConnection;
 
@@ -79,7 +73,7 @@ void increaseSQN(uint8_t *sqn_b){
     }
 }
 
-int init_hss(){
+int init_hss(const char *host, const char *db, const char *usr, const char *pw){
     MYSQL      *MySQLConRet;
     int reconnect;
 
@@ -98,7 +92,7 @@ int init_hss(){
         return 1;
     }
 
-    MySQLConRet = mysql_real_connect( HSSConnection, HOST, USER, PASSWD, HSS_DB,
+    MySQLConRet = mysql_real_connect( HSSConnection, host, usr, pw, db,
                                       0, NULL, CLIENT_MULTI_STATEMENTS );
     if ( MySQLConRet == NULL || MySQLConRet != HSSConnection){
         log_msg(LOG_ERR, mysql_errno(HSSConnection), "%s. Disconnecting. Handler %x", mysql_error(HSSConnection), HSSConnection);
