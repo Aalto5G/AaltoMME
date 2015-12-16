@@ -36,6 +36,7 @@ static void ecm_processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
     guti_t guti;
     S_TMSI_t *sTMSI = NULL;
     guint32 mtmsi;
+    guint64 imsi;
     struct mme_t * mme = s1_getMME(s1Assoc_getS1(ecm->assoc));
     memset(&guti, 0, sizeof(guti_t));
 
@@ -71,6 +72,9 @@ static void ecm_processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
                                                      guti.mmegi,
                                                      guti.mmec)){
                 mme_lookupEMMCtxt(mme, guti.mtmsi, &(ecm->emm));
+            }else{
+                emm_getIMSIfromAttach(nASPDU->str, nASPDU->len, &imsi);
+                mme_lookupEMMCtxt_byIMSI(mme, imsi, &(ecm->emm));
             }
         }
 
@@ -87,7 +91,7 @@ static void ecm_processMsg(gpointer _ecm, S1AP_Message_t *s1msg, int r_sid){
 }
 
 static void release(gpointer _ecm, cause_choice_t choice, uint32_t cause){
-	ecm_log(_ecm, LOG_ERR, 0, "Cannot release an Idle ECM");
+    ecm_log(_ecm, LOG_ERR, 0, "Cannot release an Idle ECM");
 }
 
 void linkECMSessionIdle(ECMSession_State* s){

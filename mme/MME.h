@@ -170,6 +170,8 @@ void mme_deregisterEMMCtxt(struct mme_t *self, gpointer emm);
 
 void mme_lookupEMMCtxt(struct mme_t *self, const guint32 m_tmsi, gpointer *emm);
 
+void mme_lookupEMMCtxt_byIMSI(struct mme_t *self, const guint64 imsi, gpointer *emm);
+
 
 void mme_registerECM(struct mme_t *self, gpointer ecm);
 

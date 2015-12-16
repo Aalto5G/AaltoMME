@@ -69,6 +69,8 @@ void emm_processMsg(gpointer emm_h, gpointer msg, gsize len);
 
 void emm_getGUTIfromMsg(gpointer buffer, gsize len, guti_t* guti);
 
+void emm_getIMSIfromAttach(gpointer buffer, gsize len, guint64* imsi);
+
 /**
  * @brief get KeNB
  * @param [in]   emm_h EMM Stack handler

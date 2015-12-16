@@ -279,6 +279,19 @@ void mme_lookupEMMCtxt(struct mme_t *self, const guint32 m_tmsi, gpointer *emm){
     *emm = g_hash_table_lookup(self->emm_sessions, &m_tmsi);
 }
 
+void mme_lookupEMMCtxt_byIMSI(struct mme_t *self, const guint64 imsi, gpointer *emm){
+    GHashTableIter iter;
+    gpointer key, value;
+
+    g_hash_table_iter_init(&iter, self->emm_sessions);
+    while(g_hash_table_iter_next(&iter, &key, &value)){
+        if(emm_getIMSI(value)==imsi){
+            *emm = value;
+            return;
+        }
+    }
+}
+
 void mme_registerECM(struct mme_t *self, gpointer ecm){
     g_hash_table_insert(self->ecm_sessions_by_localID,
                         ecmSession_getMMEUEID_p(ecm),

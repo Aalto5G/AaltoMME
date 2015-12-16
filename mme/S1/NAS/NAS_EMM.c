@@ -155,6 +155,50 @@ void emm_getGUTIfromMsg(gpointer buffer, gsize len, guti_t* guti){
     log_msg(LOG_DEBUG, 0, "M-TMSI %x", guti->mtmsi);
 }
 
+void emm_getIMSIfromAttach(gpointer buffer, gsize len, guint64* imsi){
+    GenericNASMsg_t msg;
+    SecurityHeaderType_t s;
+    ProtocolDiscriminator_t p;
+    AttachRequest_t *attachMsg;
+    guint i=0;
+    uint64_t mobid=0ULL;
+
+    if (!nas_getHeader(buffer, len, &s, &p))
+        g_error("Empty NAS message buffer");
+
+    if(s == PlainNAS){
+        dec_NAS(&msg, buffer, len);
+    }else if(s == IntegrityProtected){
+        dec_NAS(&msg, buffer+6, len-6);
+    }else{
+        log_msg(LOG_DEBUG, 0, "Cannot get GUTI from cyphered message");
+        return;
+    }
+    log_msg(LOG_DEBUG, 0, "Get GUTI from message type %x",
+            msg.plain.eMM.messageType);
+
+    if(msg.plain.eMM.messageType != AttachRequest){
+        log_msg(LOG_DEBUG, 0, "Not implemented for message type %u",
+                msg.plain.eMM.messageType);
+        imsi = 0ULL;
+        return;
+    }
+
+    attachMsg = (AttachRequest_t*)&(msg.plain.eMM);
+
+    if(((ePSMobileId_header_t*)attachMsg->ePSMobileId.v)->type == 1 ){  /* IMSI*/
+        for(i=0; i<attachMsg->ePSMobileId.l-1; i++){
+            mobid = mobid*10 + ((attachMsg->ePSMobileId.v[i])>>4);
+            mobid = mobid*10 + ((attachMsg->ePSMobileId.v[i+1])&0x0F);
+        }
+        if(((ePSMobileId_header_t*)attachMsg->ePSMobileId.v)->parity == 1){
+            mobid = mobid*10 + ((attachMsg->ePSMobileId.v[i])>>4);
+        }
+        *imsi = mobid;
+    }
+    log_msg(LOG_DEBUG, 0, "IMSI %ull", *imsi);
+}
+
 static guint8 emm_nextKSI(guint8 k){
     if(k < 6){
         return k+1;

@@ -66,7 +66,6 @@ static void emmProcessMsg(gpointer emm_h,  GenericNASMsg_t* msg){
 
 static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
-    EMMCtx_t *old_emm = NULL;
 
     GenericNASMsg_t msg;
 
