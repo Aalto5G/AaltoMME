@@ -80,13 +80,23 @@ void ePSsession_parsePDNConnectivityRequest(EPS_Session s, ESM_Message_t *msg,
 void ePSsession_sendActivateDefaultEPSBearerCtxtReq(EPS_Session s){
     EPS_Session_t *self = (EPS_Session_t*)s;
 
-    guint8 buffer[150], *pointer, apn[150], pco[30];
-    gsize len;
+    guint8 buffer[150], *pointer, apn[150], pco[0xff+2], pco_rsp[0xff+2], *pco_rsp_p, *pco_p;
+    gsize len, pco_len=0;
 
     struct qos_t qos;
     struct PAA_t paa;
 
     guint32 dns;
+    guint16 pco_id;
+
+    const guint8 ipcp[] = {
+        0x80, 0x21, 0x10, 0x03, 0x01, 0x00, 0x10,
+        0x81, 0x06, 0, 0, 0, 0,
+        0x83, 0x06, 0, 0, 0, 0};
+    const guint8 pco_dns[] = {
+        0x00, 0x0d, 0x04, 0, 0, 0, 0};
+    const guint8 pco_mtu[] = {
+        0x00, 0x10, 0x02, 0x05, 0xa0};
 
     memset(buffer, 0, 150);
     pointer = buffer;
@@ -142,29 +152,39 @@ void ePSsession_sendActivateDefaultEPSBearerCtxtReq(EPS_Session s){
             nasIe_tlv_t4(&pointer, 0x27, pco+2, pco[1]);
             *(pointer-1-pco[1]) = pco[1];
         }else{
-            /* pco[0]=0x80; */
-            /* pco[1]=0x80; // */
-            /* pco[2]=0x21; */
-            /* pco[3]=0x0a; //lenght */
-            /* pco[4]=0x01; */
-            /* pco[5]=0x00; */
-            /* pco[6]=0x00; */
-            /* pco[7]=0x0a; */
-            /* pco[8]=0x81; */
-            /* pco[9]=0x06; */
-            uint8_t pco_r[] = {0x80,
-                               0x80, 0x21, 0x10, 0x03, 0x01, 0x00, 0x10,
-                                     0x81, 0x06, 0, 0, 0, 0,
-                                     0x83, 0x06, 0, 0, 0, 0,
-                               0x00, 0x0d, 0x04, 0, 0, 0, 0,};
-            //0x00, 0x0a, 0x04, 0, 0, 0, 0};
-            memcpy(pco_r+10, &(dns), 4);
-            memcpy(pco_r+16, &(dns), 4);
-            memcpy(pco_r+23, &(dns), 4);
-            //memcpy(pco_r+30, self->pdn_addr, 4);
+            pco_p = pco + 3;
+            bzero(pco_rsp, 0xff+2);
+            pco_rsp_p = pco_rsp;
+            *pco_rsp_p = 0x80;
+            pco_len++;
 
-            nasIe_tlv_t4(&pointer, 0x27, pco_r, 27);
-            //*(pointer-15) = 14;
+            while(*(pco+1) > pco+3-pco_p){
+                pco_id = (*pco_p <<8)|(*(pco_p+1));
+                pco_p += *(pco_p+2)+3;
+                switch(pco_id){
+                case 0x8021: /* IP Control Protocol */
+                    memcpy(pco_rsp_p, ipcp, 19);
+                    memcpy(pco_rsp_p+10, &(dns), 4);
+                    memcpy(pco_rsp_p+16, &(dns), 4);
+                    pco_rsp_p +=19;
+                    pco_len+=19;
+                    break;
+                case 0x000d: /* DNS Server IPv4 Address */
+                    memcpy(pco_rsp_p, pco_dns, 7);
+                    memcpy(pco_rsp_p+4, &(dns), 4);
+                    pco_rsp_p +=7;
+                    pco_len+=7;
+                    break;
+                case 0x0010: /* IPv4 Link MTU */
+                    memcpy(pco_rsp_p, ipcp, 5);
+                    pco_rsp_p +=5;
+                    pco_len+=5;
+                    break;
+                default: /* Not Recognized Ignoring*/
+                    break;
+                }
+            }
+            nasIe_tlv_t4(&pointer, 0x27, pco_rsp, pco_len);
         }
     }
     emm_attachAccept(self->esm->emm, buffer, pointer-buffer,
