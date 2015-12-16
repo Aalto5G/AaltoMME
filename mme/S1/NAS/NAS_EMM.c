@@ -174,7 +174,7 @@ void emm_getIMSIfromAttach(gpointer buffer, gsize len, guint64* imsi){
         log_msg(LOG_DEBUG, 0, "Cannot get GUTI from cyphered message");
         return;
     }
-    log_msg(LOG_DEBUG, 0, "Get GUTI from message type %x",
+    log_msg(LOG_DEBUG, 0, "Get IMSI from message type %x",
             msg.plain.eMM.messageType);
 
     if(msg.plain.eMM.messageType != AttachRequest){
@@ -196,7 +196,7 @@ void emm_getIMSIfromAttach(gpointer buffer, gsize len, guint64* imsi){
         }
         *imsi = mobid;
     }
-    log_msg(LOG_DEBUG, 0, "IMSI %ull", *imsi);
+    log_msg(LOG_DEBUG, 0, "IMSI %llu", *imsi);
 }
 
 static guint8 emm_nextKSI(guint8 k){
