@@ -156,22 +156,23 @@ void ePSsession_sendActivateDefaultEPSBearerCtxtReq(EPS_Session s){
             bzero(pco_rsp, 0xff+2);
             pco_rsp_p = pco_rsp;
             *pco_rsp_p = 0x80;
+            pco_rsp_p++;
             pco_len++;
 
-            while(*(pco+1) > pco+3-pco_p){
+            while(*(pco+1) >= pco_p-(pco+3)){
                 pco_id = (*pco_p <<8)|(*(pco_p+1));
                 pco_p += *(pco_p+2)+3;
                 switch(pco_id){
                 case 0x8021: /* IP Control Protocol */
                     memcpy(pco_rsp_p, ipcp, 19);
-                    memcpy(pco_rsp_p+10, &(dns), 4);
-                    memcpy(pco_rsp_p+16, &(dns), 4);
+                    memcpy(pco_rsp_p+9, &(dns), 4);
+                    memcpy(pco_rsp_p+15, &(dns), 4);
                     pco_rsp_p +=19;
                     pco_len+=19;
                     break;
                 case 0x000d: /* DNS Server IPv4 Address */
                     memcpy(pco_rsp_p, pco_dns, 7);
-                    memcpy(pco_rsp_p+4, &(dns), 4);
+                    memcpy(pco_rsp_p+3, &(dns), 4);
                     pco_rsp_p +=7;
                     pco_len+=7;
                     break;
