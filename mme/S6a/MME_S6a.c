@@ -151,7 +151,6 @@ void s6a_SynchAuthVector(gpointer s6a_h,  EMMCtx emm, uint8_t *auts,
             cb(args);
         }
     }
-    cb(args);
 }
 
 
