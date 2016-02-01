@@ -287,10 +287,6 @@ void sendAuthReject(EMMCtx_t * emm){
     emmChangeState(emm, EMM_Deregistered);
 }
 
-void test(EMMCtx_t *emm){
-    emm_log(emm, LOG_ERR, 0, "Upsated NAS SQN");
-}
-
 static void processAuthResp(EMMCtx_t * emm,  GenericNASMsg_t* msg, guint8 *isAuth){
     AuthenticationResponse_t * authRsp;
     authRsp = (AuthenticationResponse_t*)&(msg->plain.eMM);
@@ -326,6 +322,13 @@ static void processAuthResp(EMMCtx_t * emm,  GenericNASMsg_t* msg, guint8 *isAut
 static void syncError(gpointer h, GError *err){
     EMMCtx_t *emm = (EMMCtx_t *)h;
     emm_log(emm, LOG_ERR, 0, "Couldn't synchronize NAS SQN,");
+
+    /* @HACK - Further logic required.*/
+    emm_stop(emm);
+    /* TODO: Remove the hack above.
+       If IMSI attach, send Auth Reject
+       IF GUTI attach, start Identity Req
+     */
 }
 
 static void processAuthFailure(EMMCtx_t *emm, GenericNASMsg_t *msg){
@@ -336,9 +339,20 @@ static void processAuthFailure(EMMCtx_t *emm, GenericNASMsg_t *msg){
         emm_log(emm, LOG_ERR, 0, "Received AuthenticationFailure, Syncing NAS SQN");
         s6a_SynchAuthVector(emm->s6a, emm, authFail->optionals[0].tlv_t4.v,
                             emm_sendAuthRequest, syncError, emm);
+    }else if(authFail->eMMCause == EMM_MACFailure){
+        emm_log(emm, LOG_ERR, 0, "Received AuthenticationFailure,"
+                " MAC Failure");
+        /* @HACK - Further logic required.*/
+        emm_stop(emm);
+        /* TODO: Remove the hack above.
+         */
     }else{
         emm_log(emm, LOG_ERR, 0, "Received AuthenticationFailure,"
                 " Cause not Recognized");
+        /* @HACK - Further logic required.*/
+        emm_stop(emm);
+        /* TODO: Remove the hack above.
+         */
     }
 }
 
