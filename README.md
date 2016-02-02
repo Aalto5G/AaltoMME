@@ -14,6 +14,16 @@ Dependencies
 - libsctp
 - MariaDB server and client (mariadb-server libmariadbclient-dev)
 
+### Install
+
+```
+# apt-get install libsctp1 libevent-2.0-5 libglib2.0-0 libmariadbclient18 mariadb-server libconfig9
+```
+
+### Build
+```
+# apt-get install build-essential cmake libevent-dev libmariadbclient-dev libconfig-dev libglib2.0-dev libssl-dev
+```
 
 3rd Party Sources included on the project
 -----------------------------------------
