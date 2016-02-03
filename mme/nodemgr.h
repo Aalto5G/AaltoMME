@@ -21,6 +21,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <glib.h>
+#include <stdbool.h>
 #include "MME.h"
 #include "Subscription.h"
 
@@ -61,9 +62,9 @@ struct nodeinfo_t{
 /*Public API*/
 
 /**@brief Init node manager structures
- * @returns 0 when error
+ * @returns false when error
  * Used to store new node information or to refresh a existing one. */
-extern int init_nodemgr();
+extern bool init_nodemgr();
 
 /**@brief Free node manager structures
  * Used to store new node information or to refresh a existing one. */

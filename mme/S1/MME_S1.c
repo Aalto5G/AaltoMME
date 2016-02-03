@@ -60,6 +60,12 @@ gpointer s1_init(gpointer mme){
 
     /*Init S1 server*/
     self->fd =init_sctp_srv(mme_getLocalAddress(self->mme), S1AP_PORT);
+    if(self->fd == -1){
+        log_msg(LOG_ERR, 0, "Error opening the S1 interface. "
+                "Check the IP on the configuration");
+        s1DestroyFSM();
+        return NULL;
+    }
     log_msg(LOG_INFO, 0, "Open S1 server on file descriptor %d, port %d",
             self->fd, S1AP_PORT);
 
@@ -69,7 +75,6 @@ gpointer s1_init(gpointer mme){
                                           g_int_equal,
                                           NULL,
                                           s1Assoc_free);
-
     return self;
 }
 

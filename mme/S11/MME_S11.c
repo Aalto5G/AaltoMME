@@ -64,6 +64,12 @@ gpointer s11_init(gpointer mme){
 
     /*Init S11 server*/
     self->fd =init_udp_srv(mme_getLocalAddress(self->mme), GTP2C_PORT);
+    if(self->fd == -1){
+        log_msg(LOG_ERR, 0, "Error opening the S11 interface. "
+                "Check the IP on the configuration");
+        s11DestroyFSM();
+        return NULL;
+    }
     log_msg(LOG_INFO, 0, "Open S11 server on file descriptor %d, port %d",
             self->fd, GTP2C_PORT);
 

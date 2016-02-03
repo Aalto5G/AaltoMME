@@ -223,7 +223,8 @@ gpointer servcommand_init(gpointer mme, const int servPort){
                                              (struct sockaddr*)&sin,
                                              sizeof(sin));
     if (!self->listener) {
-        g_error("Couldn't create listener");
+        log_msg(LOG_ERR, 0, "Error opening the CLI interface. "
+                "Check the IP on the configuration");
         return NULL;
     }
 

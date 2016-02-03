@@ -23,6 +23,7 @@
 #include <string.h>
 #include <stdio.h>
 #include <signal.h>
+#include <stdbool.h>
 #include <glib.h>
 
 #include "logmgr.h"
@@ -39,8 +40,6 @@
 #include "ECMSession.h"
 #include "NAS_EMM.h"
 #include "nodemgr.h"
-
-int mme_run_flag=0;
 
 
 /**@brief Simple UDP creation
@@ -133,40 +132,59 @@ int init_sctp_srv(const char *src, int port){
     return listenSock;
 }
 
-int mme_init_ifaces(struct mme_t *self){
+bool mme_init_ifaces(struct mme_t *self){
 
     /*LibEvent structures*/
     struct event_base *base;
     uint32_t addr = 0;
 
     self->s6a = s6a_init((gpointer)self);
+    if(!(self->s6a)){
+        return false;
+    }
 
     /*Init command server, returns server file descriptor*/
     self->cmd = servcommand_init(self, COMMAND_PORT);
+    if(!(self->cmd)){
+        goto err_cmd;
+    }
 
     /*Init S11 server*/
     self->s11 = s11_init((gpointer)self);
+    if(!(self->s11)){
+        goto err_s11;
+    }
 
     /*Init S1 server*/
     self->s1 = s1_init((gpointer)self);
+    if(!(self->s1)){
+        goto err_s1;
+    }
 
     /*Init Controller server*/
     self->sdnCtrl = sdnCtrl_init((gpointer)self);
+    if(!(self->sdnCtrl)){
+        goto err_sdnCtrl;
+    }
+    return true;
 
-    return 0;
+ err_sdnCtrl:
+    sdnCtrl_free(self->sdnCtrl);
+ err_s1:
+    s1_free(self->s1);
+ err_s11:
+    s11_free(self->s11);
+ err_cmd:
+    s6a_free(self->s6a);
+    return false;
 }
 
-int mme_close_ifaces(struct mme_t *self){
-
-    struct EndpointStruct_t *ep;
-    int i=0;
-
+void mme_close_ifaces(struct mme_t *self){
     sdnCtrl_free(self->sdnCtrl);
     s6a_free(self->s6a);
     servcommand_stop(self->cmd);
     s11_free(self->s11);
     s1_free(self->s1);
-    return 0;
 }
 
 
@@ -423,13 +441,16 @@ MME mme_init(struct event_base *evbase){
     event_add(self->kill_event, NULL);
 
     /*Init node manager*/
-    init_nodemgr();
+    if(!init_nodemgr()){
+        goto err1;
+    }
 
     /*Load MME information from config file*/
     loadMMEinfo(self, &err);
     if(err){
+        log_msg(LOG_ERR, 0, err->message);
         g_error_free(err);
-        g_error(err->message);
+        goto err1;
     }
 
     self->ev_readers =
@@ -457,8 +478,34 @@ MME mme_init(struct event_base *evbase){
                               (GEqualFunc) globaleNBID_Equal,
                               NULL,
                               NULL);
-    mme_init_ifaces(self);
+    if(!mme_init_ifaces(self)){
+        goto err_ifaces;
+    };
     return self;
+
+ err_ifaces:
+    if(self->s6a_db_host)
+        g_free(self->s6a_db_host);
+    if(self->s6a_db)
+        g_free(self->s6a_db);
+    if(self->s6a_db_user)
+        g_free(self->s6a_db_user);
+    if(self->s6a_db_passwd)
+        g_free(self->s6a_db_passwd);
+
+    g_hash_table_destroy(self->s1_by_GeNBid);
+    g_hash_table_destroy(self->emm_sessions);
+    g_hash_table_destroy(self->ecm_sessions_by_localID);
+    g_hash_table_destroy(self->s1_localIDs);
+    g_hash_table_destroy(self->ev_readers);
+    freeMMEinfo(self);
+
+ err1:
+    event_free(self->kill_event);
+    free_timerMgr(self->tm);
+    free(self);
+
+    return NULL;
 }
 
 void mme_free(MME mme){
@@ -513,15 +560,20 @@ void mme_main(){
         }
     }
 
+    log_msg(LOG_INFO, 0, "running MME v%s", MME_VERSION);
+
     MME mme = mme_init(evbase);
     if(!mme){
-        g_error("MME structure not created!");
+        log_msg(LOG_ERR, 0, "MME initialization error");
+        goto free_event_base;
     }
     /* Blocking loop*/
     event_base_dispatch(evbase);
 
     /*Free structures*/
     mme_free(mme);
+
+ free_event_base:
     event_base_free(evbase);
 
     /*Close syslog entity*/

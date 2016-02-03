@@ -4,9 +4,8 @@ cmake_minimum_required(VERSION 2.8)
 set(PROJECT_NAME MME)
 project(${PROJECT_NAME})
 
-set(${PROJECT_NAME}_VERSION_MAJOR "0")
-set(${PROJECT_NAME}_VERSION_MINOR "1")
-set(${PROJECT_NAME}_VERSION_PATCH "11")
+#set(${PROJECT_NAME}_VERSION "0.1.11")
+file (STRINGS "VERSION" ${PROJECT_NAME}_VERSION)
 
 set(CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -53,11 +52,13 @@ include_directories(
 
 FILE(GLOB_RECURSE MME_SRCS "mme/*.c")
 
+add_definitions(-DMME_VERSION="${${PROJECT_NAME}_VERSION}")
+
 
 ################################
 # Normal Executables
 ################################
-add_executable(${PROJECT_NAME} ${COMMON_SRC} ${MME_SRCS} mme/mme.cfg)
+add_executable(${PROJECT_NAME} ${COMMON_SRC} ${MME_SRCS} mme.cfg)
 
 target_link_libraries( ${PROJECT_NAME}
   gtp s1ap nas
@@ -69,7 +70,7 @@ target_link_libraries( ${PROJECT_NAME}
   ${OPENSSL_LIBRARIES})
 
 install(TARGETS ${PROJECT_NAME} DESTINATION /usr/bin COMPONENT binaries)
-install(FILES mme/mme.cfg DESTINATION /etc/cumucore/ COMPONENT config)
+install(FILES mme.cfg DESTINATION /etc/cumucore/ COMPONENT config RENAME mme.cfg.template)
 
 ################################
 # GTP library : libgtp.a
@@ -105,10 +106,8 @@ add_subdirectory(test)
 ################################
 include(InstallRequiredSystemLibraries)
 set(CPACK_RESOURCE_FILE_LICENSE
-     "${CMAKE_CURRENT_SOURCE_DIR}/COPYING")
-set(CPACK_PACKAGE_VERSION_MAJOR "${${PROJECT_NAME}_VERSION_MAJOR}")
-set(CPACK_PACKAGE_VERSION_MINOR "${${PROJECT_NAME}_VERSION_MINOR}")
-set(CPACK_PACKAGE_VERSION_PATCH "${${PROJECT_NAME}_VERSION_PATCH}")
+  "${CMAKE_CURRENT_SOURCE_DIR}/COPYING")
+set(CPACK_PACKAGE_VERSION "${${PROJECT_NAME}_VERSION}")
 set(CPACK_DEBIAN_PACKAGE_MAINTAINER "Vicent Ferrer Guasch <vicent.ferrerguasch@aalto.fi>")
 set(CPACK_PACKAGE_DESCRIPTION_SUMMARY "Mobility Management Entity used in Evolved Packet Core.
  First version prepared for the phase 1 of LSA Testbed in Rome")

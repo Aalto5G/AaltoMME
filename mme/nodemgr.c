@@ -35,7 +35,7 @@ G_DEFINE_QUARK(MME-Configuration, conf);
 /*Config structure*/
 config_t cfg;
 
-int init_nodemgr(){
+bool init_nodemgr(){
     char *defaultCfg = CFGFILENAME;
     char *cfgFile = NULL;
     config_init(&cfg);
@@ -46,17 +46,16 @@ int init_nodemgr(){
     if(!config_read_file(&cfg, cfgFile)){
       if (config_error_file(&cfg)== NULL){
           log_msg(LOG_ERR ,0, "Node Config file not found \"%s\"", cfgFile);
-      }
-      else{
+      }else{
           log_msg(LOG_ERR ,0, "%s:%d - %s\n", config_error_file(&cfg), config_error_line(&cfg), config_error_text(&cfg));
           config_destroy(&cfg);
-          return 0;
       }
+      return false;
     }
     else{
         log_msg(LOG_INFO, 0, "Node file opened: %s", cfgFile);
     }
-    return 1;
+    return true;
 }
 
 void free_nodemgr(){
