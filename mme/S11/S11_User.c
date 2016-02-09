@@ -457,7 +457,7 @@ void sendDeleteSessionReq(gpointer u){
 
     /* Indication flgs*/
     ie[ienum].tliv.i=0;
-    ie[ienum].tliv.l=hton32(4);
+    ie[ienum].tliv.l=hton16(4);
     ie[ienum].tliv.t=GTPV2C_IE_INDICATION;
     bzero(ie[ienum].tliv.v,4);
     ie[ienum].tliv.v[0]=0x08; /* OI flag*/
