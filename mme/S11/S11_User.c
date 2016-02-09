@@ -437,6 +437,7 @@ void sendDeleteSessionReq(gpointer u){
     S11_user_t *self = (S11_user_t*)u;
 
     union gtpie_member ie[13];
+    guint ienum = 0;
     memset(ie, 0, sizeof(union gtpie_member)*13);
 
     /*  Send Delete Session Request to SGW*/
@@ -445,13 +446,24 @@ void sendDeleteSessionReq(gpointer u){
     self->oMsglen = get_default_gtp(2, GTP2_DELETE_SESSION_REQ, &(self->oMsg));
 
     /*  EPS Bearer ID (EBI) to be removed*/
-    ie[0].tliv.i=0;
-    ie[0].tliv.l=hton16(1);
-    ie[0].tliv.t=GTPV2C_IE_EBI;
-    /*ie[0].tliv.v[0]=user.ebi; *//*Future*/
-    ie[0].tliv.v[0]=0x05; /*EBI = 5,  EBI > 4, see 3GPP TS 24.007 11.2.3.1.5  EPS bearer identity */
+    ie[ienum].tliv.i=0;
+    ie[ienum].tliv.l=hton16(1);
+    ie[ienum].tliv.t=GTPV2C_IE_EBI;
+    /*ie[ienum].tliv.v[0]=user.ebi; *//*Future*/
+    ie[ienum].tliv.v[0]=0x05; /*EBI = 5,  EBI > 4, see 3GPP TS 24.007 11.2.3.1.5  EPS bearer identity */
+    ienum++;
 
-    gtp2ie_encaps(ie, 1, &(self->oMsg), &(self->oMsglen));
+    /* User Location Information */
+
+    /* Indication flgs*/
+    ie[ienum].tliv.i=0;
+    ie[ienum].tliv.l=hton32(4);
+    ie[ienum].tliv.t=GTPV2C_IE_INDICATION;
+    bzero(ie[ienum].tliv.v,4);
+    ie[ienum].tliv.v[0]=0x08; /* OI flag*/
+    ienum++;
+
+    gtp2ie_encaps(ie, ienum, &(self->oMsg), &(self->oMsglen));
 
     s11_send(self);
 }
