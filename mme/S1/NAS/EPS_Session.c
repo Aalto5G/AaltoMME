@@ -177,7 +177,7 @@ void ePSsession_sendActivateDefaultEPSBearerCtxtReq(EPS_Session s){
                     pco_len+=7;
                     break;
                 case 0x0010: /* IPv4 Link MTU */
-                    memcpy(pco_rsp_p, ipcp, 5);
+                    memcpy(pco_rsp_p, pco_mtu, 5);
                     pco_rsp_p +=5;
                     pco_len+=5;
                     break;
