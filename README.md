@@ -22,7 +22,7 @@ Dependencies
 
 ### Build
 ```
-# apt-get install build-essential cmake libevent-dev libmariadbclient-dev libconfig-dev libglib2.0-dev libssl-dev
+# apt-get install build-essential cmake libevent-dev libsctp-dev libmariadbclient-dev libconfig-dev libglib2.0-dev libssl-dev
 ```
 
 3rd Party Sources included on the project
