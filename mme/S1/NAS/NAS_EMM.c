@@ -559,20 +559,21 @@ void emm_getNH(const EMMCtx emm, guint8 *nh, guint8 *ncc){
     the previous NH.
     */
 
-    uint8_t s[35], keNB[32];
+    uint8_t s[35], keNB[32], zero[32];
+    bzero(zero, 32);
 
     s[0]=0x12;
     s[33]=0;
     s[34]=0x20;
 
-    if(self->ncc == 0){
+    if(memcmp(self->nh, zero, 32)==0){
         /*First hop*/
         emm_getKeNB(self, keNB);
         memcpy(s+1, keNB, 32);
         hmac_sha256(self->kasme, 32, s, 35, self->old_nh, 32);
     }else{
         memcpy(self->old_nh, self->nh, 32);
-        self->old_ncc++;
+        self->old_ncc = self->ncc;
     }
 
     memcpy(s+1, self->old_nh, 32);
@@ -580,7 +581,7 @@ void emm_getNH(const EMMCtx emm, guint8 *nh, guint8 *ncc){
     self->ncc++;
 
     memcpy(nh, self->old_nh, 32);
-    *ncc = self->old_ncc;
+    *ncc = self->old_ncc & 0b111;
 }
 
 
@@ -869,6 +870,11 @@ void emm_removeCurrentSC(EMMCtx emm_h){
     self->old_ksi = self->ksi;
     self->ksi = 7;
     self->sci = FALSE;
+
+    self->ncc = 0;
+    self->old_ncc = 0;
+    bzero(self->nh, 32);
+    bzero(self->old_nh, 32);
 
     self->nasUlCountForSC=0;
 }
