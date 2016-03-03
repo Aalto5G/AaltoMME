@@ -68,7 +68,12 @@ void emm_deregister(EMMCtx emm_h){
     if(self->stateName != EMM_Deregistered){
         emm_setTimer(self, TMOBILE_REACHABLE, NULL, 0);
     }
+
     bzero(self->nh, 32);
+    self->ncc = 0;
+    bzero(self->old_nh);
+    self->old_ncc = 0;
+
     self->ecm = NULL;
 }
 
@@ -569,11 +574,9 @@ void emm_getNH(const EMMCtx emm, guint8 *nh, guint8 *ncc){
 
     if(memcmp(self->nh, zero, 32)==0){
         /*First hop*/
-        emm_getKeNB(self, keNB);
-        memcpy(s+1, keNB, 32);
-        hmac_sha256(self->kasme, 32, s, 35, self->old_nh, 32);
-        self->old_ncc = 1;
-        self->ncc = 1;
+        emm_getKeNB(self, self->old_nh);
+        self->old_ncc = 0;
+        self->ncc = 0;
     }else{
         memcpy(self->old_nh, self->nh, 32);
         self->old_ncc = self->ncc;
