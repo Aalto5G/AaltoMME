@@ -68,6 +68,7 @@ void emm_deregister(EMMCtx emm_h){
     if(self->stateName != EMM_Deregistered){
         emm_setTimer(self, TMOBILE_REACHABLE, NULL, 0);
     }
+    bzero(self->nh, 32);
     self->ecm = NULL;
 }
 
@@ -442,9 +443,9 @@ void emm_setSecurityQuadruplet(EMMCtx emm_h){
     AuthQuadruplet *sec;
     sec = (AuthQuadruplet *)g_ptr_array_index(emm->authQuadrs,0);
 
-    emm->old_ncc = emm->ncc;
+    /* emm->old_ncc = emm->ncc; */
     memcpy(emm->old_kasme, emm->kasme, 32);
-    memcpy(emm->old_nh, emm->nh, 32);
+    /* memcpy(emm->old_nh, emm->nh, 32); */
 
     memcpy(emm->kasme, sec->kASME, 32);
 
@@ -571,6 +572,8 @@ void emm_getNH(const EMMCtx emm, guint8 *nh, guint8 *ncc){
         emm_getKeNB(self, keNB);
         memcpy(s+1, keNB, 32);
         hmac_sha256(self->kasme, 32, s, 35, self->old_nh, 32);
+        self->old_ncc = 1;
+        self->ncc = 1;
     }else{
         memcpy(self->old_nh, self->nh, 32);
         self->old_ncc = self->ncc;
