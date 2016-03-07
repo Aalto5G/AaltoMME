@@ -146,8 +146,7 @@ static void emmAttachAccept(gpointer emm_h, gpointer esm_msg, gsize msgLen, GLis
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     guint8 *pointer, out[256], plain[250], count, t3412, addRes, guti_b[11], lAI[5], tmsi[5];
     guti_t guti;
-    guint32 len;
-    gsize tlen;
+    gsize len, tlen;
     NAS_tai_list_t tAIl;
     EMMCause_t cause;
 

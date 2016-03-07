@@ -186,7 +186,7 @@ void ecmSession_pathSwitchReq(ECMSession h, S1Assoc newAssoc,
     E_RABsToBeModified_t *list;
     ENB_UE_S1AP_ID_t *eNBUEId;
 
-    ecm_log(self, LOG_INFO, 0, "UE (%llu) X2 HO from %s to %s",
+    ecm_log(self, LOG_INFO, 0, "UE (%" PRIu64") X2 HO from %s to %s",
             emm_getIMSI(self->emm),
             s1Assoc_getName(self->assoc),
             s1Assoc_getName(newAssoc));

@@ -33,7 +33,7 @@ void emm_log_(EMMCtx s, int pri, char *fn, const char *func, int ln,
     size_t len;
     bzero(buf, SYSERR_MSGSIZE);
 
-    snprintf(buf, SYSERR_MSGSIZE, "%s %llu: ",
+    snprintf(buf, SYSERR_MSGSIZE, "%s %" PRIu64": ",
              EMMStateName[self->stateName],
              self->imsi);
 

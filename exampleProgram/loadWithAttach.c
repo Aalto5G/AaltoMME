@@ -521,7 +521,7 @@ int newAttachMsg(int listener, int sid, S1AP_Message_t * s1msg){
             num_attach++;
             imsi=imsi+num_attach;
             enbid++;
-            printf("NEW attach #%u, imsi %llu\n", num_attach, imsi);
+            printf("NEW attach #%u, imsi %" PRIu64"\n", num_attach, imsi);
             if(preload==0)
                 addNewUEonHSS(imsi);
 

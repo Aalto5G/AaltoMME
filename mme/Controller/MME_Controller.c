@@ -120,7 +120,7 @@ static void TASK_MME_Controller___userAttach(SDNCtrl_t* self, gpointer emm){
         "\"msg_type\": \"attach\","
         "\"msg\": {"
             "\"plmn\": \"%.3llu%.2llu\","
-            "\"ue_msisdn\": \"%llu\","
+            "\"ue_msisdn\": \"%" PRIu64"\","
             "%s"
             /*"\"ue_ipv4addr\": \"10.10.255.254\","*/
             /*"\"ue_ipv6addr\": \"2001:0db8:85a3:0042:1000:8a2e:0370:7334\","*/
@@ -222,7 +222,7 @@ static void TASK_MME_Controller___userDetach(SDNCtrl_t* self, gpointer emm){
         "\"msg_type\": \"detach\","
         "\"msg\": {"
             "\"plmn\": \"%.3llu%.2llu\","
-            "\"ue_msisdn\": \"%llu\","
+            "\"ue_msisdn\": \"%" PRIu64"\","
             "%s"
             /*"\"ue_ipv4addr\": \"10.10.255.254\","*/
             /*"\"ue_ipv6addr\": \"2001:0db8:85a3:0042:1000:8a2e:0370:7334\","*/
@@ -320,7 +320,7 @@ static void TASK_MME_Controller___userHandover(SDNCtrl_t* self, gpointer emm){
         "\"msg_type\": \"handover\","
         "\"msg\": {"
             "\"plmn\": \"%.3llu%.2llu\","
-            "\"ue_msisdn\": \"%llu\","
+            "\"ue_msisdn\": \"%" PRIu64"\","
             "%s"
             /*"\"ue_ipv4addr\": \"10.10.255.254\","*/
             /*"\"ue_ipv6addr\": \"2001:0db8:85a3:0042:1000:8a2e:0370:7334\","*/

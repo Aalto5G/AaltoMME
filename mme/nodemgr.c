@@ -170,7 +170,7 @@ void loadMMEinfo(struct mme_t *mme, GError **err){
     PLMNidentity_t *pLMN;
     MME_Group_ID_t *gID;
     MME_Code_t *mmec;
-    gchar *err_msg;
+    gchar *err_msg = NULL;
 
     mmeNAMEconf =
         config_lookup(&cfg, "mme.name");

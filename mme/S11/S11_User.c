@@ -544,7 +544,7 @@ void parseCtxRsp(gpointer u, GError **err){
     gtp2ie_gettliv(self->ie, GTPV2C_IE_PAA, 0, value, &vsize);
     if(value!= NULL && vsize>0){
         ePSsession_setPDNAddress(self->session, value, vsize);
-        log_msg(LOG_DEBUG, 0, "PDN Address Allocated %s for IMSI: %llu",
+        log_msg(LOG_DEBUG, 0, "PDN Address Allocated %s for IMSI: %" PRIu64"",
                 ePSsession_getPDNAddrStr(self->session, addr, INET6_ADDRSTRLEN),
                 emmCtx_getIMSI(self->emm));
     }

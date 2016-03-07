@@ -202,7 +202,7 @@ void emm_getIMSIfromAttach(gpointer buffer, gsize len, guint64* imsi){
         }
         *imsi = mobid;
     }
-    log_msg(LOG_DEBUG, 0, "IMSI %llu", *imsi);
+    log_msg(LOG_DEBUG, 0, "IMSI %" PRIu64"", *imsi);
 }
 
 static guint8 emm_nextKSI(guint8 k){
@@ -335,8 +335,7 @@ void emm_sendAttachReject(EMMCtx emm_h, EMMCause_t eMMcause,
     guint8 *pointer, out[256], plain[250], count, t3412, addRes;
     guint8 guti_b[11], lAI[5], tmsi[5];
     guti_t guti;
-    guint32 len;
-    gsize tlen;
+    gsize len, tlen;
     NAS_tai_list_t tAIl;
 
     memset(out, 0, 156);
@@ -378,7 +377,7 @@ void emm_sendAttachReject(EMMCtx emm_h, EMMCause_t eMMcause,
 void emm_sendServiceReject(EMMCtx emm_h, EMMCause_t eMMcause){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     guint8 *pointer, out[256], plain[250];
-    guint32 len;
+    gsize len;
 
     memset(out, 0, 156);
     memset(plain, 0, 150);
@@ -462,7 +461,7 @@ void emm_sendSecurityModeCommand(EMMCtx emm_h){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     guint8 *pointer, algorithms;
     guint8 capabilities[5];
-    guint32 len;
+    gsize len;
     guint8 count, out[156], plain[150], req;
     memset(out, 0, 156);
     memset(plain, 0, 150);
@@ -620,7 +619,7 @@ void emm_internalSendESM(const EMMCtx emm, const gpointer msg, const gsize len, 
         return;
     }
 
-    newNASMsg_sec(self->parser, out, (uint32_t*)&oLen,
+    newNASMsg_sec(self->parser, out, &oLen,
                   EPSMobilityManagementMessages,
                   IntegrityProtectedAndCiphered,
                   NAS_DownLink,
@@ -672,7 +671,7 @@ void processDetachReq(EMMCtx_t *emm, GenericNASMsg_t *msg){
             mobid = mobid*10 + ((detachMsg->ePSMobileId.v[i])>>4);
         }
         if(emm->imsi != mobid){
-            emm_log(emm, LOG_ERR, 0, "received IMSI (%llu) doesn't match.", mobid);
+            emm_log(emm, LOG_ERR, 0, "received IMSI (%" PRIu64") doesn't match.", mobid);
             return;
         }
     }else if(((ePSMobileId_header_t*)detachMsg->ePSMobileId.v)->type == 6 ){    /*GUTI*/
