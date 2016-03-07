@@ -221,7 +221,7 @@ int nas_setCOUNTshort(const NAS h, const NAS_Direction direction, const uint8_t 
 
 static void NAS_fixture_set_up(NAS_Fixture *nas, gconstpointer count){
     nas->n = nas_newHandler();
-    nas->n->nas_count[0] = (*(const guint32)count);
+    nas->n->nas_count[0] = (const guint32)count;
 }
 
 static void NAS_fixture_tear_down(NAS_Fixture *nas, gconstpointer count){
@@ -229,12 +229,12 @@ static void NAS_fixture_tear_down(NAS_Fixture *nas, gconstpointer count){
 }
 
 static void test_nas_shortCount1(NAS_Fixture *nas, gconstpointer count){
-    const guint8 c = (*(const guint32)count)&0x1F, next = (c+1)&0x1F;
-    g_assert_cmpint(nas_getLastCount(nas->n, 0), ==, (*(const guint32)count)-1);
+    const guint8 c = ((const guint32)count)&0x1F, next = (c+1)&0x1F;
+    g_assert_cmpint(nas_getLastCount(nas->n, 0), ==, (const guint32)count-1);
     nas_setCOUNTshort(nas->n, 0, c);
-    g_assert_cmpint(nas_getLastCount(nas->n, 0), ==, *(const guint32)count);
+    g_assert_cmpint(nas_getLastCount(nas->n, 0), ==, (const guint32)count);
     nas_setCOUNTshort(nas->n, 0, next);
-    g_assert_cmpint(nas_getLastCount(nas->n, 0), ==, (*(const guint32)count)+1);
+    g_assert_cmpint(nas_getLastCount(nas->n, 0), ==, (const guint32)count+1);
 }
 
 static void test_dummy(int *n, gconstpointer data){
