@@ -309,7 +309,7 @@ void loadMMEinfo(struct mme_t *mme, GError **err){
     g_set_error(err,
                 MME_CONFIG,      // error domain
                 0,               // error code
-                err_msg);
+                "%s", err_msg);
     return;
 }
 
