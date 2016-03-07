@@ -71,7 +71,7 @@ void emm_deregister(EMMCtx emm_h){
 
     bzero(self->nh, 32);
     self->ncc = 0;
-    bzero(self->old_nh);
+    bzero(self->old_nh, 32);
     self->old_ncc = 0;
 
     self->ecm = NULL;
