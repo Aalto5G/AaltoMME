@@ -445,11 +445,11 @@ void newNASMsg_ESM(uint8_t **curpos,
 }
 
 int newNASMsg_sec(const NAS h,
-                  uint8_t *out, uint32_t *len,
+                  uint8_t *out, size_t *len,
                   const ProtocolDiscriminator_t p,
                   const SecurityHeaderType_t s,
                   const NAS_Direction direction,
-                  const uint8_t *plain, const uint32_t pLen){
+                  const uint8_t *plain, const size_t pLen){
 
     uint8_t buf[pLen+1], count[4], mac[4], *pointer;
     uint32_t ncount;

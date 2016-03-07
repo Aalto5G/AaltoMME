@@ -15,7 +15,6 @@
 
 #ifndef _NAS_CONSTANTS_H
 #define _NAS_CONSTANTS_H
-#include <stdint.h>
 
 /*Security header type (octet 1), 3gpp 24.301 Table 9.3.1: Security header type */
 typedef enum SecurityHeaderType_c{

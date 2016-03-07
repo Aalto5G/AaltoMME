@@ -16,6 +16,8 @@
 #ifndef _NAS_H
 #define _NAS_H
 
+#include <stddef.h>
+#include <stdint.h>
 #include "NASMessages.h"
 #include "NASConstants.h"
 
@@ -204,11 +206,11 @@ void newNASMsg_ESM(uint8_t **curpos,
  * message.
  */
 int newNASMsg_sec(const NAS h,
-                  uint8_t *out, uint32_t *len,
+                  uint8_t *out, size_t *len,
                   const ProtocolDiscriminator_t p,
                   const SecurityHeaderType_t s,
                   const NAS_Direction direction,
-                  const uint8_t *plain, const uint32_t pLen);
+                  const uint8_t *plain, const size_t pLen);
 
 
 void encaps_ESM(uint8_t **curpos,
