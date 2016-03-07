@@ -19,7 +19,7 @@
 #include <netinet/in.h>
 
 
-void dec_nonImperativeIE(union nAS_ie_member **optionals, const uint8_t *buffer, const uint32_t size);
+void dec_nonImperativeIE(union nAS_ie_member **optionals, const uint8_t *buffer, const size_t size);
 
 
 void dec_NASOpt_tlv(union nAS_ie_member *optionals, const uint8_t **buffer, size_t *size,
