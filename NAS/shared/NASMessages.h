@@ -18,6 +18,7 @@
 #ifndef _NAS_MESSAGES_H
 #define _NAS_MESSAGES_H
 #include <stdint.h>
+#include <stddef.h>
 #include "StandardIeSchemas.h"
 
 typedef struct NAS_Header_c{
@@ -73,7 +74,7 @@ typedef struct IdentityResponse_c{
     ie_lv_t4_t  mobileId;
 }IdentityResponse_t;
 
-void dec_IdentityResponse(IdentityResponse_t *msg, uint8_t *buffer, uint32_t size);
+void dec_IdentityResponse(IdentityResponse_t *msg, const uint8_t *buffer, const size_t s);
 
 /** Authentication Response : UE to network : dual*/
 typedef struct AuthenticationResponse_c{
@@ -83,7 +84,7 @@ typedef struct AuthenticationResponse_c{
     ie_lv_t4_t  authParam;
 }AuthenticationResponse_t;
 
-void dec_AuthenticationResponse(AuthenticationResponse_t *msg, uint8_t *buffer, uint32_t size);
+void dec_AuthenticationResponse(AuthenticationResponse_t *msg, const uint8_t *buffer, const size_t s);
 
 /** Authentication Failure : UE to network : dual*/
 typedef struct AuthenticationFailure_c{
@@ -94,7 +95,7 @@ typedef struct AuthenticationFailure_c{
     union nAS_ie_member optionals[1];
 }AuthenticationFailure_t;
 
-void dec_AuthenticationFailure(AuthenticationFailure_t *msg, uint8_t *buffer, uint32_t size);
+void dec_AuthenticationFailure(AuthenticationFailure_t *msg, const uint8_t *buffer, const size_t s);
 
 
 /* ** Specific Procedures Messages ** */
@@ -111,7 +112,7 @@ typedef struct AttachAccept_c{
     union nAS_ie_member *optionals[11];
 }AttachAccept_t;
 
-void dec_AttachAccept(AttachAccept_t *msg, uint8_t *buffer, uint32_t size);
+void dec_AttachAccept(AttachAccept_t *msg, const uint8_t *buffer, const size_t s);
 
 
 /** ATTACH COMPLETE : UE to network : dual*/
@@ -122,7 +123,7 @@ typedef struct AttachComplete_c{
     ie_lv_t6_t	eSM_MessageContainer;
 }AttachComplete_t;
 
-void dec_AttachComplete(AttachComplete_t *msg, uint8_t *buffer, uint32_t size);
+void dec_AttachComplete(AttachComplete_t *msg, const uint8_t *buffer, const size_t s);
 
 /** ATTACH REJECT   : network to UE : dual*/
 typedef struct AttachReject_c{
@@ -133,7 +134,7 @@ typedef struct AttachReject_c{
     union nAS_ie_member optionals[3];
 }AttachReject_t;
 
-void dec_AttachReject(AttachReject_t *msg, uint8_t *buffer, uint32_t size);
+void dec_AttachReject(AttachReject_t *msg, const uint8_t *buffer, const size_t s);
 
 
 /** ATTACH REQUEST  : UE to network : dual*/
@@ -149,7 +150,7 @@ typedef struct AttachRequest_c{
     union nAS_ie_member optionals[17];
 }AttachRequest_t;
 
-void dec_AttachRequest(AttachRequest_t *msg, uint8_t *buffer, uint32_t size);
+void dec_AttachRequest(AttachRequest_t *msg, const uint8_t *buffer, const size_t s);
 
 
 /** DETACH ACCEPT : network to UE : dual*/
@@ -171,7 +172,7 @@ typedef struct DetachRequestUEOrig_c{
     union nAS_ie_member optionals[17];
 }DetachRequestUEOrig_t;
 
-void dec_DetachRequestUEOrig(DetachRequestUEOrig_t *msg, uint8_t *buffer, uint32_t size);
+void dec_DetachRequestUEOrig(DetachRequestUEOrig_t *msg, const uint8_t *buffer, const size_t s);
 
 
 /** DETACH REQUEST : network to UE : dual*/
@@ -183,7 +184,7 @@ typedef struct DetachRequestUETerm_c{
     union nAS_ie_member optionals[1];
 }DetachRequestUETerm_t;
 
-void dec_DetachRequestUETerm(DetachRequestUETerm_t *msg, uint8_t *buffer, uint32_t size);
+void dec_DetachRequestUETerm(DetachRequestUETerm_t *msg, const uint8_t *buffer, const size_t s);
 
 
 
@@ -196,7 +197,7 @@ typedef struct TrackingAreaUpdateAccept_c{
     union nAS_ie_member optionals[14];
 }TrackingAreaUpdateAccept_t;
 
-void dec_TrackingAreaUpdateAccept(TrackingAreaUpdateAccept_t *msg, uint8_t *buffer, uint32_t size);
+void dec_TrackingAreaUpdateAccept(TrackingAreaUpdateAccept_t *msg, const uint8_t *buffer, const size_t s);
 
 /** TRACKING AREA UPDATE COMPLETE : UE to network : dual*/
 typedef struct TrackingAreaUpdateComplete_c{
@@ -215,7 +216,7 @@ typedef struct TrackingAreaUpdateReject_c{
     union nAS_ie_member optionals[1];
 }TrackingAreaUpdateReject_t;
 
-void dec_TrackingAreaUpdateReject(TrackingAreaUpdateReject_t *msg, uint8_t *buffer, uint32_t size);
+void dec_TrackingAreaUpdateReject(TrackingAreaUpdateReject_t *msg, const uint8_t *buffer, const size_t s);
 
 
 /** TRACKING AREA UPDATE REQUEST : UE to network : dual*/
@@ -229,7 +230,7 @@ typedef struct TrackingAreaUpdateRequest_c{
     union nAS_ie_member optionals[22];
 }TrackingAreaUpdateRequest_t;
 
-void dec_TrackingAreaUpdateRequest(TrackingAreaUpdateRequest_t *msg, uint8_t *buffer, uint32_t size);
+void dec_TrackingAreaUpdateRequest(TrackingAreaUpdateRequest_t *msg, const uint8_t *buffer, const size_t s);
 
 
 /*ESM*/
@@ -243,7 +244,7 @@ typedef struct ActivateDefaultEPSBearerContextAccept_c{
     union nAS_ie_member optionals[1];
 }ActivateDefaultEPSBearerContextAccept_t;
 
-void dec_ActivateDefaultEPSBearerContextAccept(ActivateDefaultEPSBearerContextAccept_t *msg, uint8_t *buffer, uint32_t size);
+void dec_ActivateDefaultEPSBearerContextAccept(ActivateDefaultEPSBearerContextAccept_t *msg, const uint8_t *buffer, const size_t s);
 
 /**  ACTIVATE DEFAULT EPS BEARER CONTEXT REJECT : UE to network : dual*/
 typedef struct ActivateDefaultEPSBearerContextReject_c{
@@ -255,7 +256,7 @@ typedef struct ActivateDefaultEPSBearerContextReject_c{
     union nAS_ie_member optionals[1];
 }ActivateDefaultEPSBearerContextReject_t;
 
-void dec_ActivateDefaultEPSBearerContextReject(ActivateDefaultEPSBearerContextReject_t *msg, uint8_t *buffer, uint32_t size);
+void dec_ActivateDefaultEPSBearerContextReject(ActivateDefaultEPSBearerContextReject_t *msg, const uint8_t *buffer, const size_t s);
 
 /**  ACTIVATE DEFAULT EPS BEARER CONTEXT REQUEST : network to UE : dual*/
 typedef struct ActivateDefaultEPSBearerContextRequest_c{
@@ -269,7 +270,7 @@ typedef struct ActivateDefaultEPSBearerContextRequest_c{
     union nAS_ie_member optionals[9];
 }ActivateDefaultEPSBearerContextRequest_t;
 
-void dec_ActivateDefaultEPSBearerContextRequest(ActivateDefaultEPSBearerContextRequest_t *msg, uint8_t *buffer, uint32_t size);
+void dec_ActivateDefaultEPSBearerContextRequest(ActivateDefaultEPSBearerContextRequest_t *msg, const uint8_t *buffer, const size_t s);
 
 
 /**  ACTIVATE DEDICATED EPS BEARER CONTEXT ACCEPT : UE to network : dual*/
@@ -281,7 +282,7 @@ typedef struct ActivateDedicatedEPSBearerContextAccept_c{
     union nAS_ie_member optionals[1];
 }ActivateDedicatedEPSBearerContextAccept_t;
 
-void dec_ActivateDedicatedEPSBearerContextAccept(ActivateDedicatedEPSBearerContextAccept_t *msg, uint8_t *buffer, uint32_t size);
+void dec_ActivateDedicatedEPSBearerContextAccept(ActivateDedicatedEPSBearerContextAccept_t *msg, const uint8_t *buffer, const size_t s);
 
 /**  ACTIVATE DEDICATED EPS BEARER CONTEXT REJECT : UE to network : dual*/
 typedef struct ActivateDedicatedEPSBearerContextReject_c{
@@ -293,7 +294,7 @@ typedef struct ActivateDedicatedEPSBearerContextReject_c{
     union nAS_ie_member optionals[1];
 }ActivateDedicatedEPSBearerContextReject_t;
 
-void dec_ActivateDedicatedEPSBearerContextReject(ActivateDedicatedEPSBearerContextReject_t *msg, uint8_t *buffer, uint32_t size);
+void dec_ActivateDedicatedEPSBearerContextReject(ActivateDedicatedEPSBearerContextReject_t *msg, const uint8_t *buffer, const size_t s);
 
 /**  ACTIVATE DEDICATED EPS BEARER CONTEXT REQUEST : network to UE : dual*/
 typedef struct ActivateDedicatedEPSBearerContextRequest_c{
@@ -307,7 +308,7 @@ typedef struct ActivateDedicatedEPSBearerContextRequest_c{
     union nAS_ie_member optionals[6];
 }ActivateDedicatedEPSBearerContextRequest_t;
 
-void dec_ActivateDedicatedEPSBearerContextRequest(ActivateDedicatedEPSBearerContextRequest_t *msg, uint8_t *buffer, uint32_t size);
+void dec_ActivateDedicatedEPSBearerContextRequest(ActivateDedicatedEPSBearerContextRequest_t *msg, const uint8_t *buffer, const size_t s);
 
 
 /**  MODIFY EPS BEARER CONTEXT ACCEPT  : UE to network : dual*/
@@ -319,7 +320,7 @@ typedef struct ModifyEPSBearerContextAccept_c{
     union nAS_ie_member optionals[1];
 }ModifyEPSBearerContextAccept_t;
 
-void dec_ModifyEPSBearerContextAccept(ModifyEPSBearerContextAccept_t *msg, uint8_t *buffer, uint32_t size);
+void dec_ModifyEPSBearerContextAccept(ModifyEPSBearerContextAccept_t *msg, const uint8_t *buffer, const size_t s);
 
 /**  MODIFY EPS BEARER CONTEXT REJECT : UE to network : dual*/
 typedef struct ModifyEPSBearerContextReject_c{
@@ -331,7 +332,7 @@ typedef struct ModifyEPSBearerContextReject_c{
     union nAS_ie_member optionals[1];
 }ModifyEPSBearerContextReject_t;
 
-void dec_ModifyEPSBearerContextReject(ModifyEPSBearerContextReject_t *msg, uint8_t *buffer, uint32_t size);
+void dec_ModifyEPSBearerContextReject(ModifyEPSBearerContextReject_t *msg, const uint8_t *buffer, const size_t s);
 
 /**  MODIFY EPS BEARER CONTEXT REQUEST  : network to UE : dual*/
 typedef struct ModifyEPSBearerContextRequest_c{
@@ -342,7 +343,7 @@ typedef struct ModifyEPSBearerContextRequest_c{
     union nAS_ie_member optionals[8];
 }ModifyEPSBearerContextRequest_t;
 
-void dec_ModifyEPSBearerContextRequest(ModifyEPSBearerContextRequest_t *msg, uint8_t *buffer, uint32_t size);
+void dec_ModifyEPSBearerContextRequest(ModifyEPSBearerContextRequest_t *msg, const uint8_t *buffer, const size_t s);
 
 
 /**  DEACTIVATE EPS BEARER CONTEXT ACCEPT  : UE to network : dual*/
@@ -354,7 +355,7 @@ typedef struct DeactivateEPSBearerContextAccept_c{
     union nAS_ie_member optionals[1];
 }DeactivateEPSBearerContextAccept_t;
 
-void dec_DeactivateEPSBearerContextAccept(DeactivateEPSBearerContextAccept_t *msg, uint8_t *buffer, uint32_t size);
+void dec_DeactivateEPSBearerContextAccept(DeactivateEPSBearerContextAccept_t *msg, const uint8_t *buffer, const size_t s);
 
 /**  DEACTIVATE EPS BEARER CONTEXT REQUEST  : network to UE : dual*/
 typedef struct DeactivateEPSBearerContextRequest_c{
@@ -366,7 +367,7 @@ typedef struct DeactivateEPSBearerContextRequest_c{
     union nAS_ie_member optionals[2];
 }DeactivateEPSBearerContextRequest_t;
 
-void dec_DeactivateEPSBearerContextRequest(DeactivateEPSBearerContextRequest_t *msg, uint8_t *buffer, uint32_t size);
+void dec_DeactivateEPSBearerContextRequest(DeactivateEPSBearerContextRequest_t *msg, const uint8_t *buffer, const size_t s);
 
 
 /**  PDN CONNECTIVITY REJECT   : network to UE : dual*/
@@ -379,7 +380,7 @@ typedef struct PDNConnectivityReject_c{
     union nAS_ie_member optionals[2];
 }PDNConnectivityReject_t;
 
-void dec_PDNConnectivityReject(PDNConnectivityReject_t *msg, uint8_t *buffer, uint32_t size);
+void dec_PDNConnectivityReject(PDNConnectivityReject_t *msg, const uint8_t *buffer, const size_t s);
 
 /**  PDN CONNECTIVITY REQUEST   : UE to network : dual*/
 typedef struct PDNConnectivityRequest_c{
@@ -392,7 +393,7 @@ typedef struct PDNConnectivityRequest_c{
     union nAS_ie_member optionals[4];
 }PDNConnectivityRequest_t;
 
-void dec_PDNConnectivityRequest(PDNConnectivityRequest_t *msg, uint8_t *buffer, uint32_t size);
+void dec_PDNConnectivityRequest(PDNConnectivityRequest_t *msg, const uint8_t *buffer, const size_t s);
 
 
 /**  PDN DISCONNECT REJECT   : network to UE : dual*/
@@ -405,7 +406,7 @@ typedef struct PDNDisconnectReject_c{
     union nAS_ie_member optionals[1];
 }PDNDisconnectReject_t;
 
-void dec_PDNDisconnectReject(PDNDisconnectReject_t *msg, uint8_t *buffer, uint32_t size);
+void dec_PDNDisconnectReject(PDNDisconnectReject_t *msg, const uint8_t *buffer, const size_t s);
 
 /**  PDN DISCONNECT REQUEST   : UE to network : dual*/
 typedef struct PDNDisconnectRequest_c{
@@ -417,7 +418,7 @@ typedef struct PDNDisconnectRequest_c{
     union nAS_ie_member optionals[1];
 }PDNDisconnectRequest_t;
 
-void dec_PDNDisconnectRequest(PDNDisconnectRequest_t *msg, uint8_t *buffer, uint32_t size);
+void dec_PDNDisconnectRequest(PDNDisconnectRequest_t *msg, const uint8_t *buffer, const size_t s);
 
 
 /**  BEARER RESOURCE ALLOCATION REJECT   : network to UE : dual*/
@@ -430,7 +431,7 @@ typedef struct BearerResourceAllocationReject_c{
     union nAS_ie_member optionals[2];
 }BearerResourceAllocationReject_t;
 
-void dec_BearerResourceAllocationReject(BearerResourceAllocationReject_t *msg, uint8_t *buffer, uint32_t size);
+void dec_BearerResourceAllocationReject(BearerResourceAllocationReject_t *msg, const uint8_t *buffer, const size_t s);
 
 /**  BEARER RESOURCE ALLOCATION REQUEST    : UE to network : dual*/
 typedef struct BearerResourceAllocationRequest_c{
@@ -444,7 +445,7 @@ typedef struct BearerResourceAllocationRequest_c{
     union nAS_ie_member optionals[2];
 }BearerResourceAllocationRequest_t;
 
-void dec_BearerResourceAllocationRequest(BearerResourceAllocationRequest_t *msg, uint8_t *buffer, uint32_t size);
+void dec_BearerResourceAllocationRequest(BearerResourceAllocationRequest_t *msg, const uint8_t *buffer, const size_t s);
 
 
 /**  BEARER RESOURCE MODIFICATION REJECT   : network to UE : dual*/
@@ -457,7 +458,7 @@ typedef struct BearerResourceModificationReject_c{
     union nAS_ie_member optionals[2];
 }BearerResourceModificationReject_t;
 
-void dec_BearerResourceModificationReject(BearerResourceModificationReject_t *msg, uint8_t *buffer, uint32_t size);
+void dec_BearerResourceModificationReject(BearerResourceModificationReject_t *msg, const uint8_t *buffer, const size_t s);
 
 /**  BEARER RESOURCE MODIFICATION REQUEST    : UE to network : dual*/
 typedef struct BearerResourceModificationRequest_c{
@@ -470,7 +471,6 @@ typedef struct BearerResourceModificationRequest_c{
     union nAS_ie_member optionals[4];
 }BearerResourceModificationRequest_t;
 
-void dec_BearerResourceModificationRequest(BearerResourceModificationRequest_t *msg, uint8_t *buffer, uint32_t size);
-
+void dec_BearerResourceModificationRequest(BearerResourceModificationRequest_t *msg, const uint8_t *buffer, const size_t s);
 
 #endif  /* !_NAS_MESSAGES_H */

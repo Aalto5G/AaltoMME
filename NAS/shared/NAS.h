@@ -156,7 +156,7 @@ int nas_authenticateMsg(const NAS h,
  */
 int dec_secNAS(const NAS h,
                GenericNASMsg_t *msg, const NAS_Direction direction,
-               const uint8_t *buf, const uint32_t size);
+               const uint8_t *buf, const size_t size);
 
 /**
  * @brief Decode a NAS message without security context.
@@ -170,10 +170,10 @@ int dec_secNAS(const NAS h,
  * Use  it only for Plain NAS, the user is suposed to check the security
  * context beforehand using the function nas_getHeader
  */
-int dec_NAS(GenericNASMsg_t *msg, const uint8_t *buf, const uint32_t size);
+int dec_NAS(GenericNASMsg_t *msg, const uint8_t *buf, const size_t size);
 
 
-void dec_ESM(ESM_Message_t *msg, uint8_t *buf, uint32_t size);
+void dec_ESM(ESM_Message_t *msg, const uint8_t *buf, const size_t size);
 
 
 void newNASMsg_EMM(uint8_t **curpos,
@@ -239,7 +239,7 @@ void encaps_EMM(uint8_t **curpos,
  * - The Identity response has to be processed only if the parameter is IMSI
  * - The Detach Request if sent before security has been activated.
  */
-uint8_t nas_isAuthRequired(NASMessageType_t messageType);
+uint8_t nas_isAuthRequired(const NASMessageType_t messageType);
 
 /**
  * @brief get Optional IE

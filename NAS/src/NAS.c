@@ -196,10 +196,10 @@ static void kdf(const uint8_t *kasme,
 /* ***** Decoding functions ***** */
 
 
-void dec_EMM(EMM_Message_t *msg, uint8_t *buf, uint32_t size){
+void dec_EMM(EMM_Message_t *msg, const uint8_t *buf, const size_t s){
 
     msg->messageType = *(buf++);
-    size--;
+    size_t size = s - 1;
     nas_msg(NAS_DEBUG, 0, "DEC : messageType = %#x", msg->messageType);
 
     switch((NASMessageType_t)msg->messageType){
@@ -299,11 +299,11 @@ void dec_EMM(EMM_Message_t *msg, uint8_t *buf, uint32_t size){
     }
 }
 
-void dec_ESM(ESM_Message_t *msg, uint8_t *buf, uint32_t size){
+void dec_ESM(ESM_Message_t *msg, const uint8_t *buf, const size_t s){
 
     msg->procedureTransactionIdentity = *(buf++);
     msg->messageType = *(buf++);
-    size-=2;
+    size_t size = s - 2;
 
     nas_msg(NAS_DEBUG, 0, "DEC : procedureTransactionIdentity %#x, messageType %#x",
             msg->procedureTransactionIdentity, msg->messageType);
@@ -384,7 +384,7 @@ void dec_ESM(ESM_Message_t *msg, uint8_t *buf, uint32_t size){
     }
 }
 
-int dec_NAS(GenericNASMsg_t *msg, const uint8_t *buf, const uint32_t size){
+int dec_NAS(GenericNASMsg_t *msg, const uint8_t *buf, const size_t size){
     uint8_t const *pointer;
     ProtocolDiscriminator_t p;
     SecurityHeaderType_t s;
@@ -637,7 +637,7 @@ int nas_authenticateMsg(const NAS h,
 
 int dec_secNAS(const NAS h,
                GenericNASMsg_t *msg, const NAS_Direction direction,
-               const uint8_t *buf, const uint32_t size){
+               const uint8_t *buf, const size_t size){
 
     SecurityHeaderType_t s;
     NASHandler *n = (NASHandler*)h;
@@ -673,7 +673,7 @@ int dec_secNAS(const NAS h,
     return dec_NAS(msg, plain, len);
 }
 
-uint8_t nas_isAuthRequired(NASMessageType_t messageType){
+uint8_t nas_isAuthRequired(const NASMessageType_t messageType){
     uint8_t res;
 
     switch (messageType) {
