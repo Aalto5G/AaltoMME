@@ -1,0 +1,13 @@
+[Unit]
+Description=Mobility Management Entity
+#After=mysql.service
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/MME
+TimeoutStopSec=6
+KillSignal=SIGINT
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
