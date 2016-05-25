@@ -102,6 +102,7 @@ void log_msg_s(int pri, char *fn, const char *func, int ln, int en, const char *
       else
         printf("%s - %s\n", logLevelStr[pri], msg);
     }
+    fflush(stdout);
   }
 }
 
