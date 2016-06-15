@@ -274,7 +274,7 @@ static void HSS_newAuthVec(EMMCtx emm, GError **err){
             bin_to_strhex(authVec->aUTN,16, str_autn),
             bin_to_strhex(sqn_b, 6, str_sqn),
             bin_to_strhex(authVec->kASME,16, str_kasme),
-            "00000000000000000000000000000000",   /*AK not stored for the moment*/
+            "000000000000",   /*AK not stored for the moment*/
             bin_to_strhex(sqn_b, 6, str_sqn),
             bin_to_strhex(opc,16, str_opc),
             mcc,
@@ -435,7 +435,7 @@ void HSS_syncAuthVec(EMMCtx emm, uint8_t * auts,  GError **err){
                 bin_to_strhex(newAuthVec->aUTN,16, str_autn),
                 bin_to_strhex(sqn, 6, sqn_new),
                 bin_to_strhex(newAuthVec->kASME,16, str_kasme),
-                "00000000000000000000000000000000",   /*AK not stored for the moment*/
+                "000000000000",   /*AK not stored for the moment*/
                 bin_to_strhex(sqn, 6, sqn_new),
                 bin_to_strhex(opc,16, str_opc),
                 mcc,
