@@ -54,6 +54,11 @@ FILE(GLOB_RECURSE MME_SRCS "mme/*.c")
 
 add_definitions(-DMME_VERSION="${${PROJECT_NAME}_VERSION}")
 
+IF(CMAKE_BUILD_TYPE MATCHES Debug)
+  message("debug mode")
+  add_definitions(-DDEBUG)
+ENDIF(CMAKE_BUILD_TYPE MATCHES Debug)
+
 
 ################################
 # Normal Executables

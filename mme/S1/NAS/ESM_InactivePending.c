@@ -19,11 +19,11 @@
 #include "ESM_FSMConfig.h"
 
 static void processMsg(gpointer self){
-	log_msg(LOG_ERR, 0, "Not Implemented");
+    log_msg(LOG_ERR, 0, "Not Implemented");
 }
 
 
 void linkESMInactivePending(ESM_State* s){
-	s->processMsg = processMsg;
-	s->activateDefault = notImplemented;
+    s->processMsg = processMsg;
+    s->activateDefault = notImplemented;
 }

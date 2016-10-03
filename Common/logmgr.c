@@ -79,30 +79,26 @@ void log_msg_s(int pri, char *fn, const char *func, int ln, int en, const char *
             (unsigned int)tv.tv_usec);
   }
  /* if(logger.priority >= LOG_DEBUG){ */
-  if(0){
-	if (en)
-      syslog(pri, "[%s] %s - %d (%s) %s <%s(), %s:%d>",
-             timeStr, logLevelStr[pri], en, strerror(en), msg,
-             func, basename(fn), ln);
-    else
-	  syslog(pri, "[%s] %s - %s <%s(), %s:%d>",
-	         timeStr, logLevelStr[pri], msg,
-             func, basename(fn), ln);
-  }else if(0){
-	if (en)
-      syslog(pri, "[%s] %s - %d (%s) %s",
-             timeStr, logLevelStr[pri], en, strerror(en), msg);
-    else
-      syslog(pri, "[%s] %s - %s", timeStr, logLevelStr[pri], msg);
-  }else{
-    if(pri <= logger.priority){
+  if(pri <= logger.priority){
+#ifdef DEBUG
       if (en)
-        printf("%s - %d (%s) %s\n",
-               logLevelStr[pri], en, strerror(en), msg);
+          printf("[%s] %s - %d (%s) %s <%s(), %s:%d>\n",
+                 timeStr, logLevelStr[pri], en, strerror(en), msg,
+                 func, basename(fn), ln);
       else
-        printf("%s - %s\n", logLevelStr[pri], msg);
-    }
-    fflush(stdout);
+          printf("[%s] %s - %s <%s(), %s:%d>\n",
+                 timeStr, logLevelStr[pri], msg,
+                 func, basename(fn), ln);
+#endif
+#ifndef DEBUG
+      if (en)
+          printf("%s - %d (%s) %s\n",
+                 logLevelStr[pri], en, strerror(en), msg);
+      else
+          printf("%s - %s\n", logLevelStr[pri], msg);
+
+#endif
+      fflush(stdout);
   }
 }
 
