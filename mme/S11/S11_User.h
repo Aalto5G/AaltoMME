@@ -70,6 +70,7 @@ void sendDeleteSessionReq(gpointer u);
 
 void sendReleaseAccessBearersReq(gpointer u);
 
+void sendDownlinkDataNotificationAck(gpointer u);
 
 const gboolean accepted(gpointer u);
 

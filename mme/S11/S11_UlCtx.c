@@ -20,7 +20,26 @@
 #include "S11_User.h"
 
 static void s11u_processMsg(gpointer self){
-    log_msg(LOG_ERR, 0, "Not Implemented");
+    GError *err = NULL;
+    parseIEs(self);
+    switch(getMsgType(self)){
+    case GTP2_DOWNLINK_DATA_NOTIFICATION:
+        log_msg(LOG_DEBUG, 0, "Received Downlink Data Notification");
+
+        /* parseModBearerRsp(self, &err); */
+        if(err!=NULL){
+            log_msg(LOG_ERR, 0, err->message);
+            g_error_free (err);
+            return;
+        }
+        sendDownlinkDataNotificationAck(self);
+        /* TODO paging*/
+        log_msg(LOG_WARNING, 0, "Paging not implemented yet");
+        break;
+    default:
+        log_msg(LOG_ERR, 0, "Msg for this state not Implemented");
+        break;
+    }
 }
 
 static void s11u_attach(gpointer self){

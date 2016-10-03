@@ -165,12 +165,11 @@ void s11u_setState(gpointer u, S11_State *s){
     self->state = s;
 }
 
-static void s11_send(S11_user_t* self){
+
+static void s11__send(S11_user_t* self){
     const int sock = s11_fg(self->s11);
     /*Packet header modifications*/
-    self->oMsg.gtp2l.h.seq = hton24(getNextSeq(self->s11));
     self->oMsg.gtp2l.h.tei = self->rTEID;
-
 
     if (sendto(sock, &(self->oMsg), self->oMsglen, 0,
                    &(self->rAddr), self->rAddrLen) < 0) {
@@ -179,6 +178,19 @@ static void s11_send(S11_user_t* self){
                     "Sendto(fd=%d, msg=%lx, len=%d) failed",
                     sock, (unsigned long) &(self->oMsg), self->oMsglen);
     }
+}
+
+static void s11_send(S11_user_t* self){
+    /*Packet header modifications*/
+    self->oMsg.gtp2l.h.seq = hton24(getNextSeq(self->s11));
+    s11__send(self);
+}
+
+
+static void s11_send_resp(S11_user_t* self){
+    /*Packet header modifications*/
+    self->oMsg.gtp2l.h.seq = self->iMsg.gtp2l.h.seq;
+    s11__send(self);
 }
 
 
@@ -480,6 +492,32 @@ void sendReleaseAccessBearersReq(gpointer u){
     self->oMsglen = get_default_gtp(2, GTP2_RELEASE_ACCESS_BEARERS_REQ, &(self->oMsg));
 
     s11_send(self);
+}
+
+
+void sendDownlinkDataNotificationAck(gpointer u){
+    S11_user_t *self = (S11_user_t*)u;
+    guint ienum = 0;
+    union gtpie_member ie[8];
+    memset(ie, 0, sizeof(union gtpie_member)*8);
+
+    /*  Send Release Access Bearers Request to SGW*/
+    /******************************************************************************/
+
+    self->oMsglen = get_default_gtp(2,  GTP2_DOWNLINK_DATA_NOTIFICATION_ACK, &(self->oMsg));
+
+    /* Cause*/
+    ie[ienum].tliv.i=0;
+    ie[ienum].tliv.l=hton16(2);
+    ie[ienum].tliv.t= GTPV2C_IE_CAUSE;
+    bzero(ie[ienum].tliv.v,4);
+    ie[ienum].tliv.v[0]=GTPV2C_CAUSE_REQUEST_ACCEPTED ;
+    ie[ienum].tliv.v[1]=0; /* No Flags*/
+    ienum++;
+
+    gtp2ie_encaps(ie, ienum, &(self->oMsg), &(self->oMsglen));
+
+    s11_send_resp(self);
 }
 
 const gboolean accepted(gpointer u){
