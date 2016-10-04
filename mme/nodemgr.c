@@ -194,6 +194,13 @@ void loadMMEinfo(struct mme_t *mme, GError **err){
             }
     }
 
+    tmp_c = config_lookup(&cfg, "mme.state_directory");
+    if(!tmp_c){
+        mme->stateDir = g_strdup("/var/lib/cumucore");
+    }else{
+        mme->stateDir = g_strdup(config_setting_get_string(tmp_c));
+    }
+
     mme->servedGUMMEIs = new_ServedGUMMEIs();
     gUMMEIsconf = config_lookup(&cfg, "mme.servedGUMMEIs");
     lGUMMEI = config_setting_length(gUMMEIsconf);
@@ -315,6 +322,17 @@ void loadMMEinfo(struct mme_t *mme, GError **err){
 
 void freeMMEinfo(struct mme_t *mme){
     /* Dealocate information stored*/
+    if(mme->stateDir)
+        g_free(mme->stateDir);
+    if(mme->s6a_db_host)
+        g_free(mme->s6a_db_host);
+    if(mme->s6a_db)
+        g_free(mme->s6a_db);
+    if(mme->s6a_db_user)
+        g_free(mme->s6a_db_user);
+    if(mme->s6a_db_passwd)
+        g_free(mme->s6a_db_passwd);
+
     if(mme->servedGUMMEIs!=NULL)
         mme->servedGUMMEIs->freeIE(mme->servedGUMMEIs);
     if(mme->relativeCapacity!=NULL)

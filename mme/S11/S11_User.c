@@ -90,28 +90,21 @@ void s11u_freeUser(gpointer self){
     g_free(self);
 }
 
-static gboolean validateSourceAddr(S11_user_t* self, const char * src){
-    char r[INET6_ADDRSTRLEN];
-
-    switch(self->rAddr.sa_family){
-    case AF_INET:
-        inet_ntop(AF_INET, &(((struct sockaddr_in*)&(self->rAddr))->sin_addr),
-                  r, INET_ADDRSTRLEN);
-        break;
-    case AF_INET6:
-        inet_ntop(AF_INET6, &(((struct sockaddr_in6*)&(self->rAddr))->sin6_addr),
-                  r, INET6_ADDRSTRLEN);
-        break;
-    }
-    return strcmp(r, src) == 0;
+static gboolean validateSourceAddr(S11_user_t* self,
+                                   const struct sockaddr *src,
+                                   const socklen_t peerlen){
+    return self->rAddrLen == peerlen && memcmp(&self->rAddr, src, self->rAddrLen) == 0;
 }
 
 void processMsg(gpointer u, const struct t_message *msg){
     S11_user_t *self = (S11_user_t*)u;
-
-    if(!validateSourceAddr(self, msg->srcAddr)){
+    char addrStr[INET6_ADDRSTRLEN];
+    if(!validateSourceAddr(self, &msg->peer, msg->peerlen)){
         log_msg(LOG_WARNING, 0, "S11 - Wrong S-GW source (%s)."
-                "Ignoring packet", msg->srcAddr);
+                "Ignoring packet", inet_ntop(msg->peer.sa_family,
+                                             &msg->peer,
+                                             addrStr,
+                                             msg->peerlen));
         return;
     }
 
@@ -227,7 +220,7 @@ void sendCreateSessionReq(gpointer u){
     S11_user_t *self = (S11_user_t*)u;
     struct fteid_t  fteid;
     struct qos_t    qos;
-    union gtpie_member ie[14], ie_bearer_ctx[3];
+    union gtpie_member ie[26], ie_bearer_ctx[3];
     int hlen, a;
     uint32_t ielen, ienum=0, ul, dl;
     uint64_t ul_64, dl_64;
@@ -392,6 +385,15 @@ void sendCreateSessionReq(gpointer u){
     gtp2ie_encaps_group(GTPV2C_IE_BEARER_CONTEXT, 0, &ie[ienum],
                         ie_bearer_ctx, 2);
     ienum++;
+
+    /* TODO check if the node is already known*/
+    /* Recovery IE*/
+    ie[ienum].tliv.i=0;
+    ie[ienum].tliv.l=hton16(1);
+    ie[ienum].tliv.t=GTPV2C_IE_RECOVERY;
+    ie[ienum].tliv.v[0]= getRestartCounter(self->s11);
+    ienum++;
+
     gtp2ie_encaps(ie, ienum, &(self->oMsg), &(self->oMsglen));
     s11_send(self);
 }

@@ -56,6 +56,13 @@ void s11_deleteSession(gpointer s11_h, gpointer u);
 const int s11_fg(gpointer s11_h);
 
 /**
+ * @brief Local restart counter accessor
+ * @param [in]  s11_h s11 stack handler
+ * @return local restart counter
+ */
+const guint8 getRestartCounter(gpointer s11_h);
+
+/**
  * @brief Provides the next sequence number to be sent
  * @param [in]  s11_h s11 stack handler
  * @return sequence number

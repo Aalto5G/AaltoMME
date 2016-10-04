@@ -60,7 +60,8 @@ struct t_message{
         union gtp_packet    gtp;
     }packet;                 ;  /*  data received as part of the message*/
     size_t                  length;         /*  Packet lenght*/
-    char                    srcAddr[INET6_ADDRSTRLEN];
+    struct sockaddr         peer;
+    socklen_t               peerlen;
 };
 
 
@@ -72,6 +73,7 @@ struct mme_t{
     MMEname_t               *name;
     char                    ipv4[INET_ADDRSTRLEN];
     char                    ipv6[INET6_ADDRSTRLEN]; /* Not used*/
+    gchar                   *stateDir;
     ServedGUMMEIs_t         *servedGUMMEIs;
     RelativeMMECapacity_t   *relativeCapacity;
     gchar                   *s6a_db_host;
@@ -117,6 +119,8 @@ extern void mme_freeLocalUEid(struct mme_t *self, uint32_t id);
 extern const ServedGUMMEIs_t *mme_getServedGUMMEIs(const struct mme_t *mme);
 
 extern const char *mme_getLocalAddress(const struct mme_t *mme);
+
+extern const char *mme_getStateDir(const struct mme_t *mme);
 
 /**************************************************/
 /* API towards state machines                     */
