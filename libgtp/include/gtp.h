@@ -14,8 +14,7 @@
  *
  */
 
-#ifndef _GTP_H
-#define _GTP_H
+#pragma once
 
 #ifdef HAVE_STDINT_H
 #include <stdint.h>
@@ -192,56 +191,56 @@
 //#define GTP2_MSG_END                                         255
 
 struct gtp2_header_short { /*    Descriptions from 3GPP 29274 */
-  uint8_t  flags;          /* 01 bitfield, with typical values */
+    uint8_t  flags;        /* 01 bitfield, with typical values */
                            /*    010..... Version: 2 */
                            /*    ...1.... Piggybacking flag (P) */
                            /*    ....1... TEID flag (T) */
                            /*    .....0.. Spare = 0 */
                            /*    ......0. Spare = 0 */
                            /*    .......0 Spare = 0 */
-  uint8_t  type;           /* 02 Message type. */
-  uint16_t length;         /* 03 Length seq(3)+1(spare)+IE length */
-  uint32_t seq : 24;       /* 05 Sequence Number (3bytes)*/ /*Use of bit fields*/
-  uint8_t  spare1;         /* 18 Spare */
+    uint8_t  type;         /* 02 Message type. */
+    uint16_t length;       /* 03 Length seq(3)+1(spare)+IE length */
+    uint32_t seq : 24;     /* 05 Sequence Number (3bytes)*/ /*Use of bit fields*/
+    uint8_t  spare1;       /* 18 Spare */
 }__attribute__((packed));
 
 struct gtp2_header_long {  /*    Descriptions from 3GPP 29274 */
-  uint8_t  flags;          /* 01 bitfield, with typical values */
+    uint8_t  flags;        /* 01 bitfield, with typical values */
                            /*    010..... Version: 2 */
                            /*    ...1.... Piggybacking flag (P) */
                            /*    ....1... TEID flag (T) */
                            /*    .....0.. Spare = 0 */
                            /*    ......0. Spare = 0 */
                            /*    .......0 Spare = 0 */
-  uint8_t  type;           /* 02 Message type. */
-  uint16_t length;         /* 03 Length tei(4)+seq(3)+1(spare)+IE length*/
-  uint32_t tei;            /* 05 Tunnel Endpoint ID */
-  uint32_t seq : 24 ;      /* 09 Sequence Number (3bytes)*/ /*Use of bit fields*/
-  uint8_t  spare1;         /* 12 Spare */
+    uint8_t  type;         /* 02 Message type. */
+    uint16_t length;       /* 03 Length tei(4)+seq(3)+1(spare)+IE length*/
+    uint32_t tei;          /* 05 Tunnel Endpoint ID */
+    uint32_t seq : 24 ;    /* 09 Sequence Number (3bytes)*/ /*Use of bit fields*/
+    uint8_t  spare1;       /* 12 Spare */
 }__attribute__((packed));
 
 struct gtp2_packet_short {
-  struct gtp2_header_short h;
-  uint8_t p[GTP_MAX];
+    struct gtp2_header_short h;
+    uint8_t p[GTP_MAX];
 } __attribute__((packed));
 
 struct gtp2_packet_long {
-  struct gtp2_header_long h;
-  uint8_t p[GTP_MAX];
+    struct gtp2_header_long h;
+    uint8_t p[GTP_MAX];
 } __attribute__((packed));
 
 struct flags_t {
-  uint8_t spare     :3;     /**< Spare bits*/
-  uint8_t tf        :1;     /**< teid_flag*/
-  uint8_t pf        :1;     /**< Piggybacking flag*/
-  uint8_t version   :3;     /**< Version field*/
+    uint8_t spare     :3;     /**< Spare bits*/
+    uint8_t tf        :1;     /**< teid_flag*/
+    uint8_t pf        :1;     /**< Piggybacking flag*/
+    uint8_t version   :3;     /**< Version field*/
 } __attribute__((packed));
 
 union gtp_packet {
-  uint8_t                   flags;
-  struct flags_t            nflags;
-  struct gtp2_packet_short  gtp2s;
-  struct gtp2_packet_long   gtp2l;
+    uint8_t                   flags;
+    struct flags_t            nflags;
+    struct gtp2_packet_short  gtp2s;
+    struct gtp2_packet_long   gtp2l;
 } __attribute__((packed));
 
 struct node_t{
@@ -258,4 +257,16 @@ extern unsigned int get_default_gtp(int version, uint8_t type, void *packet);
 
 extern int print_packet(void *packet, unsigned len);
 
-#endif	/* !_GTP_H */
+/* Utils */
+
+/**
+ *@brief fill FEID struct
+ *@param [out] f FEID to be filled
+ *@param [in]  t interface type
+ *@param [in]  t TEID
+ *@param [in]  IP address
+ *@param [in]  IP address length
+ */
+void gtp_socktofeid(struct fteid_t *f,
+                    enum iface_type const t, uint32_t const teid,
+                    struct sockaddr const *addr, socklen_t const addrLen);

@@ -25,8 +25,7 @@
  *
  */
 
-#ifndef _GTPIE_H
-#define _GTPIE_H
+#pragma once
 
 /* Macroes for conversion between host and network byte order */
 #define hton8(x)  (x)
@@ -36,12 +35,6 @@
 #define hton32(x) htonl(x)
 #define ntoh32(x) ntohl(x)
 
-//#define ntoh24(x) (((x)[0] << 16) | ((x)[1] << 8) | ((x)[2]))
-/*#define hton24(p, v) { \
-         p[0] = (((v) >> 16) & 0xFF); \
-         p[1] = (((v) >> 8) & 0xFF); \
-         p[2] = ((v) & 0xFF); \
-  }*/
 #define hton24(x) hton32(x)>>8
 #define ntoh24(x) ntoh32(x)>>8
 
@@ -49,11 +42,11 @@
 static __inline uint64_t
 hton64(uint64_t q)
 {
-        register uint32_t u, l;
-        u = q >> 32;
-        l = (uint32_t) q;
+    register uint32_t u, l;
+    u = q >> 32;
+    l = (uint32_t) q;
 
-        return htonl(u) | ((uint64_t)htonl(l) << 32);
+    return htonl(u) | ((uint64_t)htonl(l) << 32);
 }
 
 #define ntoh64(_x)        hton64(_x)
@@ -292,24 +285,24 @@ hton64(uint64_t q)
 
 struct gtp2ie_tliv
 {
-  uint8_t  t;                   /* Type */
-  uint16_t l;                   /* Length */
-  uint8_t  i;                   /* Instance */
-  uint8_t  v[GTP2IE_MAX];       /* Value */
+    uint8_t  t;                   /* Type */
+    uint16_t l;                   /* Length */
+    uint8_t  i;                   /* Instance */
+    uint8_t  v[GTP2IE_MAX];       /* Value */
 } __attribute__((packed));
 
 struct gtp2ie_tli
 {
-  uint8_t  t;
-  uint16_t l;
-  uint8_t  i;
+    uint8_t  t;
+    uint16_t l;
+    uint8_t  i;
 } __attribute__((packed));
 
 
 union gtpie_member {
-  uint8_t t;
-  struct gtp2ie_tliv    tliv;
-  struct gtp2ie_tli     tli;
+    uint8_t t;
+    struct gtp2ie_tliv    tliv;
+    struct gtp2ie_tli     tli;
 }__attribute__((packed));
 
 /**IE value structures*/
@@ -400,74 +393,74 @@ struct qos_t{
 #define PAA_IP46 (3)
 
 struct PAA_t{
-	uint8_t type:3;
-	uint8_t spare:5;
-	union{
-		uint32_t ipv4;
-		uint8_t  ipv6[16];
-		struct{
-			uint8_t		ipv6[16];
-			uint32_t	ipv4;
-		}both;
-	}addr;
+    uint8_t type:3;
+    uint8_t spare:5;
+    union{
+        uint32_t ipv4;
+        uint8_t  ipv6[16];
+        struct{
+            uint8_t		ipv6[16];
+            uint32_t	ipv4;
+        }both;
+    }addr;
 }__attribute__((packed));
 /*
-cause
-imsi
-rai
-tlli
-p_tmsi
-qos_profile0
-reorder
-auth
-map_cause
-p_tmsi_s
-ms_validated
-recovery
-selection_mode
-tei_di
-tei_c
-tei_dii
-teardown
-nsapi
-ranap_cause
-rab_context
-rp_sms
-rp
-pfi
-charging_c
-trace_ref
-trace_type
-ms_not_reach
-charging_id
-eua
-mm_context
-pdp_context
-apn
-pco
-gsn_addr
-msisdn
-qos_profile
-auth
-tft
-target_inf
-utran_trans
-rab_setup
-ext_header_t
-trigger_id
-omc_id
-charging_addr
-private
+  cause
+  imsi
+  rai
+  tlli
+  p_tmsi
+  qos_profile0
+  reorder
+  auth
+  map_cause
+  p_tmsi_s
+  ms_validated
+  recovery
+  selection_mode
+  tei_di
+  tei_c
+  tei_dii
+  teardown
+  nsapi
+  ranap_cause
+  rab_context
+  rp_sms
+  rp
+  pfi
+  charging_c
+  trace_ref
+  trace_type
+  ms_not_reach
+  charging_id
+  eua
+  mm_context
+  pdp_context
+  apn
+  pco
+  gsn_addr
+  msisdn
+  qos_profile
+  auth
+  tft
+  target_inf
+  utran_trans
+  rab_setup
+  ext_header_t
+  trigger_id
+  omc_id
+  charging_addr
+  private
 */
 
 struct tlv1 {
-  uint8_t  type;
-  uint8_t  length;
+    uint8_t  type;
+    uint8_t  length;
 }__attribute__((packed));
 
 struct tlv2 {
-  uint8_t  type;
-  uint16_t length;
+    uint8_t  type;
+    uint16_t length;
 }__attribute__((packed));
 
 extern int gtp2ie_tliv(void *p, unsigned int *length, unsigned int size,  uint8_t type, uint8_t instance,  uint8_t value[], uint16_t vsize);
@@ -498,9 +491,3 @@ extern void tbcd2dec(uint64_t *dec, const uint8_t *tbcd, const uint32_t length);
  * @param [oin]  dec decimal value to be encoded
  * */
 extern void dec2tbcd(uint8_t *tbcd, uint32_t *length, const uint64_t dec);
-
-
-
-#endif	/* !_GTPIE_H */
-
-
