@@ -60,6 +60,12 @@ typedef struct{
 
     Subscription subs;
 
+    struct sockaddr sgwIP;
+    socklen_t    sgwIPLen;
+
+    struct sockaddr pgwIP;
+    socklen_t    pgwIPLen;
+
     gpointer     s11;
 
     /*Timers*/
@@ -160,5 +166,10 @@ Subscription emmCtx_getSubscription(const EMMCtx emm);
 void emmCtx_newGUTI(EMMCtx emm, guti_t *guti);
 
 guint32 *emmCtx_getM_TMSI_p(const EMMCtx emm);
+
+void emmCtx_getSGW(const EMMCtx emm, struct sockaddr *rAddr, socklen_t *rAddrLen);
+
+void emmCtx_getPGW(const EMMCtx emm, struct sockaddr *rAddr, socklen_t *rAddrLen);
+
 
 #endif /* EMM_CTX_H*/

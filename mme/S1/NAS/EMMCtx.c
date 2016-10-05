@@ -155,3 +155,17 @@ guint32 *emmCtx_getM_TMSI_p(const EMMCtx emm){
     EMMCtx_t *self = (EMMCtx_t*)emm;
     return &(self->guti.mtmsi);
 }
+
+void emmCtx_getSGW(const EMMCtx emm, struct sockaddr *rAddr, socklen_t *rAddrLen){
+    EMMCtx_t *self = (EMMCtx_t*)emm;
+
+    memcpy(rAddr, &self->sgwIP, self->sgwIPLen);
+    *rAddrLen = self->sgwIPLen;
+}
+
+void emmCtx_getPGW(const EMMCtx emm, struct sockaddr *rAddr, socklen_t *rAddrLen){
+    EMMCtx_t *self = (EMMCtx_t*)emm;
+
+    memcpy(rAddr, &self->sgwIP, self->pgwIPLen);
+    *rAddrLen = self->pgwIPLen;
+}

@@ -28,18 +28,19 @@
 
 #include "MME_S11.h"
 #include "logmgr.h"
-#include "nodemgr.h"
 #include "gtp.h"
 #include "MME.h"
 
 #include "S11_FSMConfig.h"
 #include "S11_User.h"
+#include "S11_Peer.h"
 
 typedef struct{
     gpointer    mme;   /**< mme handler*/
     int         fd;    /**< file descriptor of the s11 server*/
     uint32_t    seq : 24 ;
     GHashTable  *users; /**< s11 users by TEID*/
+    GHashTable  *peers;
     guint8      restartCounter;
 }S11_t;
 
@@ -127,12 +128,15 @@ gpointer s11_init(gpointer mme){
                                          g_int_equal,
                                          NULL,
                                          (GDestroyNotify)s11u_freeUser);
+    self->peers = s11peer_buildTable();
+
     return self;
 }
 
 void s11_free(gpointer s11_h){
     S11_t *self = (S11_t *) s11_h;
 
+    s11peer_destroyTable(self->peers);
     g_hash_table_destroy(self->users);
     mme_deregisterRead(self->mme, self->fd);
     close(self->fd);
@@ -150,6 +154,34 @@ const guint8 getRestartCounter(gpointer s11_h){
     return self->restartCounter;
 }
 
+gboolean S11_isFirstSession(gpointer  s11_h,
+                            const struct sockaddr *rAddr,
+                            const socklen_t rAddrLen){
+    S11_t *self = (S11_t *)s11_h;
+    Peer_t *p;
+    if(s11peer_isFirstSession(self->peers, rAddr, rAddrLen, p)){
+        /* TODO register keep alive */
+    };
+}
+
+void S11_checkPeerRestart(gpointer  s11_h,
+                          const struct sockaddr *rAddr,
+                          const socklen_t rAddrLen,
+                          guint8 restartCounter,
+                          gpointer ongoingUser){
+    S11_t *self = (S11_t *)s11_h;
+    char addrStr[INET6_ADDRSTRLEN];
+
+    if(s11peer_hasRestarted(self->peers, rAddr, rAddrLen, restartCounter)){
+        log_msg(LOG_WARNING, 0, "Peer restart Detected %s",
+                inet_ntop(rAddr->sa_family,
+                          &((struct sockaddr_in*)rAddr)->sin_addr,
+                          addrStr,
+                          rAddrLen));
+        /* TODO Remove contexts affected*/
+    }
+}
+
 static void processEchoReq(S11_t *self, struct t_message *msg){
     union gtp_packet   oMsg = {0};
     uint32_t           oMsglen = 0;
@@ -164,10 +196,12 @@ static void processEchoReq(S11_t *self, struct t_message *msg){
     gtp2ie_gettliv(echo_ie,  GTPV2C_IE_RECOVERY, 0, value, &vsize);
     log_msg(LOG_INFO, 0, "Received ECHO REQ from %s, recovery %u",
             inet_ntop(msg->peer.sa_family,
-                      &msg->peer,
+                      &((struct sockaddr_in*)&msg->peer)->sin_addr,
                       addrStr,
                       msg->peerlen),
             value[0]);
+
+    S11_checkPeerRestart(self, &msg->peer, msg->peerlen, value[0], NULL);
 
     /* Reply */
     oMsglen = get_default_gtp(2, GTP2_ECHO_RSP, &oMsg);

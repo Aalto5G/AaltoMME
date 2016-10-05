@@ -28,6 +28,9 @@
 #include "EMM_State.h"
 #include "EMM_Timers.h"
 
+#include "gtp.h" /* GTP2C_PORT*/
+#include "nodemgr.h"
+
 #include "hmac_sha2.h"
 
 gpointer emm_init(gpointer ecm, TimerMgr tm){
@@ -501,6 +504,31 @@ void emm_sendSecurityModeCommand(EMMCtx emm_h){
     ecm_send(emm->ecm, out, len);
     emm_setTimer(emm, T3460, plain, pointer-plain);
     emmChangeState(emm, EMM_CommonProcedureInitiated);
+}
+
+void emm_selectGateways(EMMCtx emm_h){
+    EMMCtx_t *emm = (EMMCtx_t*)emm_h;
+
+    struct nodeinfo_t sgw, pgw;
+    struct sockaddr_in *peer;
+
+    /*Get SGW addr*/
+    getNode(&sgw, SGW, emm->subs);
+    peer = (struct sockaddr_in *)&emm->sgwIP;
+    peer->sin_family = AF_INET;
+    peer->sin_port = htons(GTP2C_PORT);
+    peer->sin_addr.s_addr = sgw.addrv4.s_addr;
+    emm->sgwIPLen = sizeof(struct sockaddr_in);
+
+    /*Get PGW addr*/
+    getNode(&pgw, PGW, emm->subs);
+    peer = (struct sockaddr_in *)&emm->pgwIP;
+    peer->sin_family = AF_INET;
+    peer->sin_port = htons(GTP2C_PORT);
+    peer->sin_addr.s_addr = pgw.addrv4.s_addr;
+    emm->pgwIPLen = sizeof(struct sockaddr_in);
+
+    emm_processFirstESMmsg(emm);
 }
 
 void emm_processFirstESMmsg(EMMCtx emm_h){

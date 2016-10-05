@@ -62,6 +62,26 @@ const int s11_fg(gpointer s11_h);
  */
 const guint8 getRestartCounter(gpointer s11_h);
 
+
+/**
+ * @brief Check if this is the first session for that peer
+ * @param [in] s11_h s11 stack handler
+ * @param [in] peer address
+ * @param [in] peer address length
+ * @return FALSE when the peer address has other sessions registered, TRUE otherwise
+ *
+ * This function starts tracking the number of sessions registered for that S-GW
+ */
+gboolean S11_isFirstSession(gpointer  s11_h,
+                            const struct sockaddr *rAddr,
+                            const socklen_t rAddrLen);
+
+void S11_checkPeerRestart(gpointer  s11_h,
+                          const struct sockaddr *rAddr,
+                          const socklen_t rAddrLen,
+                          guint8 restartCounter,
+                          gpointer ongoingUser);
+
 /**
  * @brief Provides the next sequence number to be sent
  * @param [in]  s11_h s11 stack handler

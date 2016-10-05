@@ -129,7 +129,7 @@ static void emm_processSecMsg(gpointer emm_h, gpointer buf, gsize len){
         emm->nasUlCountForSC = nas_getLastCount(emm->parser, NAS_UpLink);
         emmChangeState(emm, EMM_SpecificProcedureInitiated);
         s6a_UpdateLocation(emm->s6a, emm,
-                           (void(*)(gpointer)) emm_processFirstESMmsg,
+                           (void(*)(gpointer)) emm_selectGateways,
                            (gpointer)emm);
         break;
     default:

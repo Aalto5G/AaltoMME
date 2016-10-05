@@ -48,6 +48,8 @@ void emm_sendAuthRequest(EMMCtx emm_h);
 
 void emm_sendSecurityModeCommand(EMMCtx emm_h);
 
+void emm_selectGateways(EMMCtx emm_h);
+
 void emm_processFirstESMmsg(EMMCtx emm_h);
 
 void emm_attachAccept(EMMCtx emm_h, gpointer esm_msg, gsize len, GList *bearers);

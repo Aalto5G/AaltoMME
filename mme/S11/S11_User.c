@@ -17,7 +17,6 @@
 #include "S11_User.h"
 #include "S11_FSMConfig.h"
 #include "MME_S11.h"
-#include "nodemgr.h"
 #include "logmgr.h"
 #include "EMMCtx.h"
 #include "EPS_Session_priv.h"
@@ -60,9 +59,6 @@ parse_error (void)
 }
 
 gpointer s11u_newUser(gpointer s11, EMMCtx emm, EPS_Session s){
-    struct nodeinfo_t sgw;
-    struct sockaddr_in *peer;
-
     S11_user_t *self = g_new0(S11_user_t, 1);
     self->lTEID   = newTeid();
     self->rTEID   = 0;
@@ -72,12 +68,7 @@ gpointer s11u_newUser(gpointer s11, EMMCtx emm, EPS_Session s){
     self->s11     = s11;
 
     /*Get SGW addr*/
-    getNode(&sgw, SGW, self->subs);
-    peer = (struct sockaddr_in *)&(self->rAddr);
-    peer->sin_family = AF_INET;
-    peer->sin_port = htons(GTP2C_PORT);
-    peer->sin_addr.s_addr = sgw.addrv4.s_addr;
-    self->rAddrLen = sizeof(struct sockaddr_in);
+    emmCtx_getSGW(emm, &self->rAddr, &self->rAddrLen);
 
     /*Initial state noCtx*/
     s11changeState(self, noCtx);
@@ -102,7 +93,7 @@ void processMsg(gpointer u, const struct t_message *msg){
     if(!validateSourceAddr(self, &msg->peer, msg->peerlen)){
         log_msg(LOG_WARNING, 0, "S11 - Wrong S-GW source (%s)."
                 "Ignoring packet", inet_ntop(msg->peer.sa_family,
-                                             &msg->peer,
+                                             &((struct sockaddr_in*)&msg->peer)->sin_addr,
                                              addrStr,
                                              msg->peerlen));
         return;
@@ -186,6 +177,9 @@ static void s11_send_resp(S11_user_t* self){
     s11__send(self);
 }
 
+static gboolean isFirstSessionForSGW(S11_user_t* self){
+    return S11_isFirstSession(self->s11, &self->rAddr, self->rAddrLen);
+}
 
 void returnControl(gpointer u){
     S11_user_t *self = (S11_user_t*)u;
@@ -225,9 +219,10 @@ void sendCreateSessionReq(gpointer u){
     uint32_t ielen, ienum=0, ul, dl;
     uint64_t ul_64, dl_64;
     uint8_t bytefield[30], *tmp;
-    struct nodeinfo_t pgwInfo;
     uint8_t pco[0xff+2];
     ESM_BearerContext bearer;
+    struct sockaddr pgw = {0};
+    socklen_t pgwLen = 0;
 
     log_msg(LOG_DEBUG, 0, "Enter");
     memset(ie, 0, sizeof(union gtpie_member)*14);
@@ -290,12 +285,9 @@ void sendCreateSessionReq(gpointer u){
     ie[ienum].tliv.i=1;
     ie[ienum].tliv.l=hton16(FTEID_IP4_SIZE);
     ie[ienum].tliv.t=GTPV2C_IE_FTEID;
-    fteid.ipv4=1;
-    fteid.ipv6=0;
-    fteid.iface= hton8(S5S8C_PGW);
-    fteid.teid = hton32(0);
-    getNode(&pgwInfo, PGW, self->subs);
-    fteid.addr.addrv4 = pgwInfo.addrv4.s_addr;
+    emmCtx_getPGW(self->emm, &pgw, &pgwLen);
+    gtp_socktofeid(&fteid, S5S8C_PGW, 0, &pgw, pgwLen);
+
     memcpy(ie[ienum].tliv.v, &fteid, FTEID_IP4_SIZE);
     ienum++;
     /*APN*/
@@ -386,13 +378,14 @@ void sendCreateSessionReq(gpointer u){
                         ie_bearer_ctx, 2);
     ienum++;
 
-    /* TODO check if the node is already known*/
     /* Recovery IE*/
-    ie[ienum].tliv.i=0;
-    ie[ienum].tliv.l=hton16(1);
-    ie[ienum].tliv.t=GTPV2C_IE_RECOVERY;
-    ie[ienum].tliv.v[0]= getRestartCounter(self->s11);
-    ienum++;
+    if(isFirstSessionForSGW(self)){
+        ie[ienum].tliv.i=0;
+        ie[ienum].tliv.l=hton16(1);
+        ie[ienum].tliv.t=GTPV2C_IE_RECOVERY;
+        ie[ienum].tliv.v[0]= getRestartCounter(self->s11);
+        ienum++;
+    }
 
     gtp2ie_encaps(ie, ienum, &(self->oMsg), &(self->oMsglen));
     s11_send(self);
@@ -628,6 +621,12 @@ void parseCtxRsp(gpointer u, GError **err){
 
         }
     }
+    /*Recovery*/
+    gtp2ie_gettliv(self->ie,  GTPV2C_IE_RECOVERY, 0, value, &vsize);
+    if(vsize>0) S11_checkPeerRestart(self->s11,
+                                     &self->rAddr, self->rAddrLen,
+                                     value[0],
+                                     self);
 }
 
 void parseModBearerRsp(gpointer u, GError **err){
