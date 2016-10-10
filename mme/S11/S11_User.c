@@ -38,7 +38,6 @@ typedef struct{
     struct fteid_t     s5s8;     /**< F-TEID PGW S5/S8 (Control Plane)*/
     EMMCtx             emm;
     EPS_Session        session;
-    //struct user_ctx_t  *user;    /**< User information*/
     Subscription       subs;     /**< Subscription information*/
     union gtp_packet   oMsg;
     uint32_t           oMsglen;

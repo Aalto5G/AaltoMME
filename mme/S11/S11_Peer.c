@@ -63,6 +63,7 @@ gboolean s11peer_isFirstSession(GHashTable *peers,
     memcpy(&p->addr, rAddr, rAddrLen);
     p->num_sessions=1;
     p->restartCounter = 0;
+    p->restartValid = FALSE;
 
     g_hash_table_insert(peers, p, p);
     return TRUE;
@@ -72,19 +73,23 @@ gboolean s11peer_isFirstSession(GHashTable *peers,
 gboolean s11peer_hasRestarted(GHashTable *peers,
                               const struct sockaddr *rAddr,
                               const socklen_t rAddrLen,
-                              guint8 counter){
+                              const guint8 counter){
     Peer_t *p;
     Peer_t key = {.len = rAddrLen};
+    gboolean ret;
     memcpy(&key.addr, rAddr, rAddrLen);
     p = g_hash_table_lookup(peers, &key);
 
     if(counter > p->restartCounter ||
        (counter<2 && p->restartCounter>254)/*OverFlow*/){
         p->restartCounter=counter;
-        return TRUE;
+        ret = (p->restartValid)? TRUE:FALSE;
+        p->restartValid = TRUE;
+        return ret;
     }else if(counter < p->restartCounter){
         log_msg(LOG_WARNING, 0,
                 "Received restart counter is lower that the stored counter. Ignoring");
     }
+    p->restartValid = TRUE; /* Case counter = 0 and p->restartCounter = 0*/
     return FALSE;
 }

@@ -22,6 +22,7 @@ typedef struct{
     struct sockaddr addr;
     socklen_t       len;
     guint32         num_sessions;
+    gboolean        restartValid;
     guint8          restartCounter;
 }Peer_t;
 
@@ -44,7 +45,19 @@ gboolean s11peer_isFirstSession(GHashTable *peers,
                                 const socklen_t rAddrLen,
                                 Peer_t *p);
 
+/**
+ *@brief Update restart counter of peer and check if the peer has restarted
+ *@param [in]  peers
+ *@param [in]  rAddr
+ *@paran [in]  rAddrLen
+ *@param [in]  counter
+ *@return TRUE if the peer has restarted
+ *
+ * This function is used also to update the restart counter.
+ * The first update always returns FALSE as no previous counter is available.
+ *
+ */
 gboolean s11peer_hasRestarted(GHashTable *peers,
                               const struct sockaddr *rAddr,
                               const socklen_t rAddrLen,
-                              guint8 counter);
+                              const guint8 counter);
