@@ -23,6 +23,9 @@
 #include "EPS_Session.h"
 #include "EMMCtx_iface.h"
 
+typedef event_callback_fn s11_event_cb;
+typedef void*             s11_event_arg;
+
 /**
  * @brief initiates the S11 stack
  * @param [in]  mme   pointer to mme structure to access the MME API
@@ -39,6 +42,18 @@ gpointer s11_init(gpointer mme);
  * Deallocates the s11 stack handler allocated with s11_init
  */
 void s11_free(gpointer s11);
+
+
+/**
+ * @brief Register file descriptor to accept messages
+ * @param [in]  s11 s11 stack handler
+ * @param [in]  fd  File descriptor to monitor
+ * @param [in]  cb  callback to notify new message
+ * @param [in]  arg parameter to pass to the callback
+ *
+ * Deallocates the s11 stack handler allocated with s11_init
+ */
+void s11_register_fd(gpointer s11_h, const int fd, s11_event_cb cb, s11_event_arg arg);
 
 /**
  * @brief removes the s11 session

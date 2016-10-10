@@ -144,6 +144,11 @@ void s11_free(gpointer s11_h){
     g_free(self);
 }
 
+void s11_register_fd(gpointer s11_h, int fd, s11_event_cb cb, s11_event_arg arg){
+    S11_t *self = (S11_t *) s11_h;
+    mme_registerRead(self->mme, fd, cb, arg);
+}
+
 const int s11_fg(gpointer s11_h){
     S11_t *self = (S11_t *) s11_h;
     return self->fd;
@@ -266,14 +271,7 @@ void s11_accept(evutil_socket_t listener, short event, void *arg){
                         "S11 received packet with unknown TEID (%#X),"
                         " ignoring packet", &teid);
         }else{
-            if (s11u_hasPendingResp( session)){
-                log_msg(LOG_DEBUG, 0, "Received pending S11 reply");
-                processMsg(session, msg);
-            }
-            else{
-                log_msg(LOG_DEBUG, 0, "Received new S11 request");
-                processMsg(session, msg);
-            }
+            processMsg(session, msg);
         }
     }
     freeMsg(msg);

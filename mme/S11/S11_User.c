@@ -29,6 +29,16 @@
 #include "gtp.h"
 
 typedef struct{
+    guint32            seq;
+    int                fd;
+    union gtp_packet   oMsg;
+    uint32_t           oMsglen;
+    union gtp_packet   iMsg;
+    uint32_t           iMsglen;
+    union gtpie_member *ie[GTPIE_SIZE];
+}S11_TrxnT;
+
+typedef struct{
     gpointer           s11;      /**< s11 stack handler*/
     S11_State          *state;   /**< s11 state for this user*/
     uint32_t           lTEID;    /**< local control TEID*/
@@ -39,14 +49,11 @@ typedef struct{
     EMMCtx             emm;
     EPS_Session        session;
     Subscription       subs;     /**< Subscription information*/
-    union gtp_packet   oMsg;
-    uint32_t           oMsglen;
-    union gtp_packet   iMsg;
-    uint32_t           iMsglen;
-    union gtpie_member *ie[GTPIE_SIZE];
     uint8_t            cause;
     void               (*cb) (gpointer);
     gpointer           args;
+    GHashTable         *trxns; /**< Transactions by sequence number*/
+    S11_TrxnT          *active_trxn;
 }S11_user_t;
 
 #define PARSE_ERROR parse_error()
@@ -57,6 +64,19 @@ parse_error (void)
   return g_quark_from_static_string ("gtpv2-parse-error");
 }
 
+/* Trxn functions*/
+static S11_TrxnT *s11uTrxn_new(guint32 seq){
+    S11_TrxnT *trxn =  g_new(S11_TrxnT, 1);
+    trxn->seq = seq;
+    return trxn;
+}
+
+static void s11uTrxn_destroy(void *t){
+    S11_TrxnT *trxn = (S11_TrxnT *)t;
+    g_free(trxn);
+}
+
+/* User functions*/
 gpointer s11u_newUser(gpointer s11, EMMCtx emm, EPS_Session s){
     S11_user_t *self = g_new0(S11_user_t, 1);
     self->lTEID   = newTeid();
@@ -65,6 +85,11 @@ gpointer s11u_newUser(gpointer s11, EMMCtx emm, EPS_Session s){
     self->session = s;
     self->subs    = emmCtx_getSubscription(emm);
     self->s11     = s11;
+
+    self->trxns = g_hash_table_new_full( g_int_hash,
+                                         g_int_equal,
+                                         NULL,
+                                         (GDestroyNotify)s11uTrxn_destroy);
 
     /*Get SGW addr*/
     emmCtx_getSGW(emm, &self->rAddr, &self->rAddrLen);
@@ -75,9 +100,21 @@ gpointer s11u_newUser(gpointer s11, EMMCtx emm, EPS_Session s){
     return self;
 }
 
-void s11u_freeUser(gpointer self){
+void s11u_freeUser(gpointer u){
+    S11_user_t *self = (S11_user_t*)u;
     log_msg(LOG_INFO, 0, "Removing S11 session");
+    g_hash_table_destroy(self->trxns);
     g_free(self);
+}
+
+static void s11u_newTrxn(S11_user_t *self){
+     S11_TrxnT *t = s11uTrxn_new(getNextSeq(self->s11));
+     g_hash_table_insert(self->trxns, &t->seq, t);
+     self->active_trxn = t;
+}
+
+static gboolean s11u_hasPendingResp(S11_user_t *self, guint32 seq, S11_TrxnT **t){
+    return g_hash_table_lookup_extended(self->trxns, &seq, NULL, (void**)t);
 }
 
 static gboolean validateSourceAddr(S11_user_t* self,
@@ -88,7 +125,24 @@ static gboolean validateSourceAddr(S11_user_t* self,
 
 void processMsg(gpointer u, const struct t_message *msg){
     S11_user_t *self = (S11_user_t*)u;
+    S11_TrxnT *t = NULL;
     char addrStr[INET6_ADDRSTRLEN];
+    gboolean removeTrxn = FALSE;
+
+    if (s11u_hasPendingResp(self, msg->packet.gtp.gtp2l.h.seq, &t)){
+        log_msg(LOG_DEBUG, 0, "Received pending S11 reply");
+        self->active_trxn = t;
+        removeTrxn = TRUE;
+    }
+    else{
+        log_msg(LOG_DEBUG, 0, "Received new S11 request");
+        self->active_trxn = s11uTrxn_new(msg->packet.gtp.gtp2l.h.seq);
+        t = self->active_trxn;
+    }
+
+    t->iMsglen = msg->length;
+    memcpy(&(t->iMsg), &(msg->packet.gtp), msg->length);
+
     if(!validateSourceAddr(self, &msg->peer, msg->peerlen)){
         log_msg(LOG_WARNING, 0, "S11 - Wrong S-GW source (%s)."
                 "Ignoring packet", inet_ntop(msg->peer.sa_family,
@@ -98,10 +152,10 @@ void processMsg(gpointer u, const struct t_message *msg){
         return;
     }
 
-    self->iMsglen = msg->length;
-    memcpy(&(self->iMsg), &(msg->packet.gtp), msg->length);
-
     self->state->processMsg(self);
+    if(removeTrxn){
+        g_hash_table_remove(self->trxns, &t->seq);
+    }
 }
 
 void attach(gpointer session, void(*cb)(gpointer), gpointer args){
@@ -132,12 +186,6 @@ void releaseAccess(gpointer session, void(*cb)(gpointer), gpointer args){
     self->state->releaseAccess(self);
 }
 
-
-gboolean s11u_hasPendingResp(gpointer self){
-    return TRUE;
-}
-
-
 int *s11u_getTEIDp(gpointer u){
     S11_user_t *self = (S11_user_t*)u;
     return &(self->lTEID);
@@ -152,28 +200,25 @@ void s11u_setState(gpointer u, S11_State *s){
 static void s11__send(S11_user_t* self){
     const int sock = s11_fg(self->s11);
     /*Packet header modifications*/
-    self->oMsg.gtp2l.h.tei = self->rTEID;
+    self->active_trxn->oMsg.gtp2l.h.seq = hton24(self->active_trxn->seq);
+    self->active_trxn->oMsg.gtp2l.h.tei = self->rTEID;
 
-    if (sendto(sock, &(self->oMsg), self->oMsglen, 0,
+    if (sendto(sock, &(self->active_trxn->oMsg), self->active_trxn->oMsglen, 0,
                    &(self->rAddr), self->rAddrLen) < 0) {
         log_errpack(LOG_ERR, errno, (struct sockaddr_in *)&(self->rAddr),
-                    &(self->oMsg), self->oMsglen,
+                    &(self->active_trxn->oMsg), self->active_trxn->oMsglen,
                     "Sendto(fd=%d, msg=%lx, len=%d) failed",
-                    sock, (unsigned long) &(self->oMsg), self->oMsglen);
+                    sock, (unsigned long) &(self->active_trxn->oMsg), self->active_trxn->oMsglen);
     }
 }
 
 static void s11_send(S11_user_t* self){
-    /*Packet header modifications*/
-    self->oMsg.gtp2l.h.seq = hton24(getNextSeq(self->s11));
     s11__send(self);
 }
 
-
 static void s11_send_resp(S11_user_t* self){
-    /*Packet header modifications*/
-    self->oMsg.gtp2l.h.seq = self->iMsg.gtp2l.h.seq;
     s11__send(self);
+    s11uTrxn_destroy(self->active_trxn);
 }
 
 static gboolean isFirstSessionForSGW(S11_user_t* self){
@@ -201,12 +246,14 @@ void returnControlAndRemoveSession(gpointer u){
 
 void parseIEs(gpointer u){
     S11_user_t *self = (S11_user_t*)u;
-    gtp2ie_decap(self->ie, &(self->iMsg), self->iMsglen);
+    S11_TrxnT *t = self->active_trxn;
+    gtp2ie_decap(t->ie, &(t->iMsg), t->iMsglen);
 }
 
 const int getMsgType(const gpointer u){
     S11_user_t *self = (S11_user_t*)u;
-    return self->iMsg.gtp2l.h.type;
+    S11_TrxnT *t = self->active_trxn;
+    return t->iMsg.gtp2l.h.type;
 }
 
 void sendCreateSessionReq(gpointer u){
@@ -231,7 +278,8 @@ void sendCreateSessionReq(gpointer u){
     memset(&qos, 0, sizeof(struct qos_t));
     subs_cpyQoS_GTP(self->subs, &qos);
 
-    self->oMsglen = get_default_gtp(2, GTP2_CREATE_SESSION_REQ, &(self->oMsg));
+    s11u_newTrxn(self);
+    self->active_trxn->oMsglen = get_default_gtp(2, GTP2_CREATE_SESSION_REQ, &(self->active_trxn->oMsg));
 
     /*IMSI*/
     ie[ienum].tliv.i=0;
@@ -386,7 +434,7 @@ void sendCreateSessionReq(gpointer u){
         ienum++;
     }
 
-    gtp2ie_encaps(ie, ienum, &(self->oMsg), &(self->oMsglen));
+    gtp2ie_encaps(ie, ienum, &(self->active_trxn->oMsg), &(self->active_trxn->oMsglen));
     s11_send(self);
 }
 
@@ -405,7 +453,8 @@ void sendModifyBearerReq(gpointer u){
     /*  Send Create Context Request to SGW*/
     /******************************************************************************/
 
-    self->oMsglen = get_default_gtp(2, GTP2_MODIFY_BEARER_REQ, &(self->oMsg));
+    s11u_newTrxn(self);
+    self->active_trxn->oMsglen = get_default_gtp(2, GTP2_MODIFY_BEARER_REQ, &(self->active_trxn->oMsg));
 
     /*F-TEID*/
     ie[0].tliv.i=0;
@@ -434,7 +483,7 @@ void sendModifyBearerReq(gpointer u){
         ie_bearer_ctx[1].tliv.l=hton16(fteid_size);
         memcpy(ie_bearer_ctx[1].tliv.v, &fteid, fteid_size);
     gtp2ie_encaps_group(GTPV2C_IE_BEARER_CONTEXT, 0, &ie[1], ie_bearer_ctx, 2);
-    gtp2ie_encaps(ie, 2, &(self->oMsg), &(self->oMsglen));
+    gtp2ie_encaps(ie, 2, &(self->active_trxn->oMsg), &(self->active_trxn->oMsglen));
 
     s11_send(self);
 }
@@ -449,7 +498,8 @@ void sendDeleteSessionReq(gpointer u){
     /*  Send Delete Session Request to SGW*/
     /******************************************************************************/
 
-    self->oMsglen = get_default_gtp(2, GTP2_DELETE_SESSION_REQ, &(self->oMsg));
+    s11u_newTrxn(self);
+    self->active_trxn->oMsglen = get_default_gtp(2, GTP2_DELETE_SESSION_REQ, &(self->active_trxn->oMsg));
 
     /*  EPS Bearer ID (EBI) to be removed*/
     ie[ienum].tliv.i=0;
@@ -469,7 +519,7 @@ void sendDeleteSessionReq(gpointer u){
     ie[ienum].tliv.v[0]=0x08; /* OI flag*/
     ienum++;
 
-    gtp2ie_encaps(ie, ienum, &(self->oMsg), &(self->oMsglen));
+    gtp2ie_encaps(ie, ienum, &(self->active_trxn->oMsg), &(self->active_trxn->oMsglen));
 
     s11_send(self);
 }
@@ -483,7 +533,8 @@ void sendReleaseAccessBearersReq(gpointer u){
     /*  Send Release Access Bearers Request to SGW*/
     /******************************************************************************/
 
-    self->oMsglen = get_default_gtp(2, GTP2_RELEASE_ACCESS_BEARERS_REQ, &(self->oMsg));
+    s11u_newTrxn(self);
+    self->active_trxn->oMsglen = get_default_gtp(2, GTP2_RELEASE_ACCESS_BEARERS_REQ, &(self->active_trxn->oMsg));
 
     s11_send(self);
 }
@@ -497,8 +548,9 @@ void sendDownlinkDataNotificationAck(gpointer u){
 
     /*  Send Release Access Bearers Request to SGW*/
     /******************************************************************************/
+    S11_TrxnT *t = self->active_trxn;
 
-    self->oMsglen = get_default_gtp(2,  GTP2_DOWNLINK_DATA_NOTIFICATION_ACK, &(self->oMsg));
+    t->oMsglen = get_default_gtp(2,  GTP2_DOWNLINK_DATA_NOTIFICATION_ACK, &(t->oMsg));
 
     /* Cause*/
     ie[ienum].tliv.i=0;
@@ -509,7 +561,7 @@ void sendDownlinkDataNotificationAck(gpointer u){
     ie[ienum].tliv.v[1]=0; /* No Flags*/
     ienum++;
 
-    gtp2ie_encaps(ie, ienum, &(self->oMsg), &(self->oMsglen));
+    gtp2ie_encaps(ie, ienum, &(t->oMsg), &(t->oMsglen));
 
     s11_send_resp(self);
 }
@@ -520,7 +572,7 @@ const gboolean accepted(gpointer u){
     uint8_t value[2];
 
     /* Cause*/
-    gtp2ie_gettliv(self->ie, GTPV2C_IE_CAUSE, 0, value, &vsize);
+    gtp2ie_gettliv(self->active_trxn->ie, GTPV2C_IE_CAUSE, 0, value, &vsize);
     if(vsize=2){
         self->cause = value[0];
         return value[0]==GTPV2C_CAUSE_REQUEST_ACCEPTED;
@@ -535,7 +587,7 @@ const int cause(gpointer u){
     uint16_t vsize;
     uint8_t value[2];
 
-    gtp2ie_gettliv(self->ie, GTPV2C_IE_CAUSE, 0, value, &vsize);
+    gtp2ie_gettliv(self->active_trxn->ie, GTPV2C_IE_CAUSE, 0, value, &vsize);
     if(vsize=2){
         return value[0];
     }else{
@@ -558,7 +610,7 @@ void parseCtxRsp(gpointer u, GError **err){
     memset(value, 0, GTP2IE_MAX * sizeof(uint8_t));
 
     /* F-TEID S11 (SGW)*/
-    gtp2ie_gettliv(self->ie, GTPV2C_IE_FTEID, 0, value, &vsize);
+    gtp2ie_gettliv(self->active_trxn->ie, GTPV2C_IE_FTEID, 0, value, &vsize);
     if(value!= NULL && vsize>0){
         /* memcpy(&(self->user->s11), value, vsize); */
         s11u_setS11fteid(self, value);
@@ -566,14 +618,14 @@ void parseCtxRsp(gpointer u, GError **err){
     }
 
     /* F-TEID S5 /S8 (PGW)*/
-    gtp2ie_gettliv(self->ie, GTPV2C_IE_FTEID, 1, value, &vsize);
+    gtp2ie_gettliv(self->active_trxn->ie, GTPV2C_IE_FTEID, 1, value, &vsize);
     if(value!= NULL && vsize>0){
         memcpy(&(self->s5s8), value, vsize);
         log_msg(LOG_DEBUG, 0, "S5/S8 Pgw teid = %x into", hton32(self->s5s8.teid));
     }
 
     /* PDN Address Allocation - PAA*/
-    gtp2ie_gettliv(self->ie, GTPV2C_IE_PAA, 0, value, &vsize);
+    gtp2ie_gettliv(self->active_trxn->ie, GTPV2C_IE_PAA, 0, value, &vsize);
     if(value!= NULL && vsize>0){
         ePSsession_setPDNAddress(self->session, value, vsize);
         log_msg(LOG_DEBUG, 0, "PDN Address Allocated %s for IMSI: %" PRIu64"",
@@ -584,14 +636,14 @@ void parseCtxRsp(gpointer u, GError **err){
 
     vsize=0;
     /* Protocol Configuration Options PCO*/
-    gtp2ie_gettliv(self->ie, GTPV2C_IE_PCO, 0, value, &vsize);
+    gtp2ie_gettliv(self->active_trxn->ie, GTPV2C_IE_PCO, 0, value, &vsize);
     if(value!= NULL && vsize>0){
         ePSsession_setPCO(self->session, value, vsize);
     }
 
     /* Bearer Context*/
     bearer = ePSsession_getDefaultBearer(self->session);
-    gtp2ie_gettliv(self->ie, GTPV2C_IE_BEARER_CONTEXT, 0, value, &vsize);
+    gtp2ie_gettliv(self->active_trxn->ie, GTPV2C_IE_BEARER_CONTEXT, 0, value, &vsize);
     if(value!= NULL && vsize>0){
         gtp2ie_decaps_group(bearerCtxGroupIE, &numIE, value, vsize);
 
@@ -621,7 +673,7 @@ void parseCtxRsp(gpointer u, GError **err){
         }
     }
     /*Recovery*/
-    gtp2ie_gettliv(self->ie,  GTPV2C_IE_RECOVERY, 0, value, &vsize);
+    gtp2ie_gettliv(self->active_trxn->ie,  GTPV2C_IE_RECOVERY, 0, value, &vsize);
     if(vsize>0) S11_checkPeerRestart(self->s11,
                                      &self->rAddr, self->rAddrLen,
                                      value[0],
@@ -642,7 +694,7 @@ void parseModBearerRsp(gpointer u, GError **err){
     log_msg(LOG_DEBUG, 0, "Parsing Modify Bearer Req");
 
     /* Bearer Context*/
-    gtp2ie_gettliv(self->ie, GTPV2C_IE_BEARER_CONTEXT, 0, value, &vsize);
+    gtp2ie_gettliv(self->active_trxn->ie, GTPV2C_IE_BEARER_CONTEXT, 0, value, &vsize);
     if(value!= NULL && vsize>0){
         gtp2ie_decaps_group(bearerCtxGroupIE, &numIE, value, vsize);
 

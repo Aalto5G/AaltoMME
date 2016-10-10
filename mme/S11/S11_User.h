@@ -41,8 +41,6 @@ void modBearer(gpointer self, void(*cb)(gpointer), gpointer args);
 void releaseAccess(gpointer session, void(*cb)(gpointer), gpointer args);
 
 
-gboolean s11u_hasPendingResp(gpointer self);
-
 int *s11u_getTEIDp(gpointer self);
 
 
