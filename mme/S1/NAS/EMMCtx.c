@@ -166,6 +166,6 @@ void emmCtx_getSGW(const EMMCtx emm, struct sockaddr *rAddr, socklen_t *rAddrLen
 void emmCtx_getPGW(const EMMCtx emm, struct sockaddr *rAddr, socklen_t *rAddrLen){
     EMMCtx_t *self = (EMMCtx_t*)emm;
 
-    memcpy(rAddr, &self->sgwIP, self->pgwIPLen);
+    memcpy(rAddr, &self->pgwIP, self->pgwIPLen);
     *rAddrLen = self->pgwIPLen;
 }
