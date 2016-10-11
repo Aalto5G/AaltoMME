@@ -79,6 +79,7 @@ gboolean s11peer_hasRestarted(GHashTable *peers,
     gboolean ret;
     memcpy(&key.addr, rAddr, rAddrLen);
     p = g_hash_table_lookup(peers, &key);
+    if(!p) return FALSE; /* The node is not being tracked*/
 
     if(counter > p->restartCounter ||
        (counter<2 && p->restartCounter>254)/*OverFlow*/){
