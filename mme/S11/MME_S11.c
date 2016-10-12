@@ -37,6 +37,7 @@
 
 typedef struct{
     gpointer    mme;   /**< mme handler*/
+    TimerMgr    tm;
     int         fd;    /**< file descriptor of the s11 server*/
     uint32_t    seq : 24 ;
     GHashTable  *users; /**< s11 users by TEID*/
@@ -97,6 +98,7 @@ gpointer s11_init(gpointer mme){
     struct stat st = {0};
 
     self->mme = mme;
+    self->tm = mme_getTimerMgr(mme);
     self->seq = 0;
 
     if (stat(mme_getStateDir(self->mme), &st) == -1) {
@@ -149,9 +151,22 @@ void s11_register_fd(gpointer s11_h, int fd, s11_event_cb cb, s11_event_arg arg)
     mme_registerRead(self->mme, fd, cb, arg);
 }
 
-const int s11_fg(gpointer s11_h){
+void s11_send(gpointer s11_h,
+              union gtp_packet *oMsg, guint32 oMsglen,
+              struct sockaddr *rAddr, socklen_t rAddrLen,
+              GError **err){
+
     S11_t *self = (S11_t *) s11_h;
-    return self->fd;
+    ssize_t ret = 0;
+    ret = sendto(self->fd, oMsg, oMsglen, 0, rAddr, rAddrLen);
+    if(ret<0){
+        /* *err = g_error_new(); */
+        log_errpack(LOG_ERR, errno, (struct sockaddr_in *)rAddr,
+                    oMsg, oMsglen,
+                    "Sendto(fd=%d, msg=%lx, len=%d) failed",
+                    self->fd, (unsigned long) oMsg, oMsglen);
+        g_error("Error sendto");
+    }
 }
 
 const guint8 getRestartCounter(gpointer s11_h){
@@ -163,10 +178,33 @@ gboolean S11_isFirstSession(gpointer  s11_h,
                             const struct sockaddr *rAddr,
                             const socklen_t rAddrLen){
     S11_t *self = (S11_t *)s11_h;
-    Peer_t *p;
-    if(s11peer_isFirstSession(self->peers, rAddr, rAddrLen, p)){
-        /* TODO register keep alive */
-    };
+    Peer_t *p = NULL;
+    if(s11peer_isFirstSession(self->peers, rAddr, rAddrLen, &p)){
+        p->s11 = self;
+        p->tm = self->tm;
+        /* TODO start Peer tracking */
+        s11peer_track(p);
+        return TRUE;
+    }
+    return FALSE;
+}
+
+void S11_unrefSession(gpointer  s11_h,
+                      const struct sockaddr *rAddr,
+                      const socklen_t rAddrLen){
+    S11_t *self = (S11_t *)s11_h;
+
+    Peer_t * p = s11peer_get(self->peers, rAddr, rAddrLen);
+    if(!p){
+        log_msg(LOG_ERR, 0,"S11 Peer was not tracked");
+    }
+    p->num_sessions--;
+
+    if(p->num_sessions==0){
+        log_msg(LOG_WARNING, 0,"S11 Peer last session, untracking");
+        /* Stop Peer Tracking */
+        s11peer_untrack(p);
+    }
 }
 
 void S11_checkPeerRestart(gpointer  s11_h,
@@ -196,6 +234,7 @@ static void processEchoReq(S11_t *self, struct t_message *msg){
     guint8             value[GTP2IE_MAX] = {0};
     guint16            vsize = 0;
     char addrStr[INET6_ADDRSTRLEN];
+    GError *err = NULL;
 
     gtp2ie_decap(echo_ie, &msg->packet, msg->length);
     gtp2ie_gettliv(echo_ie,  GTPV2C_IE_RECOVERY, 0, value, &vsize);
@@ -221,12 +260,10 @@ static void processEchoReq(S11_t *self, struct t_message *msg){
     gtp2ie_encaps(ie, ienum, &oMsg, &oMsglen);
 
     /* Send */
-    if (sendto(self->fd, &oMsg, oMsglen, 0,
-               &(msg->peer), msg->peerlen) < 0) {
-        log_errpack(LOG_ERR, errno, (struct sockaddr_in *)&(msg->peer),
-                    &oMsg, oMsglen,
-                    "Sendto(fd=%d, msg=%lx, len=%d) failed",
-                    self->fd, (unsigned long) &oMsg, oMsglen);
+    s11_send(self, &oMsg, oMsglen,
+              &(msg->peer), msg->peerlen, &err);
+    if(err != NULL){
+        log_msg(LOG_ERR, 0, "s11_send error");
     }
 }
 
@@ -256,6 +293,10 @@ void s11_accept(evutil_socket_t listener, short event, void *arg){
 
     if(msg->packet.gtp.gtp2s.h.type == GTP2_ECHO_REQ ){
         processEchoReq(self, msg);
+    }else if(msg->packet.gtp.gtp2s.h.type == GTP2_ECHO_RSP){
+        s11peer_processEchoRsp(self->peers,
+                               &msg->peer, msg->peerlen,
+                               &msg->packet.gtp, msg->length);
     }else if(msg->packet.gtp.gtp2s.h.type<4){
         /* TODO @Vicent:
            Manage echo request, echo response or version not suported*/

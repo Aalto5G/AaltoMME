@@ -16,6 +16,7 @@
 #include <string.h>
 
 #include "S11_Peer.h"
+#include "MME_S11.h"
 #include "logmgr.h"
 
 static guint s11peer_hash(gconstpointer key){
@@ -44,31 +45,29 @@ void s11peer_destroyTable(GHashTable *peers){
     g_hash_table_destroy(peers);
 }
 
-
-
 gboolean s11peer_isFirstSession(GHashTable *peers,
                                 const struct sockaddr *rAddr,
                                 const socklen_t rAddrLen,
-                                Peer_t *p){
+                                Peer_t **p){
+    Peer_t key = {.len = rAddrLen}, *_p;
 
-    Peer_t key = {.len = rAddrLen};
     memcpy(&key.addr, rAddr, rAddrLen);
-    p = g_hash_table_lookup(peers, &key);
-    if(p!= NULL){
-        p->num_sessions++;
+    *p = g_hash_table_lookup(peers, &key);
+    if(*p!= NULL){
+        (*p)->num_sessions++;
         return FALSE;
     }
-    p = malloc(sizeof(Peer_t));
-    p->len = rAddrLen;
-    memcpy(&p->addr, rAddr, rAddrLen);
-    p->num_sessions=1;
-    p->restartCounter = 0;
-    p->restartValid = FALSE;
+    _p = malloc(sizeof(Peer_t));
 
-    g_hash_table_insert(peers, p, p);
+    _p->len = rAddrLen;
+    memcpy(&_p->addr, rAddr, rAddrLen);
+    _p->num_sessions=1;
+    _p->restartCounter = 0;
+    _p->restartValid = FALSE;
+    g_hash_table_insert(peers, _p, _p);
+    *p = _p;
     return TRUE;
 }
-
 
 gboolean s11peer_hasRestarted(GHashTable *peers,
                               const struct sockaddr *rAddr,
@@ -93,4 +92,73 @@ gboolean s11peer_hasRestarted(GHashTable *peers,
     }
     p->restartValid = TRUE; /* Case counter = 0 and p->restartCounter = 0*/
     return FALSE;
+}
+
+Peer_t *s11peer_get(GHashTable *peers,
+                    const struct sockaddr *rAddr,
+                    const socklen_t rAddrLen){
+    Peer_t key = {.len = rAddrLen};
+    memcpy(&key.addr, rAddr, rAddrLen);
+    return g_hash_table_lookup(peers, &key);
+}
+
+static void _s11peer_processEchoRsp(Peer_t *p, union gtp_packet *msg, size_t msg_len){
+    union gtpie_member *echo_ie[GTPIE_SIZE];
+    guint8             value[GTP2IE_MAX] = {0};
+    guint16            vsize = 0;
+    char               addrStr[INET6_ADDRSTRLEN];
+
+    /*Restart timer*/
+    s11peer_untrack(p);
+    s11peer_track(p);
+
+    gtp2ie_decap(echo_ie, msg, msg_len);
+    gtp2ie_gettliv(echo_ie,  GTPV2C_IE_RECOVERY, 0, value, &vsize);
+    log_msg(LOG_INFO, 0, "Received ECHO RSP from %s, recovery %u",
+            inet_ntop(p->addr.sa_family,
+                      &((struct sockaddr_in*)&p->addr)->sin_addr,
+                      addrStr,
+                      p->len),
+            value[0]);
+
+    S11_checkPeerRestart(p->s11, &p->addr, p->len, value[0], NULL);
+}
+
+void s11peer_processEchoRsp(GHashTable *peers,
+                            const struct sockaddr *rAddr,
+                            const socklen_t rAddrLen,
+                            union gtp_packet *msg,
+                            size_t msg_len){
+    Peer_t *p = s11peer_get(peers, rAddr, rAddrLen);
+    _s11peer_processEchoRsp(p, msg, msg_len);
+}
+
+
+void s11peer_sendEcho(Timer t, void* arg){
+    Peer_t *p = (Peer_t *)arg;
+    int fd;
+    const struct timeval tv = {.tv_sec = 20, .tv_usec = 0};
+
+    log_msg(LOG_INFO, 0, "Sending S11 ECHO REQ (test), sessions %u", p->num_sessions);
+
+    /* Open UDP socket*/
+    /* if ((fd = socket(AF_INET, SOCK_DGRAM, 0)) < 0 ) { */
+    /*     log_msg(LOG_ERR, errno, */
+    /*             "socket(domain=%d, type=%d, protocol=%d) failed", AF_INET, SOCK_DGRAM, 0); */
+    /*     return; */
+    /* } */
+    /* Send Echo Req*/
+
+    /* Next iteration*/
+    p->t = tm_add_timer(p->tm, &tv, 1, s11peer_sendEcho, NULL, NULL, p);
+}
+
+
+void s11peer_track(Peer_t *p){
+    const struct timeval tv = {.tv_sec = 20, .tv_usec = 0};
+    p->t = tm_add_timer(p->tm, &tv, 1, s11peer_sendEcho, NULL, NULL, p);
+}
+
+void s11peer_untrack(Peer_t *p){
+    tm_stop_timer(p->t);
 }

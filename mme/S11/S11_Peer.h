@@ -18,7 +18,13 @@
 #include <netinet/in.h>
 #include <glib.h>
 
+#include "gtp.h"
+#include "timermgr.h"
+
 typedef struct{
+    gpointer        s11;
+    TimerMgr        tm;
+    Timer           t;
     struct sockaddr addr;
     socklen_t       len;
     guint32         num_sessions;
@@ -38,12 +44,14 @@ void s11peer_destroyTable(GHashTable *peers);
  *@param [out] p         Peer struct
  *@return TRUE if the peer has other sessions
  *
- * p is filled with the peer struct, if it is the first time, it is created
+ * p is filled with the peer struct, if it is the first time, it is created.
+ * This function starts tracking the number of session active on that peer, use function
+ * unrefSession after each detach.
  */
 gboolean s11peer_isFirstSession(GHashTable *peers,
                                 const struct sockaddr *rAddr,
                                 const socklen_t rAddrLen,
-                                Peer_t *p);
+                                Peer_t **p);
 
 /**
  *@brief Update restart counter of peer and check if the peer has restarted
@@ -61,3 +69,19 @@ gboolean s11peer_hasRestarted(GHashTable *peers,
                               const struct sockaddr *rAddr,
                               const socklen_t rAddrLen,
                               const guint8 counter);
+
+Peer_t *s11peer_get(GHashTable *peers,
+                    const struct sockaddr *rAddr,
+                    const socklen_t rAddrLen);
+
+void s11peer_track(Peer_t *p);
+
+
+void s11peer_untrack(Peer_t *p);
+
+
+void s11peer_processEchoRsp(GHashTable *peers,
+                            const struct sockaddr *rAddr,
+                            const socklen_t rAddrLen,
+                            union gtp_packet *msg,
+                            size_t msg_len);

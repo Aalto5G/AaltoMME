@@ -55,6 +55,11 @@ void s11_free(gpointer s11);
  */
 void s11_register_fd(gpointer s11_h, const int fd, s11_event_cb cb, s11_event_arg arg);
 
+void s11_send(gpointer s11_h,
+              union gtp_packet *oMsg, guint32 oMsglen,
+              struct sockaddr *rAddr, socklen_t rAddrLen,
+              GError **err);
+
 /**
  * @brief removes the s11 session
  * @param [in]  s11 s11 stack handler
@@ -63,12 +68,6 @@ void s11_register_fd(gpointer s11_h, const int fd, s11_event_cb cb, s11_event_ar
  */
 void s11_deleteSession(gpointer s11_h, gpointer u);
 
-/**
- * @brief File descriptor accessor
- * @param [in]  s11_h s11 stack handler
- * @return file descriptor
- */
-const int s11_fg(gpointer s11_h);
 
 /**
  * @brief Local restart counter accessor
@@ -90,6 +89,18 @@ const guint8 getRestartCounter(gpointer s11_h);
 gboolean S11_isFirstSession(gpointer  s11_h,
                             const struct sockaddr *rAddr,
                             const socklen_t rAddrLen);
+
+
+/**
+ * @brief Remove one session from the peer session tracking
+ * @param [in] s11_h s11 stack handler
+ * @param [in] peer address
+ * @param [in] peer address length
+ *
+ */
+void S11_unrefSession(gpointer  s11_h,
+                      const struct sockaddr *rAddr,
+                      const socklen_t rAddrLen);
 
 void S11_checkPeerRestart(gpointer  s11_h,
                           const struct sockaddr *rAddr,

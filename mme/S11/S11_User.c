@@ -32,9 +32,9 @@ typedef struct{
     guint32            seq;
     int                fd;
     union gtp_packet   oMsg;
-    uint32_t           oMsglen;
+    guint32            oMsglen;
     union gtp_packet   iMsg;
-    uint32_t           iMsglen;
+    guint32            iMsglen;
     union gtpie_member *ie[GTPIE_SIZE];
 }S11_TrxnT;
 
@@ -102,6 +102,7 @@ gpointer s11u_newUser(gpointer s11, EMMCtx emm, EPS_Session s){
 
 void s11u_freeUser(gpointer u){
     S11_user_t *self = (S11_user_t*)u;
+    S11_unrefSession(self->s11, &self->rAddr, self->rAddrLen);
     log_msg(LOG_INFO, 0, "Removing S11 session");
     g_hash_table_destroy(self->trxns);
     g_free(self);
@@ -198,21 +199,19 @@ void s11u_setState(gpointer u, S11_State *s){
 
 
 static void s11__send(S11_user_t* self){
-    const int sock = s11_fg(self->s11);
+    GError *err = NULL;
     /*Packet header modifications*/
     self->active_trxn->oMsg.gtp2l.h.seq = hton24(self->active_trxn->seq);
     self->active_trxn->oMsg.gtp2l.h.tei = self->rTEID;
 
-    if (sendto(sock, &(self->active_trxn->oMsg), self->active_trxn->oMsglen, 0,
-                   &(self->rAddr), self->rAddrLen) < 0) {
-        log_errpack(LOG_ERR, errno, (struct sockaddr_in *)&(self->rAddr),
-                    &(self->active_trxn->oMsg), self->active_trxn->oMsglen,
-                    "Sendto(fd=%d, msg=%lx, len=%d) failed",
-                    sock, (unsigned long) &(self->active_trxn->oMsg), self->active_trxn->oMsglen);
+    s11_send(self->s11, &(self->active_trxn->oMsg), self->active_trxn->oMsglen,
+             &(self->rAddr), self->rAddrLen, &err);
+    if(err != NULL){
+        log_msg(LOG_ERR, 0, "s11_send error");
     }
 }
 
-static void s11_send(S11_user_t* self){
+static void s11u_send(S11_user_t* self){
     s11__send(self);
 }
 
@@ -435,7 +434,7 @@ void sendCreateSessionReq(gpointer u){
     }
 
     gtp2ie_encaps(ie, ienum, &(self->active_trxn->oMsg), &(self->active_trxn->oMsglen));
-    s11_send(self);
+    s11u_send(self);
 }
 
 void sendModifyBearerReq(gpointer u){
@@ -485,7 +484,7 @@ void sendModifyBearerReq(gpointer u){
     gtp2ie_encaps_group(GTPV2C_IE_BEARER_CONTEXT, 0, &ie[1], ie_bearer_ctx, 2);
     gtp2ie_encaps(ie, 2, &(self->active_trxn->oMsg), &(self->active_trxn->oMsglen));
 
-    s11_send(self);
+    s11u_send(self);
 }
 
 void sendDeleteSessionReq(gpointer u){
@@ -521,7 +520,7 @@ void sendDeleteSessionReq(gpointer u){
 
     gtp2ie_encaps(ie, ienum, &(self->active_trxn->oMsg), &(self->active_trxn->oMsglen));
 
-    s11_send(self);
+    s11u_send(self);
 }
 
 void sendReleaseAccessBearersReq(gpointer u){
@@ -536,7 +535,7 @@ void sendReleaseAccessBearersReq(gpointer u){
     s11u_newTrxn(self);
     self->active_trxn->oMsglen = get_default_gtp(2, GTP2_RELEASE_ACCESS_BEARERS_REQ, &(self->active_trxn->oMsg));
 
-    s11_send(self);
+    s11u_send(self);
 }
 
 
