@@ -60,6 +60,29 @@ $ ./configure
 $ make
 ```
 
+Node: To use systemd unit files, use `--prefix=/usr` on the configure step or change the execution path of the binary.
+
+Install
+-------
+
+- Install the deb package or install it on your current machine:
+```
+# make install
+```
+
+Execution
+---------
+
+- Setup the configuration file on `/etc/cumucore/mme.cfg`:
+
+```
+# cp /etc/cumucore/mme.cfg.template /etc/cumucore/mme.cfg
+```
+- Run the binary or start the unit file:
+```
+# systemctl start MME
+```
+
 Setup HSS database
 ------------------
 1. Install MariaDB or MySQL on your machine (if you haven't already done so), MariaDB repository configuration tool: https://downloads.mariadb.org/mariadb/repositories/ . Don't forget the client development packet, libmariadbclient-dev on Debian.
