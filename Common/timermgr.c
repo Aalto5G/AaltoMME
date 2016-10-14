@@ -162,6 +162,9 @@ void tm_stop_timer(Timer timer){
         /* Timer doesn't exist anymore*/
         return;
     }
+    if(t->mgr == NULL){
+        g_error("TimeMgr on timer not set properly");
+    }
     tm = t->mgr;
 
     if(evtimer_del(t->ev) == -1){

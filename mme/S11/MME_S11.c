@@ -182,7 +182,6 @@ gboolean S11_isFirstSession(gpointer  s11_h,
     if(s11peer_isFirstSession(self->peers, rAddr, rAddrLen, &p)){
         p->s11 = self;
         p->tm = self->tm;
-        /* TODO start Peer tracking */
         s11peer_track(p);
         return TRUE;
     }
@@ -201,9 +200,9 @@ void S11_unrefSession(gpointer  s11_h,
     p->num_sessions--;
 
     if(p->num_sessions==0){
-        log_msg(LOG_WARNING, 0,"S11 Peer last session, untracking");
-        /* Stop Peer Tracking */
+        log_msg(LOG_INFO, 0,"S11 Peer last session, untracking");
         s11peer_untrack(p);
+        g_hash_table_remove(self->peers, p);
     }
 }
 
