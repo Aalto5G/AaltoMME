@@ -290,12 +290,12 @@ void sendAuthReject(EMMCtx_t * emm){
 static void processAuthResp(EMMCtx_t * emm,  GenericNASMsg_t* msg, guint8 *isAuth){
     AuthenticationResponse_t * authRsp;
     authRsp = (AuthenticationResponse_t*)&(msg->plain.eMM);
-    AuthQuadruplet *sec;
+    const AuthQuadruplet *sec;
     guint8 ekey[16] = {0};
     guint8 ikey[16] = {0};
 
     *isAuth = FALSE;
-    sec = (AuthQuadruplet *)g_ptr_array_index(emm->authQuadrs,0);
+    sec = emmCtx_getFirstAuthQuadruplet(emm);
 
     /* Stop T3460*/
 

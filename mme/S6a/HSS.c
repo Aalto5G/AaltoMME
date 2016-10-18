@@ -399,13 +399,13 @@ void HSS_syncAuthVec(EMMCtx emm, uint8_t * auts,  GError **err){
     if(milenage_auts(opc, k, authVec->rAND, auts, sqn) == 0){
         if (memcmp(sqn, sqn_b, 6) == 0){
             log_msg(LOG_ERR, 0, "SEQ Already synchronized");
-            emmCtx_freeAuthQuadruplet(emm);
+            emmCtx_freeAuthQuadruplets(emm);
             g_set_error(err, DIAMETER, 0,
                         "SEQ Already synchronized: %" PRIu64, imsi);
             return;
         }
 
-        emmCtx_freeAuthQuadruplet(emm);
+        emmCtx_freeAuthQuadruplets(emm);
         increaseSQN(sqn);
         log_msg(LOG_INFO, 0, "SEQ sync old:0x%s, new:0x%s",
                 bin_to_strhex(sqn_b, 6, sqn_old), bin_to_strhex(sqn, 6, sqn_new));

@@ -412,7 +412,7 @@ void emm_sendAuthRequest(EMMCtx emm_h){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
     guint8 *pointer;
     guint8 buffer[150];
-    AuthQuadruplet *sec;
+    const AuthQuadruplet *sec;
     guint8 old_ksi;
 
     memset(buffer, 0, 150);
@@ -420,7 +420,7 @@ void emm_sendAuthRequest(EMMCtx emm_h){
     emm_log(emm, LOG_DEBUG, 0, "Initiating UE authentication");
 
     /* Build Auth Request */
-    sec = (AuthQuadruplet *)g_ptr_array_index(emm->authQuadrs,0);
+    sec = emmCtx_getFirstAuthQuadruplet(emm);
 
     pointer = buffer;
     newNASMsg_EMM(&pointer, EPSMobilityManagementMessages, PlainNAS);
@@ -447,8 +447,8 @@ void emm_sendAuthRequest(EMMCtx emm_h){
 void emm_setSecurityQuadruplet(EMMCtx emm_h){
     EMMCtx_t *emm = (EMMCtx_t*)emm_h;
 
-    AuthQuadruplet *sec;
-    sec = (AuthQuadruplet *)g_ptr_array_index(emm->authQuadrs,0);
+    const AuthQuadruplet *sec;
+    sec = emmCtx_getFirstAuthQuadruplet(emm);
 
     /* emm->old_ncc = emm->ncc; */
     memcpy(emm->old_kasme, emm->kasme, 32);
@@ -456,8 +456,7 @@ void emm_setSecurityQuadruplet(EMMCtx emm_h){
 
     memcpy(emm->kasme, sec->kASME, 32);
 
-    emm->authQuadrsLen--;
-    g_ptr_array_remove_index(emm->authQuadrs, 0);
+    emmCtx_removeFirstAuthQuadruplet(emm);
 }
 
 void emm_sendSecurityModeCommand(EMMCtx emm_h){

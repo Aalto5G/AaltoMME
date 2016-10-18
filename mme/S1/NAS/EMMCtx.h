@@ -155,7 +155,9 @@ void emmCtx_setNewAuthQuadruplet(EMMCtx emm, AuthQuadruplet *a);
 
 const AuthQuadruplet *emmCtx_getFirstAuthQuadruplet(EMMCtx emm);
 
-void emmCtx_freeAuthQuadruplet(EMMCtx emm);
+void emmCtx_removeFirstAuthQuadruplet(EMMCtx emm);
+
+void emmCtx_freeAuthQuadruplets(EMMCtx emm);
 
 const guint8 *emmCtx_getServingNetwork_TBCD(const EMMCtx emm);
 

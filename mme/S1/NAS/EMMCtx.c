@@ -107,7 +107,7 @@ void emmCtx_setNewAuthQuadruplet(EMMCtx emm, AuthQuadruplet *a){
     self->authQuadrsLen++;
 }
 
-void emmCtx_freeAuthQuadruplet(EMMCtx emm){
+void emmCtx_freeAuthQuadruplets(EMMCtx emm){
     EMMCtx_t *self = (EMMCtx_t*)emm;
     g_ptr_array_remove_range (self->authQuadrs,
                           0,
@@ -118,6 +118,12 @@ void emmCtx_freeAuthQuadruplet(EMMCtx emm){
 const AuthQuadruplet *emmCtx_getFirstAuthQuadruplet(EMMCtx emm){
     EMMCtx_t *self = (EMMCtx_t*)emm;
     return g_ptr_array_index(self->authQuadrs, 0);
+}
+
+void emmCtx_removeFirstAuthQuadruplet(EMMCtx emm){
+    EMMCtx_t *self = (EMMCtx_t*)emm;
+    AuthQuadruplet * a = g_ptr_array_remove_index (self->authQuadrs, 0);
+    self->authQuadrsLen--;
 }
 
 const guint8 *emmCtx_getServingNetwork_TBCD(const EMMCtx emm){
