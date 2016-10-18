@@ -337,12 +337,14 @@ static void processAuthFailure(EMMCtx_t *emm, GenericNASMsg_t *msg){
 
     if(authFail->eMMCause == EMM_SynchFailure){
         emm_log(emm, LOG_ERR, 0, "Received AuthenticationFailure, Syncing NAS SQN");
+        emmCtx_freeAuthQuadruplets(emm);
         s6a_SynchAuthVector(emm->s6a, emm, authFail->optionals[0].tlv_t4.v,
                             emm_sendAuthRequest, syncError, emm);
     }else if(authFail->eMMCause == EMM_MACFailure){
         emm_log(emm, LOG_ERR, 0, "Received AuthenticationFailure,"
                 " MAC Failure");
         /* @HACK - Further logic required.*/
+        emmCtx_removeFirstAuthQuadruplet(emm);
         emm_stop(emm);
         /* TODO: Remove the hack above.
          */
@@ -350,6 +352,7 @@ static void processAuthFailure(EMMCtx_t *emm, GenericNASMsg_t *msg){
         emm_log(emm, LOG_ERR, 0, "Received AuthenticationFailure,"
                 " Cause not Recognized");
         /* @HACK - Further logic required.*/
+        emmCtx_removeFirstAuthQuadruplet(emm);
         emm_stop(emm);
         /* TODO: Remove the hack above.
          */
