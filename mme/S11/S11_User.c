@@ -201,7 +201,7 @@ void s11u_setState(gpointer u, S11_State *s){
 static void s11__send(S11_user_t* self){
     GError *err = NULL;
     /*Packet header modifications*/
-    self->active_trxn->oMsg.gtp2l.h.seq = hton24(self->active_trxn->seq);
+    self->active_trxn->oMsg.gtp2l.h.seq = self->active_trxn->seq;
     self->active_trxn->oMsg.gtp2l.h.tei = self->rTEID;
 
     s11_send(self->s11, &(self->active_trxn->oMsg), self->active_trxn->oMsglen,
