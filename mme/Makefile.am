@@ -57,6 +57,7 @@ mme_SOURCES = Subscription.c \
 			  S11/S11_WModBearerRsp.c \
 			  S11/S11_Ctx.c \
 			  S11/S11_WDel.c \
+			  S11/S11_Peer.c \
 			  MME_test.c commands.c \
 			  ../Common/logmgr.c \
 			  ../Common/timermgr.c \

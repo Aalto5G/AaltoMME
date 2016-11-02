@@ -128,12 +128,10 @@ void processMsg(gpointer u, const struct t_message *msg){
     S11_user_t *self = (S11_user_t*)u;
     S11_TrxnT *t = NULL;
     char addrStr[INET6_ADDRSTRLEN];
-    gboolean removeTrxn = FALSE;
 
     if (s11u_hasPendingResp(self, msg->packet.gtp.gtp2l.h.seq, &t)){
         log_msg(LOG_DEBUG, 0, "Received pending S11 reply");
         self->active_trxn = t;
-        removeTrxn = TRUE;
     }
     else{
         log_msg(LOG_DEBUG, 0, "Received new S11 request");
@@ -154,9 +152,6 @@ void processMsg(gpointer u, const struct t_message *msg){
     }
 
     self->state->processMsg(self);
-    if(removeTrxn){
-        g_hash_table_remove(self->trxns, &t->seq);
-    }
 }
 
 void attach(gpointer session, void(*cb)(gpointer), gpointer args){
