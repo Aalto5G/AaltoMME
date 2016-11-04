@@ -337,7 +337,6 @@ static void processAuthFailure(EMMCtx_t *emm, GenericNASMsg_t *msg){
 
     if(authFail->eMMCause == EMM_SynchFailure){
         emm_log(emm, LOG_ERR, 0, "Received AuthenticationFailure, Syncing NAS SQN");
-        emmCtx_freeAuthQuadruplets(emm);
         s6a_SynchAuthVector(emm->s6a, emm, authFail->optionals[0].tlv_t4.v,
                             emm_sendAuthRequest, syncError, emm);
     }else if(authFail->eMMCause == EMM_MACFailure){

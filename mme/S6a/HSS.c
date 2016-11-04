@@ -370,7 +370,7 @@ void HSS_syncAuthVec(EMMCtx emm, uint8_t * auts,  GError **err){
     result = mysql_store_result(HSSConnection);
 
     if (result == NULL){
-
+        g_error("'mysql_store_result()' returned NULL");
     }
 
     num_rows =mysql_num_rows(result);
