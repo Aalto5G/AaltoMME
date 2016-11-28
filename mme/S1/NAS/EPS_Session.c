@@ -80,7 +80,9 @@ void ePSsession_parsePDNConnectivityRequest(EPS_Session s, ESM_Message_t *msg,
 void ePSsession_sendActivateDefaultEPSBearerCtxtReq(EPS_Session s){
     EPS_Session_t *self = (EPS_Session_t*)s;
 
-    guint8 buffer[150], *pointer, apn[150], pco[0xff+2];
+    /* TODO: verify APN max and PCO length (1 byte) conflict */
+    guint8 apn[256]; /* MAX DNS name length */
+    guint8 buffer[356], *pointer, pco[0xff+2];
     gsize len;
     gboolean pco_exists = FALSE;
 
@@ -90,14 +92,14 @@ void ePSsession_sendActivateDefaultEPSBearerCtxtReq(EPS_Session s){
     memset(buffer, 0, 150);
     pointer = buffer;
 
-    /*Activate default*/
+    /* Activate default */
     newNASMsg_ESM(&pointer,
                   EPSSessionManagementMessages,
                   esm_bc_getEBI(self->defaultBearer));
     encaps_ESM(&pointer, self->current_pti,
                ActivateDefaultEPSBearerContextRequest);
 
-    /* /\* EPS QoS *\/ */
+    /* EPS QoS */
     subs_cpyQoS_GTP(self->subs, &qos);
     nasIe_lv_t4(&pointer, &(qos.qci), 1);
 
@@ -108,7 +110,7 @@ void ePSsession_sendActivateDefaultEPSBearerCtxtReq(EPS_Session s){
                 apn,
                 len);
 
-    /* /\* PDN address *\/ */
+    /* PDN address */
     memset(&paa, 0, sizeof(struct PAA_t));
     paa.type = self->pdn_addr_type;
     switch(self->pdn_addr_type) {
