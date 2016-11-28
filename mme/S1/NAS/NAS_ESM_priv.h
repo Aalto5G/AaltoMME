@@ -21,25 +21,23 @@
 #include "NAS_ESM.h"
 
 typedef struct{
-	gpointer    emm;
-	gpointer    s11_iface;
-	GHashTable* bearers;
-	GHashTable* sessions;
-	uint8_t     next_ebi;
-	void        (*cb)(gpointer);
+    gpointer    emm;
+    gpointer    s11_iface;
+    GHashTable* bearers;
+    GHashTable* sessions;
+    uint8_t     next_ebi;
+    void        (*cb)(gpointer);
     gpointer    args;
 }ESM_t;
 
 /* API to EPS session and bearers */
 
-/**@brief 
+/**@brief
  * @param [in] em_h     ESM handler
- * @return 
+ * @return
  *
  * */
 gpointer esm_getS11iface(ESM esm_h);
-
-uint32_t esm_getDNSsrv(ESM esm_h);
 
 
 #endif /* NAS_ESM_PRIV_HFILE */

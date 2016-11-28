@@ -51,7 +51,7 @@ typedef struct{
     guint32                current_pti;
 }EPS_Session_t;
 
-gboolean ePSsession_getPCO(EPS_Session s, gpointer pco);
+gboolean ePSsession_getPCO(EPS_Session s, gpointer pco, gsize *len);
 
 void ePSsession_setPCO(EPS_Session s, gconstpointer pco, gsize len);
 

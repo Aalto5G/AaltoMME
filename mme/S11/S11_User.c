@@ -260,6 +260,7 @@ void sendCreateSessionReq(gpointer u){
     uint64_t ul_64, dl_64;
     uint8_t bytefield[30], *tmp;
     uint8_t pco[0xff+2];
+    gsize pco_len=0;
     ESM_BearerContext bearer;
     struct sockaddr pgw = {0};
     socklen_t pgwLen = 0;
@@ -385,12 +386,11 @@ void sendCreateSessionReq(gpointer u){
     ienum++;
 
     /*Protocol Configuration Options*/
-    if(ePSsession_getPCO(self->session, pco)){
+    if(ePSsession_getPCO(self->session, pco, &pco_len)){
         ie[ienum].tliv.i=0;
-        ie[ienum].tliv.l=hton16(pco[1]);
+        ie[ienum].tliv.l=hton16(pco_len);
         ie[ienum].tliv.t=GTPV2C_IE_PCO;
-        tmp = pco+2;
-        memcpy(ie[ienum].tliv.v, tmp, pco[1]);
+        memcpy(ie[ienum].tliv.v, pco, pco_len);
         ienum++;
     }
     /*Bearer contex*/

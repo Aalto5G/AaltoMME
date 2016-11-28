@@ -93,7 +93,6 @@ struct mme_t{
 
     struct timeval          start;   /* Test Variable*/
     uint32_t                procTime;
-    uint32_t                uE_DNS;  /*IP address to be used on the PDN by the UEs*/
 };
 
 extern int init_udp_srv(const char* src, int port);

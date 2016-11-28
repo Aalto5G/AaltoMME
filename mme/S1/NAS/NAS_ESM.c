@@ -140,14 +140,6 @@ void esm_processMsg(gpointer esm_h, ESM_Message_t* msg){
     }
 }
 
-uint32_t esm_getDNSsrv(ESM esm_h){
-    ESM_t *self = (ESM_t*)esm_h;
-    EMMCtx_t *emm = (EMMCtx_t *)self->emm;
-    ECMSession_t *ecm = (ECMSession_t*)emm->ecm;
-    struct mme_t *mme = s1_getMME(s1Assoc_getS1(ecm->assoc));
-    return mme->uE_DNS;
-}
-
 void esm_modifyE_RABList(ESM esm_h,  E_RABsToBeModified_t* l,
                          void (*cb)(gpointer), gpointer args){
     GList *ls;

@@ -72,7 +72,7 @@ void ePSsession_parsePDNConnectivityRequest(EPS_Session s, ESM_Message_t *msg,
     /*Protocol configuration options: 0x27*/
     nas_NASOpt_lookup(pdnReq->optionals, 4, 0x27, &optIE);
     if(optIE){
-        ePSsession_setPCO(self, &(optIE->tlv_t4), optIE->tlv_t4.l+2);
+        ePSsession_setPCO(self, &(optIE->tlv_t4.v), optIE->tlv_t4.l);
     }
     /*Device properties: 0xC*/
 }
@@ -80,23 +80,12 @@ void ePSsession_parsePDNConnectivityRequest(EPS_Session s, ESM_Message_t *msg,
 void ePSsession_sendActivateDefaultEPSBearerCtxtReq(EPS_Session s){
     EPS_Session_t *self = (EPS_Session_t*)s;
 
-    guint8 buffer[150], *pointer, apn[150], pco[0xff+2], pco_rsp[0xff+2], *pco_rsp_p, *pco_p;
-    gsize len, pco_len=0;
+    guint8 buffer[150], *pointer, apn[150], pco[0xff+2];
+    gsize len;
+    gboolean pco_exists = FALSE;
 
     struct qos_t qos;
     struct PAA_t paa;
-
-    guint32 dns;
-    guint16 pco_id;
-
-    const guint8 ipcp[] = {
-        0x80, 0x21, 0x10, 0x03, 0x01, 0x00, 0x10,
-        0x81, 0x06, 0, 0, 0, 0,
-        0x83, 0x06, 0, 0, 0, 0};
-    const guint8 pco_dns[] = {
-        0x00, 0x0d, 0x04, 0, 0, 0, 0};
-    const guint8 pco_mtu[] = {
-        0x00, 0x10, 0x02, 0x05, 0xa0};
 
     memset(buffer, 0, 150);
     pointer = buffer;
@@ -142,52 +131,13 @@ void ePSsession_sendActivateDefaultEPSBearerCtxtReq(EPS_Session s){
     nasIe_lv_t4(&pointer, (uint8_t*)&paa, len);
 
     /*Optionals */
-    ePSsession_getPCO(self, pco);
-    /* Protocol Configuration Options*/
-    if(pco[0]==0x27){
-        dns = esm_getDNSsrv(self->esm);
-        if(dns==0){
-            log_msg(LOG_DEBUG, 0, "Writting PCO IE. Lenght: %d, first byte %#x",
-                    pco[1]+2, pco+2);
-            nasIe_tlv_t4(&pointer, 0x27, pco+2, pco[1]);
-            *(pointer-1-pco[1]) = pco[1];
-        }else{
-            pco_p = pco + 3;
-            bzero(pco_rsp, 0xff+2);
-            pco_rsp_p = pco_rsp;
-            *pco_rsp_p = 0x80;
-            pco_rsp_p++;
-            pco_len++;
 
-            while(*(pco+1) >= pco_p-(pco+3)){
-                pco_id = (*pco_p <<8)|(*(pco_p+1));
-                pco_p += *(pco_p+2)+3;
-                switch(pco_id){
-                case 0x8021: /* IP Control Protocol */
-                    memcpy(pco_rsp_p, ipcp, 19);
-                    memcpy(pco_rsp_p+9, &(dns), 4);
-                    memcpy(pco_rsp_p+15, &(dns), 4);
-                    pco_rsp_p +=19;
-                    pco_len+=19;
-                    break;
-                case 0x000d: /* DNS Server IPv4 Address */
-                    memcpy(pco_rsp_p, pco_dns, 7);
-                    memcpy(pco_rsp_p+3, &(dns), 4);
-                    pco_rsp_p +=7;
-                    pco_len+=7;
-                    break;
-                case 0x0010: /* IPv4 Link MTU */
-                    memcpy(pco_rsp_p, pco_mtu, 5);
-                    pco_rsp_p +=5;
-                    pco_len+=5;
-                    break;
-                default: /* Not Recognized Ignoring*/
-                    break;
-                }
-            }
-            nasIe_tlv_t4(&pointer, 0x27, pco_rsp, pco_len);
-        }
+    /* Protocol Configuration Options*/
+    pco_exists = ePSsession_getPCO(self, pco, &len);
+    if(pco_exists){
+        nasIe_tlv_t4(&pointer, 0x27, pco, len);
     }
+
     emm_attachAccept(self->esm->emm, buffer, pointer-buffer,
                      g_list_append(NULL, self));
 }
@@ -212,11 +162,12 @@ void ePSsession_activateDefault(EPS_Session s, gboolean infoTxRequired){
     }
 }
 
-gboolean ePSsession_getPCO(const EPS_Session s, gpointer pco){
+gboolean ePSsession_getPCO(const EPS_Session s, gpointer pco, gsize *len){
     EPS_Session_t *self = (EPS_Session_t*)s;
 
     if(self->pco[0]==0x27){
-        memcpy(pco, self->pco, self->pco[1]+2);
+        memcpy(pco, self->pco+2, self->pco[1]);
+        *len = self->pco[1];
         return TRUE;
     }
     return FALSE;
@@ -224,7 +175,10 @@ gboolean ePSsession_getPCO(const EPS_Session s, gpointer pco){
 
 void ePSsession_setPCO(EPS_Session s, gconstpointer pco, gsize len){
     EPS_Session_t *self = (EPS_Session_t*)s;
-    memcpy(self->pco, pco, len);
+
+    self->pco[0]=0x27;
+    self->pco[1]=len;
+    memcpy(self->pco+2, pco, len);
 }
 
 ESM_BearerContext ePSsession_getDefaultBearer(EPS_Session s){

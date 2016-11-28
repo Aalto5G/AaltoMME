@@ -162,7 +162,7 @@ void getNodeByAddr6(const struct in6_addr *addr, const enum nodeType type, struc
 
 void loadMMEinfo(struct mme_t *mme, GError **err){
     config_setting_t *mmeNAMEconf, *mmeIp4, *gUMMEIsconf,
-        *gummeiconf, *pLMNsconf, *gIDsconf, *mMECsconf, *pLMNconf, *relCapconf, *uE_DNS, *tmp_c;
+        *gummeiconf, *pLMNsconf, *gIDsconf, *mMECsconf, *pLMNconf, *relCapconf, *tmp_c;
     char const *name, *mmeIpv4str, *uE_DNSstr, *tmp_str;
     uint32_t iGUMMEI, lGUMMEI, iPLMN, lPLMN, iGID, lGID, iMMEC, lMMEC;
     int tmp;
@@ -184,14 +184,6 @@ void loadMMEinfo(struct mme_t *mme, GError **err){
     mmeIpv4str = config_setting_get_string(mmeIp4);
     if(mmeIpv4str != NULL && mmeIpv4str[0]!= '\0'){
         memcpy(mme->ipv4, mmeIpv4str, strlen(mmeIpv4str));
-    }
-
-    uE_DNS = config_lookup(&cfg, "mme.UE_DNS");
-    if( uE_DNS != NULL) {
-            uE_DNSstr = config_setting_get_string(uE_DNS);
-            if(uE_DNSstr != NULL && uE_DNSstr[0]!= '\0'){
-                inet_pton(AF_INET, uE_DNSstr, &(mme->uE_DNS));
-            }
     }
 
     tmp_c = config_lookup(&cfg, "mme.state_directory");
