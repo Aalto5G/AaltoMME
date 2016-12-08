@@ -25,6 +25,7 @@
 
 /* Dictionaries*/
 const char *PagingDRXName []  = {"v32", "v64", "v128", "v256"};
+const char *CNDomainName []   = {"ps", "cs"};
 const char *TypeOfErrorName [] = {"not_understood", "missing" };
 
 /* Cause dictionaries*/
@@ -161,7 +162,7 @@ iEconstructor getconstructor[]={
         (iEconstructor)new_SubscriberProfileIDforRFP,
         (iEconstructor)new_UESecurityCapabilities,
         (iEconstructor)NULL, /*new_CSFallbackIndicator,*/ /* Not implemented*/
-        (iEconstructor)NULL, /*new_CNDomain,*/ /* Not implemented*/
+        (iEconstructor)new_CNDomain,
         (iEconstructor)new_E_RABList, /*new_E_RABReleasedList,*/
         (iEconstructor)NULL, /*new_MessageIdentifier,*/ /* Not implemented*/
         (iEconstructor)NULL, /*new_SerialNumber,*/ /* Not implemented*/
@@ -935,6 +936,52 @@ PagingDRX_t *new_PagingDRX(){
 
     return self;
 }
+
+
+/* ************************* CNDomain ************************ */
+/** @brief CNDomain IE Destructor
+ *
+ * Deallocate the CNDomain_t structure.
+ * */
+void free_CNDomain(void * data){
+    CNDomain_t *self = (CNDomain_t*)data;
+    if(!self){
+        return;
+    }
+
+    free(self);
+}
+
+/** @brief Show IE information
+ *
+ * Tool function to print the information on stdout
+ * */
+
+void show_CNDomain(void * data){
+    CNDomain_t *self = (CNDomain_t*)data;
+    printf("\t\t\tCNDomainName = %s\n", CNDomainName[self->domain]);
+}
+
+/** @brief Constructor of CNDomain type
+ *  @return CNDomain_t allocated  and initialized structure
+ * */
+
+CNDomain_t *new_CNDomain(){
+    CNDomain_t *self;
+
+    self = malloc(sizeof(CNDomain_t));
+    if(!self){
+        s1ap_msg(ERROR, 0, "S1AP CNDomain_t not allocated correctly");
+        return NULL;
+    }
+    memset(self, 0, sizeof(CNDomain_t));
+
+    self->freeIE=free_CNDomain;
+    self->showIE=show_CNDomain;
+
+    return self;
+}
+
 
 /* ************************** CSG-Id ************************** */
 

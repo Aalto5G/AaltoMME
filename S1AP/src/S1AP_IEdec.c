@@ -910,6 +910,19 @@ void dec_PagingDRX(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
     v->pagingDRX = decode_enumerated(bytes, 0, 3);
 }
 
+void dec_CNDomain(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
+    CNDomain_t *v;
+
+    v = new_CNDomain();
+
+    /*Link functions*/
+    ie->showValue = v->showIE;
+    ie->freeValue = v->freeIE;
+    ie->value=v;
+
+    v->domain = decode_enumerated(bytes, 0, 1);
+}
+
 void dec_CSGid(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
 
     cSG_id_t *v;
@@ -2434,7 +2447,7 @@ const getDecS1AP_IE getdec_S1AP_IE[] = {
         dec_SubscriberProfileIDforRFP,/*"id-SubscriberProfileIDforRFP"*/
         dec_UESecurityCapabilities,/*"id-UESecurityCapabilities"*/
         NULL,/*"id-CSFallbackIndicator"*/
-        NULL,/*"id-CNDomain"*/
+        dec_CNDomain,/*"id-CNDomain"*/
         dec_E_RABList,/*"id-E-RABReleasedList"*/
         NULL,/*"id-MessageIdentifier"*/
         NULL,/*"id-SerialNumber"*/

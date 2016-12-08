@@ -692,6 +692,13 @@ void enc_PagingDRX(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
     encode_constrained_number(bytes, v->pagingDRX, 0, 3);
 }
 
+void enc_CNDomain(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
+    CNDomain_t *v =  (CNDomain_t *)ie->value;
+
+    /*printf("pagingDRX: %s(%u)\n", CNDomainName[v->pagingDRX], v->pagingDRX);*/
+    encode_constrained_number(bytes, v->domain, 0, 1);
+}
+
 void enc_CSGid(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
     cSG_id_t *v = (cSG_id_t*)ie->value;
     setbits(bytes, 27, v->id);
@@ -1880,7 +1887,7 @@ const getEncS1AP_IE getenc_S1AP_IE[] = {
         enc_SubscriberProfileIDforRFP,/*"id-SubscriberProfileIDforRFP"*/
         enc_UESecurityCapabilities,/*"id-UESecurityCapabilities"*/
         NULL,/*"id-CSFallbackIndicator"*/
-        NULL,/*"id-CNDomain"*/
+        enc_CNDomain,/*"id-CNDomain"*/
         enc_E_RABList,/*"id-E-RABReleasedList"*/
         NULL,/*"id-MessageIdentifier"*/
         NULL,/*"id-SerialNumber"*/

@@ -114,6 +114,33 @@ extern const char *PagingDRXName[];
 PagingDRX_t* new_PagingDRX();
 
 
+/** @brief CNDomain
+ *
+ * This IE indicates the Paging DRX as defined in TS 36.304
+ *
+ * ASN.1
+ * CNDomain ::= ENUMERATED {
+ *    ps,
+ *    cs
+ * }
+ */
+typedef struct CNDomain_e{
+    void    (*freeIE)(void*);
+    void    (*showIE)(void*);
+    enum{
+        ps,
+        cs,
+    }domain;
+}CNDomain_t;
+
+extern const char *CNDomainName[];
+
+/** @brief Constructor of PLMNidentity type
+ *  @return PLMNidentity_t allocated  and initialized structure
+ * */
+CNDomain_t* new_CNDomain();
+
+
 /**@brief PLMN identity structure
  *
  * Clause 9.2.3.8
