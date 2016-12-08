@@ -132,7 +132,7 @@ iEconstructor getconstructor[]={
         (iEconstructor)NULL,
         (iEconstructor)NULL, /* new_E_RABInformationListItem, *//* Not implemented*/
         (iEconstructor)new_Direct_Forwarding_Path_Availability,
-        (iEconstructor)NULL, /*new_UEIdentityIndexValue,*//* Not implemented*/
+        (iEconstructor)new_UEIdentityIndexValue,
         (iEconstructor)NULL,
         (iEconstructor)NULL,
         (iEconstructor)NULL, /*new_cdma2000HOStatus,*//* Not implemented*/
@@ -4380,6 +4380,48 @@ Direct_Forwarding_Path_Availability_t *new_Direct_Forwarding_Path_Availability()
     return self;
 }
 
+/* ************************ UEIdentityIndexValue ************************ */
+/** @brief UEIdentityIndexValue IE Destructor
+ *
+ * Deallocate the UEIdentityIndexValue_t structure.
+ * */
+void free_UEIdentityIndexValue(void * data){
+    UEIdentityIndexValue_t *self = (UEIdentityIndexValue_t*)data;
+    if(!self){
+        return;
+    }
+
+    free(self);
+}
+/** @brief Show IE information
+ *
+ * Tool function to print the information on stdout
+ * */
+void show_UEIdentityIndexValue(void * data){
+    uint8_t i;
+    UEIdentityIndexValue_t *self = (UEIdentityIndexValue_t*)data;
+
+    printf("\t\t\tUE Identity Index Value: %.2x\n", self->id);
+}
+
+/** @brief Constructor of UEIdentityIndexValue type
+ *  @return UEIdentityIndexValue_t allocated  and initialized structure
+ * */
+UEIdentityIndexValue_t *new_UEIdentityIndexValue(){
+    UEIdentityIndexValue_t *self;
+
+    self = malloc(sizeof(UEIdentityIndexValue_t));
+    if(!self){
+        s1ap_msg(ERROR, 0, "S1AP UEIdentityIndexValue_t not allocated correctly");
+        return NULL;
+    }
+    memset(self, 0, sizeof(UEIdentityIndexValue_t));
+
+    self->freeIE=free_UEIdentityIndexValue;
+    self->showIE=show_UEIdentityIndexValue;
+
+    return self;
+}
 
 
 /* **************** Source-ToTarget-TransparentContainer ***************** */

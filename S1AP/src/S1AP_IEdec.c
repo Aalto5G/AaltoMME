@@ -2002,6 +2002,17 @@ void dec_Direct_Forwarding_Path_Availability(S1AP_PROTOCOL_IES_t * ie, struct Bi
     }
 }
 
+void dec_UEIdentityIndexValue(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
+    UEIdentityIndexValue_t *v = new_UEIdentityIndexValue();
+    ie->value=v;
+
+    /*Link functions*/
+    ie->showValue = v->showIE;
+    ie->freeValue = v->freeIE;
+    ie->value=v;
+    v->id = decode_bit_string(bytes, 10);
+}
+
 void dec_E_RAB_IE_ContainerList(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
     ProtocolIE_Container_t *v = new_ProtocolIE_Container();
     S1AP_PROTOCOL_IES_t *elem;
@@ -2356,7 +2367,7 @@ const getDecS1AP_IE getdec_S1AP_IE[] = {
         NULL,/*"id-undefined"*/
         NULL,/*"id-E-RABInformationListItem"*/
         dec_Direct_Forwarding_Path_Availability,/*"id-Direct-Forwarding-Path-Availability"*/
-        NULL,/*"id-UEIdentityIndexValue"*/
+        dec_UEIdentityIndexValue,/*"id-UEIdentityIndexValue"*/
         NULL,/*"id-undefined"*/
         NULL,/*"id-undefined"*/
         NULL,/*"id-cdma2000HOStatus"*/

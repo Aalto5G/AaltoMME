@@ -2146,6 +2146,23 @@ typedef struct Direct_Forwarding_Path_Availability_c{
 Direct_Forwarding_Path_Availability_t *new_Direct_Forwarding_Path_Availability();
 
 
+/**@brief UEIdentityIndexValue
+ *
+ * ASN.1
+ * UEIdentityIndexValue ::= BIT STRING (SIZE (10))
+ * */
+typedef struct UEIdentityIndexValue_c {
+    void        (*freeIE)(void *);
+    void        (*showIE)(void *);
+    uint32_t    id:10;
+}UEIdentityIndexValue_t;
+
+/** @brief Constructor of UEIdentityIndexValue type
+ *  @return UEIdentityIndexValue_t allocated  and initialized structure
+ * */
+UEIdentityIndexValue_t *new_UEIdentityIndexValue();
+
+
 /**@brief E-RABToBeSetupListHOReq
  *
  * ASN.1
