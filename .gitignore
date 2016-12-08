@@ -23,6 +23,7 @@ TestProgram/check_all
 TestProgram/check_all.trs
 TestProgram/check_tests.xml
 Debug/
+Debug-*/
 Release/
 autom4te.cache/
 build-aux/
@@ -41,3 +42,4 @@ test-driver
 GPATH
 GRTAGS
 GTAGS
+GSYMS
