@@ -95,7 +95,7 @@ iEconstructor getconstructor[]={
         (iEconstructor)new_SecurityContext,
         (iEconstructor)NULL, /* new_HandoverRestrictionList,*/ /* Not implemented*/
         (iEconstructor)NULL,
-        (iEconstructor)NULL, /* new_UEPagingID,*/ /* Not implemented*/
+        (iEconstructor)new_UEPagingID,
         (iEconstructor)new_PagingDRX,
         (iEconstructor)NULL,
         (iEconstructor)NULL, /* Container new_TAIList,*/
@@ -4599,6 +4599,60 @@ SecurityContext_t *new_SecurityContext(){
 
     self->freeIE=free_SecurityContext;
     self->showIE=show_SecurityContext;
+
+    return self;
+}
+
+
+/* ************************* UEPagingID ************************ */
+/** @brief UEPagingID  Destructor
+ *
+ * Deallocate the UEPagingID_t structure.
+ * */
+void free_UEPagingID(void * data){
+    UEPagingID_t *self = (UEPagingID_t*)data;
+    if(!self){
+        return;
+    }
+
+    if(self->choice==0){
+        self->id.s_TMSI->freeIE(self->id.s_TMSI);
+    }else if(self->choice==1){
+        /* self->id.iMSI->freeIE(self->id.iMSI); */
+    }
+
+    free(self);
+}
+
+/** @brief Show IE information
+ *
+ * Tool function to print the information on stdout
+ * */
+void show_UEPagingID(void * data){
+    UEPagingID_t *self = (UEPagingID_t*)data;
+    printf("\tUEPagingID\n");
+    if(self->choice==0){
+        self->id.s_TMSI->showIE(self->id.s_TMSI);
+    }else if(self->choice==1){
+        /* self->id.iMSI->showIE(self->id.iMSI); */
+    }
+}
+
+/** @brief Constructor of UEPagingID
+ *  @return UEPagingID_t allocated  and initialized structure
+ * */
+UEPagingID_t *new_UEPagingID(){
+    UEPagingID_t *self;
+
+    self = malloc(sizeof(UEPagingID_t));
+    if(!self){
+        s1ap_msg(ERROR, 0, "S1AP UEPagingID_t not allocated correctly");
+        return NULL;
+    }
+    memset(self, 0, sizeof(UEPagingID_t));
+
+    self->freeIE=free_UEPagingID;
+    self->showIE=show_UEPagingID;
 
     return self;
 }

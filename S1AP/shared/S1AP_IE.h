@@ -2380,6 +2380,31 @@ typedef struct S_TMSI_c{
 S_TMSI_t *new_S_TMSI();
 
 
+/** UEPagingIDs
+ * ASN.1 UE-S1AP-IDs
+ * UEPagingID ::= CHOICE {
+ *     s-TMSI S-TMSI,
+ *     iMSI IMSI,
+ *     ...
+ * }
+ */
+typedef struct UEPagingID_c{
+    void                (*freeIE)(void*);
+    void                (*showIE)(void*);
+    uint8_t             ext;     /*< Extension flag*/
+    uint8_t             choice;     /*< choice flag*/
+    union{
+        S_TMSI_t   *s_TMSI;
+        /* IMSI_t     *iMSI; */
+    }id;
+}UEPagingID_t;
+
+/** @brief Constructor of UEPagingID type
+ *  @return UEPagingID_t allocated  and initialized structure
+ * */
+UEPagingID_t *new_UEPagingID();
+
+
 /**@brief  SONConfigurationTransfer
  *
  * ASN.1

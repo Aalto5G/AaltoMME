@@ -1721,6 +1721,31 @@ void enc_S_TMSI(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
     }
 }
 
+void enc_UEPagingID(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
+    UEPagingID_t *v;
+
+    S1AP_PROTOCOL_IES_t fakeIE;
+
+    v = (UEPagingID_t*)ie->value;
+
+    set_choice_ext(bytes, v->choice, 2, v->ext);
+
+    if(v->ext!=0 || v->choice>1){
+        s1ap_msg(ERROR, 0, "Extensions not implemented or choice not correct");
+        return;
+    }
+
+    //align_enc(bytes);
+    if(v->choice == 0){
+        /* S-TMSI */
+        fakeIE.value = v->id.s_TMSI;
+        enc_S_TMSI(bytes, &fakeIE);
+    }else if(v->choice == 1){
+        /* IMSI */
+        s1ap_msg(ERROR, 0, "UEPagingID IMSI encoder not implemented");
+        exit(1);
+    }
+}
 
 void enc_ResetType(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
     ResetType_t *v;
@@ -1789,7 +1814,7 @@ const getEncS1AP_IE getenc_S1AP_IE[] = {
         enc_SecurityContext,/*"id-SecurityContext"*/
         NULL,/*"id-HandoverRestrictionList"*/
         NULL,/*"id-undefined"*/
-        NULL,/*"id-UEPagingID"*/
+        enc_UEPagingID,/*"id-UEPagingID"*/
         NULL,/*"id-pagingDRX"*/
         NULL,/*"id-undefined"*/
         NULL,/*"id-TAIList"*/

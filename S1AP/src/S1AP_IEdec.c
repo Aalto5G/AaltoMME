@@ -2109,6 +2109,44 @@ void dec_SecurityContext(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
     skipextensions(bytes, 1, &extensions);
 }
 
+void dec_UEPagingID(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
+    UEPagingID_t *v = new_UEPagingID();
+    ie->value=v;
+
+    /*Link functions*/
+    ie->showValue = v->showIE;
+    ie->freeValue = v->freeIE;
+    ie->value=v;
+
+    /*Get Extension flag*/
+    getbit(bytes, &(v->ext));
+
+    /*Get Extension choice*/
+    v->choice = getchoice(bytes, 2, v->ext);
+
+    //align_dec(bytes);
+    switch(v->choice+v->ext*2){
+    case 0: /*S-TMSI*/
+        v->id.s_TMSI;
+        break;
+    case 1: /* IMSI*/
+        s1ap_msg(ERROR, 0, "Paging IMSI decoder not implemented\n");
+        exit(1);
+        /* v->id.iMSI; */
+        break;
+    default:
+        s1ap_msg(WARN, 0, "Extension not implemented\n");
+        /*Extension not implemented*/
+        break;
+    }
+
+    /*Extensions*/
+    if(v->ext!=0){
+        s1ap_msg(ERROR, 0, "Extensions are present, decoding not included in current version.\n");
+        /*TODO extensions encoding*/
+    }
+}
+
 void dec_E_RABAdmittedItem(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
     struct BinaryData opt, extensions;
     uint8_t buffer[MAXDATABYTES];
@@ -2330,7 +2368,7 @@ const getDecS1AP_IE getdec_S1AP_IE[] = {
         dec_SecurityContext,/*"id-SecurityContext"*/
         NULL,/*"id-HandoverRestrictionList"*/
         NULL,/*"id-undefined"*/
-        NULL,/*"id-UEPagingID"*/
+        dec_UEPagingID,/*"id-UEPagingID"*/
         NULL,/*"id-pagingDRX"*/
         NULL,/*"id-undefined"*/
         NULL,/*"id-TAIList"*/
