@@ -224,6 +224,11 @@ void S11_checkPeerRestart(gpointer  s11_h,
     }
 }
 
+void S11_paging(gpointer s11_h, gpointer emm){
+    S11_t *self = (S11_t *)s11_h;
+    mme_paging(self->mme, emm);
+}
+
 static void processEchoReq(S11_t *self, struct t_message *msg){
     union gtp_packet   oMsg = {0};
     uint32_t           oMsglen = 0;

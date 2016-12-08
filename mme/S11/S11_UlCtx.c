@@ -33,8 +33,7 @@ static void s11u_processMsg(gpointer self){
             return;
         }
         sendDownlinkDataNotificationAck(self);
-        /* TODO paging*/
-        log_msg(LOG_WARNING, 0, "Paging not implemented yet");
+        dl_data_not(self);
         break;
     default:
         log_msg(LOG_ERR, 0, "Msg for this state not Implemented");

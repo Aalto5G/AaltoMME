@@ -29,4 +29,7 @@ const guint64 emmCtx_getMSISDN(const EMMCtx emm);
 
 const guti_t *emmCtx_getGUTI(const EMMCtx emm);
 
+void emmCtx_getTAI(const EMMCtx emm, guint8 (*sn)[3], guint16 *tac);
+
+
 #endif /* EMM_CTX_IFACE_H*/

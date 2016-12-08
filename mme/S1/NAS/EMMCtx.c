@@ -157,6 +157,12 @@ const guti_t * emmCtx_getGUTI(const EMMCtx emm){
     return  &(self->guti);
 }
 
+void emmCtx_getTAI(const EMMCtx emm, guint8 (*sn)[3], guint16 *tac){
+    EMMCtx_t *self = (EMMCtx_t*)emm;
+    *tac = self->tac;
+    memcpy(sn, self->sn, 3);
+}
+
 guint32 *emmCtx_getM_TMSI_p(const EMMCtx emm){
     EMMCtx_t *self = (EMMCtx_t*)emm;
     return &(self->guti.mtmsi);

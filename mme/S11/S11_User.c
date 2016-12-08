@@ -250,6 +250,11 @@ const int getMsgType(const gpointer u){
     return t->iMsg.gtp2l.h.type;
 }
 
+void dl_data_not(gpointer u){
+    S11_user_t *self = (S11_user_t*)u;
+    S11_paging(self->s11, self->emm);
+}
+
 void sendCreateSessionReq(gpointer u){
     S11_user_t *self = (S11_user_t*)u;
     struct fteid_t  fteid;

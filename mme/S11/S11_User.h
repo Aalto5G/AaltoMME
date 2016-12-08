@@ -59,6 +59,7 @@ void parseIEs(gpointer u);
 
 const int getMsgType(const gpointer u);
 
+void dl_data_not(gpointer u);
 
 void sendCreateSessionReq(gpointer u);
 

@@ -79,4 +79,6 @@ const char *s1Assoc_getName(const S1Assoc h);
 
 mme_GlobaleNBid *s1Assoc_getID(const S1Assoc h, mme_GlobaleNBid *out);
 
+void s1Assoc_paging(S1Assoc h, gpointer emm);
+
 #endif /* S1ASSOC_HFILE */

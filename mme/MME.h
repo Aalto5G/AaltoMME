@@ -189,6 +189,8 @@ gpointer mme_getS11(struct mme_t *self);
 
 GList *mme_getS1Assocs(struct mme_t *self);
 
+void mme_paging(struct mme_t *self, gpointer emm);
+
 gboolean mme_GUMMEI_IsLocal(const struct mme_t *self,
                             const guint32 plmn,
                             const guint16 mmegi,

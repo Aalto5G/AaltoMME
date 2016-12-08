@@ -108,6 +108,8 @@ void S11_checkPeerRestart(gpointer  s11_h,
                           guint8 restartCounter,
                           gpointer ongoingUser);
 
+void S11_paging(gpointer s11_h, gpointer emm);
+
 /**
  * @brief Provides the next sequence number to be sent
  * @param [in]  s11_h s11 stack handler

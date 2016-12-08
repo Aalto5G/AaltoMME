@@ -24,6 +24,7 @@
 #include <unistd.h>
 /* #include <netinet/sctp.h> */
 
+#include "EMMCtx_iface.h" /* Used for paging*/
 #include "S1Assoc.h"
 #include "S1Assoc_priv.h"
 #include "S1Assoc_FSMConfig.h"
@@ -345,4 +346,92 @@ const char *s1Assoc_getName(const S1Assoc h){
 S1 s1Assoc_getS1(gpointer h){
     S1Assoc_t *self = (S1Assoc_t *)h;
     return self->s1;
+}
+
+static gboolean s1Assoc_containsTA(const S1Assoc_t *self, const guint8 sn[3], const guint16 tac){
+    int i, j;
+    BPLMNs_t *bc_l;
+    SupportedTAs_t *tas = self->supportedTAs;
+    PLMNidentity_t *plmn_eNB;
+    for(i=0; i<tas->size; i++){
+        if(memcmp(tas->item[i]->tAC->s, &tac, 2)!=0){
+            log_msg(LOG_WARNING, 0, "UE TAC (%#X) != Supported TAC (0x%X%X) in eNB",
+                    tac, tas->item[i]->tAC->s[0], tas->item[i]->tAC->s[1]);
+            continue;
+        }
+        bc_l = tas->item[i]->broadcastPLMNs;
+        for(j=0; j<bc_l->n ; j++){
+            plmn_eNB = bc_l->pLMNidentity[j];
+            if(memcmp(sn, plmn_eNB->tbc.s, 3)==0){
+                return TRUE;
+            }else{
+                log_msg(LOG_WARNING, 0, "UE SN (0x%.2X%.2X%.2X)!= Supported PLMN (0x%.2X%.2X%.2X) in eNB",
+                        sn[0],sn[1],sn[2],
+                        plmn_eNB->tbc.s[0], plmn_eNB->tbc.s[1], plmn_eNB->tbc.s[2]);
+            }
+        }
+    }
+    return FALSE;
+}
+
+
+static void sendPaging(S1Assoc_t *self, EMMCtx emm){
+    S1AP_Message_t *s1msg;
+    S1AP_PROTOCOL_IES_t* ie;
+    UEIdentityIndexValue_t *ue_id;
+    UEPagingID_t *p_id;
+    CNDomain_t *dom;
+    /* TAIList_t *tais; */
+
+    /* Build paging*/
+    s1msg = S1AP_newMsg();
+    s1msg->choice = initiating_message;
+    s1msg->pdu->procedureCode = id_Paging;
+    s1msg->pdu->criticality = ignore;
+
+    /* UEIdentityIndexValue */
+    ue_id = s1ap_newIE(s1msg, id_UEIdentityIndexValue, mandatory, ignore);
+    ue_id->id =  emmCtx_getIMSI(emm)%1024;
+
+    /* UEPagingID */
+    p_id = s1ap_newIE(s1msg, id_UEPagingID, mandatory, ignore);
+    p_id->choice = 0;
+    p_id->id.s_TMSI = new_S_TMSI();
+    const guti_t *guti = emmCtx_getGUTI(emm);
+    p_id->id.s_TMSI->mMEC->s[0] = guti->mmec;
+    memcpy(p_id->id.s_TMSI->m_TMSI.s, &guti->mtmsi, 4);
+
+    /* drx = s1ap_newIE(s1msg, id_pagingDRX, optional, ignore); */
+
+    dom = s1ap_newIE(s1msg, id_CNDomain, mandatory, ignore);
+    dom->domain = ps;
+
+    /* tais = s1ap_newIE(s1msg, id_TAIList, mandatory, ignore); */
+
+    /* csgs = s1ap_newIE(s1msg, id_CSG_IdList, optional, ignore); */
+
+    /* p_pio = s1ap_newIE(s1msg, id_PagingPriority, optional, ignore); */
+
+    /* rcap = s1ap_newIE(s1msg, id_UERadioCapabilityForPaging, optional, ignore); */
+
+    /* Send Response*/
+    s1Assoc_sendNonUE(self, s1msg);
+
+    /*s1msg->showmsg(s1msg);*/
+
+    s1msg->freemsg(s1msg);
+
+}
+
+void s1Assoc_paging(S1Assoc h, gpointer emm){
+    S1Assoc_t *self = (S1Assoc_t *)h;
+    guint64 imsi = emmCtx_getIMSI(emm);
+    guint8 sn[3] = {0};
+    guint16 tac = 0;
+
+    emmCtx_getTAI(emm, &sn, &tac);
+    if( s1Assoc_containsTA(self, sn, tac) ){
+        sendPaging(self, emm);
+        log_msg(LOG_WARNING, 0, "Paging not implemented yet");
+    }
 }

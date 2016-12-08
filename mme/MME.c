@@ -331,6 +331,17 @@ void mme_lookupECM(struct mme_t *self, const guint32 id, gpointer *ecm){
     *ecm = g_hash_table_lookup(self->ecm_sessions_by_localID, &id);
 }
 
+void mme_paging(struct mme_t *self, gpointer emm){
+    /* TODO paging*/
+    GHashTableIter iter;
+    gpointer assoc;
+
+    g_hash_table_iter_init (&iter, self->s1_by_GeNBid);
+    while (g_hash_table_iter_next (&iter, NULL, &assoc)){
+        s1Assoc_paging(assoc, emm);
+    }
+}
+
 GList *mme_getS1Assocs(struct mme_t *self){
     return g_hash_table_get_values(self->s1_by_GeNBid);
 }
