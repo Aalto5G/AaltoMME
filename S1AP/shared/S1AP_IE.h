@@ -2573,5 +2573,40 @@ typedef struct ResetType_c{
 ResetType_t *new_ResetType();
 
 
+/**@brief  TAIItem
+ *
+ * ASN.1
+ * TAIItem ::= SEQUENCE {
+ *     tAI TAI,
+ *     iE-Extensions ProtocolExtensionContainer { {TAIItemExtIEs} } OPTIONAL,
+ *     ...
+ * }
+ * */
+typedef struct TAIItem_c{
+    void                            (*freeIE)(void *);
+    void                            (*showIE)(void *);
+    uint8_t                         ext;    /*< Extension flag*/
+    uint8_t                         opt;
+    TAI_t                           *tAI;
+    ProtocolExtensionContainer_t    *iEext;
+}TAIItem_t;
+
+/** @brief Constructor of TAIItem type
+ *  @return TAIItem_t allocated and initialized structure
+ * */
+TAIItem_t *new_TAIItem();
+
+
+/**@brief  TAIItem
+ *
+ * ASN.1
+ *
+ * TAIList::= SEQUENCE (SIZE(1.. maxnoofTAIs)) OF ProtocolIE-SingleContainer {{TAIItemIEs}}
+ * TAIItemIEs S1AP-PROTOCOL-IES ::= {
+ *     {ID id-TAIItem CRITICALITY ignore TYPE TAIItem PRESENCE mandatory },
+ *     ...
+ * }
+ **/
+SEQ_OF_CONTAINER_HEADER(TAIList, TAIItem);
 
 #endif /* S1AP_IE_H_ */

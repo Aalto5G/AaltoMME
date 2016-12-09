@@ -1777,6 +1777,40 @@ void enc_ResetType(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
 }
 
 
+void enc_TAIItem(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
+    S1AP_PROTOCOL_IES_t fakeie;
+    TAIItem_t *v = (TAIItem_t*)ie->value;
+
+    /*Link functions*/
+    ie->showValue = v->showIE;
+    ie->freeValue = v->freeIE;
+    ie->value=v;
+
+    /*Set extension flag*/
+    setbits(bytes, 1, v->ext);
+
+    /*Set optionals*/
+    setbits(bytes, 1, v->opt);
+
+    /*attribute number 1 (tAI) with type TAI */
+        /*attribute number 2 with type SecurityKey*/
+    fakeie.value = v->tAI;
+    enc_TAI(bytes, &fakeie);
+
+    /* attribute number 2 (iE-Extensions) with type (ProtocolExtensionContainer) SEQUENCE OF */
+    if(v->opt==0x01){
+        enc_protocolIEs(bytes, (S1AP_PROTOCOL_IES_t*)v->iEext);
+    }
+
+    /*Extensions*/
+    if(v->ext!=0){
+        s1ap_msg(ERROR, 0, "Extensions are present, encoding not included in current version.\n");
+        /*TODO extensions encoding*/
+    }
+}
+
+SEQ_OF_CONTAINER_ENC(TAIList, maxnoofTAIs);
+
 const getEncS1AP_IE getenc_S1AP_IE[] = {
         enc_MME_UE_S1AP_ID,/*"id-MME-UE-S1AP-ID"*/
         enc_HandoverType,/*"id-HandoverType"*/
@@ -1824,8 +1858,8 @@ const getEncS1AP_IE getenc_S1AP_IE[] = {
         enc_UEPagingID,/*"id-UEPagingID"*/
         NULL,/*"id-pagingDRX"*/
         NULL,/*"id-undefined"*/
-        NULL,/*"id-TAIList"*/
-        NULL,/*"id-TAIItem"*/
+        enc_TAIList,/*"id-TAIList"*/
+        enc_TAIItem,/*"id-TAIItem"*/
         enc_E_RABList,/*"id-E-RABFailedToSetupListCtxtSURes"*/
         NULL,/*"id-E-RABReleaseItemHOCmd"*/
         enc_E_RABSetupItemBearerSURes,/*"id-E-RABSetupItemCtxtSURes"*/

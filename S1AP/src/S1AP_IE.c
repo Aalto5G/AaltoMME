@@ -99,8 +99,8 @@ iEconstructor getconstructor[]={
         (iEconstructor)new_UEPagingID,
         (iEconstructor)new_PagingDRX,
         (iEconstructor)NULL,
-        (iEconstructor)NULL, /* Container new_TAIList,*/
-        (iEconstructor)NULL, /* new_TAIItem,*//* Not implemented*/
+        (iEconstructor)new_TAIList,
+        (iEconstructor)new_TAIItem,
         (iEconstructor)new_E_RABList, /*new_E_RABFailedToSetupListCtxtSURes,*/
         (iEconstructor)NULL, /*new_E_RABReleaseItemHOCmd, NOT Found on ASN.1 description*/
         (iEconstructor)new_E_RABSetupItemCtxtSURes, /* new_E_RABSetupItemCtxtSURes,*/ /* Alias*/
@@ -5405,6 +5405,57 @@ ResetType_t *new_ResetType(){
     return self;
 }
 
+TAIItem_t *new_TAIItem();
+/* ********************** Generic Template ********************* */
+/** @brief TAIItem  Destructor
+ *
+ * Deallocate the TAIItem_t structure.
+ * */
+void free_TAIItem(void * data){
+    TAIItem_t *self = (TAIItem_t*)data;
+    if(!self){
+        return;
+    }
+
+    self->tAI->freeIE(self->tAI);
+    free(self);
+}
+
+/** @brief Show IE information
+ *
+ * Tool function to print the information on stdout
+ * */
+void show_TAIItem(void * data){
+    TAIItem_t *self = (TAIItem_t*)data;
+
+    printf("\tTAI Item: ");
+    self->tAI->showIE(self->tAI);
+}
+
+/** @brief Constructor of TAIItem
+ *  @return TAIItem_t allocated  and initialized structure
+ * */
+TAIItem_t *new_TAIItem(){
+    TAIItem_t *self;
+
+    self = malloc(sizeof(TAIItem_t));
+    if(!self){
+        s1ap_msg(ERROR, 0, "S1AP TAIItem_t not allocated correctly");
+        return NULL;
+    }
+    memset(self, 0, sizeof(TAIItem_t));
+
+    self->freeIE=free_TAIItem;
+    self->showIE=show_TAIItem;
+
+    self->tAI = new_TAI();
+
+    return self;
+}
+
+
+/* ************************** TAIList ************************** */
+SEQ_OF_CONTAINER_FUNC(TAIList, TAIItem, mandatory, ignore, maxnoofTAIs);
 
 
 /* ********************** Generic Template ********************* */

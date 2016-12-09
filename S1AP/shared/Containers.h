@@ -300,4 +300,239 @@ ProtocolError-IE-ContainerList  { S1AP-PROTOCOL-IES      : IEsSetParam }    ::= 
 
 typedef ProtocolIE_Container_t E_RAB_IE_ContainerList_t;
 
+#define SEQ_OF_HEADER(list_name, item_name) \
+typedef struct list_name##_c{ \
+    void                                (*freeIE)(void *); \
+    void                                (*showIE)(void *); \
+    void                                (*additem)(struct list_name##_c*, item_name##_t* ie); \
+    void                                *(*newItem)(struct list_name##_c*); \
+    uint8_t                             size;               /*<Number of items*/ \
+    item_name##_t                       **item;             /*<Item Array */ \
+}list_name##_t; \
+ \
+list_name##_t *new_##list_name()
+
+
+#define SEQ_OF_CONTAINER_HEADER(list_name, item_name)                       \
+typedef struct list_name##_c{                                               \
+    void                                (*freeIE)(void *);                  \
+    void                                (*showIE)(void *);                  \
+    void                                (*additem)(struct list_name##_c*,   \
+                                                   ProtocolIE_SingleContainer_t* ie); \
+    void                                *(*newItem)(struct list_name##_c*); \
+    uint8_t                             size;          /*<Number of items*/ \
+    ProtocolIE_SingleContainer_t        **item;        /*<Item Array */     \
+}list_name##_t;                                                             \
+                                                                            \
+list_name##_t *new_##list_name()
+
+
+#define SEQ_OF_FUNC(list_name, item_name, max_items)                        \
+void free_##list_name(void * data){                                         \
+    uint16_t i;                                                             \
+    list_name##_t *self = (list_name##_t*)data;                             \
+    if(!self){                                                              \
+        return;                                                             \
+    }                                                                       \
+                                                                            \
+    for(i=0; i<self->size;i++){                                             \
+        if(self->item[i]->freeItem){                                        \
+            self->item[i]->freeItem(self->item[i]);                         \
+        }                                                                   \
+    }                                                                       \
+                                                                            \
+    free(self->item);                                                       \
+    free(self);                                                             \
+}                                                                           \
+                                                                            \
+void show_##list_name(void * data){                                         \
+    list_name##_t *self = (list_name##_t*)data;                             \
+    uint16_t i;                                                             \
+                                                                            \
+    for(i=0; i < self->size; i++){                                          \
+        if(&(self->item[i]) == NULL){                                       \
+            printf("\n" #item_name " #%u not found\n", i);                  \
+            continue;                                                       \
+        }                                                                   \
+        if(self->item[i]->showItem){                                        \
+            self->item[i]->showItem(self->item[i]);                         \
+        }else{                                                              \
+            printf("\t\t" #item_name " #%u: show function not found\n", i); \
+        }                                                                   \
+    }                                                                       \
+                                                                            \
+}                                                                           \
+                                                                            \
+void list_name##_addItem(list_name##_t* c, item_name##_t* item){            \
+    item_name##_t** vector;                                                 \
+    if(c->size+1 == max_items ){                                            \
+        s1ap_msg(ERROR, 0, #max_items "  reached");                         \
+        return;                                                             \
+    }                                                                       \
+                                                                            \
+    c->size++;                                                              \
+    vector = (item_name##_t**) realloc (c->item,                            \
+                                        c->size * sizeof(item_name##_t*));  \
+                                                                            \
+    /*Error Check*/                                                         \
+    if (vector!=NULL) {                                                     \
+        c->item=vector;                                                     \
+        c->item[c->size-1]=item;                                            \
+    }                                                                       \
+    else {                                                                  \
+      free (c->item);                                                       \
+      s1ap_msg(ERROR, 0, "Error (re)allocating memory");                    \
+    }                                                                       \
+}                                                                           \
+                                                                            \
+list_name##_t *new_##list_name(){                                           \
+    list_name##_t *self;                                                    \
+                                                                            \
+    self = malloc(sizeof(list_name##_t));                                   \
+    if(!self){                                                              \
+        s1ap_msg(ERROR, 0, "S1AP " #list_name                               \
+                 "_t not allocated correctly");                             \
+        return NULL;                                                        \
+    }                                                                       \
+    memset(self, 0, sizeof(list_name##_t));                                 \
+                                                                            \
+    self->freeIE=free_##list_name;                                          \
+    self->showIE=show_##list_name;                                          \
+    self->additem=list_name##_addItem;                                      \
+                                                                            \
+    return self;                                                            \
+}
+
+
+#define SEQ_OF_CONTAINER_FUNC(list_name, item_name,                         \
+                              item_presence, item_criticality, max_items)   \
+void free_##list_name(void * data){                                         \
+    uint16_t i;                                                             \
+    list_name##_t *self = (list_name##_t*)data;                             \
+    if(!self){                                                              \
+        return;                                                             \
+    }                                                                       \
+                                                                            \
+    for(i=0; i<self->size;i++){                                             \
+        if(self->item[i]->freeIE){                                          \
+            self->item[i]->freeIE(self->item[i]);                           \
+        }                                                                   \
+    }                                                                       \
+                                                                            \
+    free(self->item);                                                       \
+    free(self);                                                             \
+}                                                                           \
+                                                                            \
+void show_##list_name(void * data){                                         \
+    list_name##_t *self = (list_name##_t*)data;                             \
+    S1AP_PROTOCOL_IES_t *item;                                              \
+    uint16_t i;                                                             \
+                                                                            \
+    for(i=0; i < self->size; i++){                                          \
+        if(&(self->item[i]) == NULL){                                       \
+            printf("\n" #item_name " #%u not found\n", i);                  \
+            continue;                                                       \
+        }                                                                   \
+        item = (S1AP_PROTOCOL_IES_t*) self->item[i];                        \
+        if(item->showIE){                                                   \
+            item->showIE(item);                                             \
+        }else{                                                              \
+            printf("\t\t\t" #item_name " #%u: "                             \
+                "show function not found\n", i);                            \
+        }                                                                   \
+    }                                                                       \
+                                                                            \
+}                                                                           \
+                                                                            \
+void list_name##_addItem(list_name##_t* c,                                  \
+                         ProtocolIE_SingleContainer_t* item){               \
+    ProtocolIE_SingleContainer_t** vector;                                  \
+    if(c->size+1 == max_items ){                                            \
+        s1ap_msg(ERROR, 0, #max_items "  reached");                         \
+        return;                                                             \
+    }                                                                       \
+    s1ap_msg(WARN, 0, "Test");                                              \
+                                                                            \
+    c->size++;                                                              \
+    s1ap_msg(WARN, 0, "Test");                                              \
+    vector = (ProtocolIE_SingleContainer_t**) realloc (c->item,             \
+                                        c->size * sizeof(ProtocolIE_SingleContainer_t*));  \
+    s1ap_msg(WARN, 0, "Test");                                              \
+                                                                            \
+    /*Error Check*/                                                         \
+    if (vector!=NULL) {                                                     \
+        c->item=vector;                                                     \
+        c->item[c->size-1]=item;                                            \
+    }                                                                       \
+    else {                                                                  \
+      free (c->item);                                                       \
+      s1ap_msg(ERROR, 0, "Error (re)allocating memory");                    \
+    }                                                                       \
+}                                                                           \
+                                                                            \
+void *list_name##_newItem(struct list_name##_c* list){                      \
+    S1AP_PROTOCOL_IES_t* ie = newProtocolIE();                              \
+    item_name##_t *item = new_##item_name();                                \
+    ie->value = item;                                                       \
+    ie->showValue = item->showIE;                                           \
+    ie->freeValue = item->freeIE;                                           \
+    ie->id = id_##item_name;                                                \
+    ie->presence = item_presence;                                           \
+    ie->criticality = item_criticality;                                     \
+    s1ap_msg(WARN, 0, "Test");                                              \
+    list->additem(list, ie);                                                \
+    s1ap_msg(WARN, 0, "Test");                                              \
+    return item;                                                            \
+}                                                                           \
+                                                                            \
+list_name##_t *new_##list_name(){                                           \
+    list_name##_t *self;                                                    \
+                                                                            \
+    self = malloc(sizeof(list_name##_t));                                   \
+    if(!self){                                                              \
+        s1ap_msg(ERROR, 0, "S1AP " #list_name                               \
+                 "_t not allocated correctly");                             \
+        return NULL;                                                        \
+    }                                                                       \
+    memset(self, 0, sizeof(list_name##_t));                                 \
+                                                                            \
+    self->freeIE=free_##list_name;                                          \
+    self->showIE=show_##list_name;                                          \
+    self->additem=list_name##_addItem;                                      \
+    self->newItem = list_name##_newItem;                                    \
+                                                                            \
+    return self;                                                            \
+}
+
+#define SEQ_OF_CONTAINER_ENC(list_name, max_items)                          \
+void enc_##list_name(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){   \
+    uint8_t i;                                                              \
+    list_name##_t *v = (list_name##_t *)ie->value;                          \
+    /*Encode length*/                                                       \
+    encode_constrained_number(bytes, v->size, 1, max_items);                \
+    /*Encode item*/                                                         \
+    for(i=0 ; i < v->size ; i++){                                           \
+        enc_protocolIEs(bytes, (S1AP_PROTOCOL_IES_t*)v->item[i]);           \
+    }                                                                       \
+}
+
+#define SEQ_OF_CONTAINER_DEC(list_name, max_items)                          \
+void dec_##list_name(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){   \
+    uint8_t i, length;                                                      \
+    S1AP_PROTOCOL_IES_t *fakeie;                                            \
+    list_name##_t *v = new_##list_name();                                   \
+    /*Link functions*/                                                      \
+    ie->showValue = v->showIE;                                              \
+    ie->freeValue = v->freeIE;                                              \
+    ie->value=v;                                                            \
+    /*Decode length*/                                                       \
+    length = decode_constrained_number(bytes, 1, max_items);                \
+    /*Decode item*/                                                         \
+    for(i=0 ; i < length ; i++){                                            \
+        fakeie = dec_protocolIEs(bytes);                                    \
+        v->additem(v, (ProtocolIE_SingleContainer_t*)fakeie);               \
+    }                                                                       \
+}
+
+
 #endif /* CONTAINERS_H_ */

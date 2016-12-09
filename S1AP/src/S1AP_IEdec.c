@@ -2337,6 +2337,43 @@ void dec_ResetType(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
 }
 
 
+
+void dec_TAIItem(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
+    struct BinaryData extensions, opt;
+    S1AP_PROTOCOL_IES_t fakeie;
+    uint8_t buffer[MAXDATABYTES];
+    TAIItem_t *v;
+
+    v = new_TAIItem();
+
+    /*Link functions*/
+    ie->showValue = v->showIE;
+    ie->freeValue = v->freeIE;
+    ie->value=v;
+
+    /*Get extension flag*/
+    getbit(bytes, &(v->ext));
+
+    /*Get optionals*/
+    getbit(bytes, &(v->opt));
+
+    /*attribute number 1 (tAI) with type TAI */
+    dec_TAI(&fakeie, bytes);
+    v->tAI = fakeie.value;
+
+    /* attribute number 2 (iE-Extensions) with type (ProtocolExtensionContainer) SEQUENCE OF */
+    if(v->opt==0x01){
+        v->iEext->addIe(v->iEext, dec_protocolIEs(bytes));
+    }
+
+    /*Extensions*/
+    getextension(&extensions, bytes, v->ext);
+    skipextensions(bytes, 1, &extensions);
+}
+
+
+SEQ_OF_CONTAINER_DEC(TAIList, maxnoofTAIs);
+
 const getDecS1AP_IE getdec_S1AP_IE[] = {
         dec_MME_UE_S1AP_ID,/*"id-MME-UE-S1AP-ID"*/
         dec_HandoverType,/*"id-HandoverType"*/
@@ -2384,8 +2421,8 @@ const getDecS1AP_IE getdec_S1AP_IE[] = {
         dec_UEPagingID,/*"id-UEPagingID"*/
         NULL,/*"id-pagingDRX"*/
         NULL,/*"id-undefined"*/
-        NULL,/*"id-TAIList"*/
-        NULL,/*"id-TAIItem"*/
+        dec_TAIList,/*"id-TAIList"*/
+        dec_TAIItem,/*"id-TAIItem"*/
         dec_E_RABList,/*"id-E-RABFailedToSetupListCtxtSURes"*/
         NULL,/*"id-E-RABReleaseItemHOCmd"*/
         dec_E_RABSetupItemBearerSURes,/*"id-E-RABSetupItemCtxtSURes"*/
