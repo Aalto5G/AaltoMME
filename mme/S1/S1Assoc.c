@@ -381,7 +381,9 @@ static void sendPaging(S1Assoc_t *self, EMMCtx emm){
     UEIdentityIndexValue_t *ue_id;
     UEPagingID_t *p_id;
     CNDomain_t *dom;
-    /* TAIList_t *tais; */
+    TAIList_t *tais;
+    TAIItem_t *tai;
+    guint16   tac=0;
 
     /* Build paging*/
     s1msg = S1AP_newMsg();
@@ -406,7 +408,11 @@ static void sendPaging(S1Assoc_t *self, EMMCtx emm){
     dom = s1ap_newIE(s1msg, id_CNDomain, mandatory, ignore);
     dom->domain = ps;
 
-    /* tais = s1ap_newIE(s1msg, id_TAIList, mandatory, ignore); */
+    tais = s1ap_newIE(s1msg, id_TAIList, mandatory, ignore);
+    tai = tais->newItem(tais);
+    tai->tAI->pLMNidentity = new_PLMNidentity();
+    emmCtx_getTAI(emm, &tai->tAI->pLMNidentity->tbc.s, &tac);
+    memcpy(tai->tAI->tAC->s, &tac, 2);
 
     /* csgs = s1ap_newIE(s1msg, id_CSG_IdList, optional, ignore); */
 
