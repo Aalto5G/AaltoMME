@@ -659,24 +659,6 @@ CGI_t *dec_CGI(struct BinaryData *bytes){
     return v;
 }
 
-
-UE_associatedLogicalS1_ConnectionListRes_t *dec_UE_associatedLogicalS1_ConnectionListRes(struct BinaryData *bytes){
-    uint8_t i, length;
-    UE_associatedLogicalS1_ConnectionListRes_t *v;
-
-    v = new_UE_associatedLogicalS1_ConnectionListRes();
-
-    /*Decode length*/
-    length = decode_constrained_number(bytes, 1, maxNrOfIndividualS1ConnectionsToReset);
-
-    /*Decode Bearers_SubjectToStatusTransfer_Item_t, tyep Bearers_SubjectToStatusTransfer_Item*/
-    for(i=0 ; i < length ; i++){
-        v->additem(v, (ProtocolIE_SingleContainer_t*)dec_protocolIEs(bytes));
-    }
-    return v;
-}
-
-
 void dec_UE_associatedLogicalS1_ConnectionItem(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
     S1AP_PROTOCOL_IES_t fakeie1, fakeie2;
     struct BinaryData opt, extensions;
@@ -719,26 +701,11 @@ void dec_UE_associatedLogicalS1_ConnectionItem(S1AP_PROTOCOL_IES_t * ie, struct 
 }
 
 
-void dec_UE_associatedLogicalS1_ConnectionListResAck(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
-    uint8_t i, length;
-    S1AP_PROTOCOL_IES_t *fakeie;
-    UE_associatedLogicalS1_ConnectionListRes_t *v = new_UE_associatedLogicalS1_ConnectionListRes();
+SEQ_OF_CONTAINER_DEC(UE_associatedLogicalS1_ConnectionListRes,
+                     maxNrOfIndividualS1ConnectionsToReset);
 
-    /*Link functions*/
-    ie->showValue = v->showIE;
-    ie->freeValue = v->freeIE;
-    ie->value=v;
-
-    /*Decode length*/
-    length = decode_constrained_number(bytes, 1, maxNrOfIndividualS1ConnectionsToReset);
-
-    /*Decode Bearers_SubjectToStatusTransfer_Item_t, tyep Bearers_SubjectToStatusTransfer_Item*/
-    for(i=0 ; i < length ; i++){
-        fakeie = dec_protocolIEs(bytes);
-        v->additem(v, (ProtocolIE_SingleContainer_t*)fakeie);
-    }
-}
-
+SEQ_OF_CONTAINER_DEC(UE_associatedLogicalS1_ConnectionListResAck,
+                     maxNrOfIndividualS1ConnectionsToReset);
 
 void dec_Global_ENB_ID(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
     Global_ENB_ID_t *v;
@@ -1448,25 +1415,7 @@ void dec_E_RABToBeSetupItemCtxtSUReq(S1AP_PROTOCOL_IES_t * ie, struct BinaryData
     skipextensions(bytes, 1, &extensions);
 }
 
-void dec_E_RABToBeSetupListCtxtSUReq(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
-    uint8_t i, length;
-    S1AP_PROTOCOL_IES_t *fakeie;
-    E_RABToBeSetupListCtxtSUReq_t *v = new_E_RABToBeSetupListCtxtSUReq();
-
-    /*Link functions*/
-    ie->showValue = v->showIE;
-    ie->freeValue = v->freeIE;
-    ie->value=v;
-
-    /*Decode length*/
-    length = decode_constrained_number(bytes, 1, maxNrOfERABs);
-
-    /*Decode E_RABToBeSetupItemCtxtSUReq_t*/
-    for(i=0 ; i < length ; i++){
-        fakeie = dec_protocolIEs(bytes);
-        v->additem(v, (ProtocolIE_SingleContainer_t*)fakeie);
-    }
-}
+SEQ_OF_CONTAINER_DEC(E_RABToBeSetupListCtxtSUReq, maxNrOfERABs);
 
 void dec_SecurityKey(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
     struct BinaryData bits;
@@ -1720,25 +1669,7 @@ void dec_E_RABItem(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
     skipextensions(bytes, 1, &extensions);
 }
 
-void dec_E_RABList(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
-    uint8_t length, i;
-    S1AP_PROTOCOL_IES_t *fakeie;
-    E_RABList_t *v = new_E_RABList();
-
-    /*Link functions*/
-    ie->showValue = v->showIE;
-    ie->freeValue = v->freeIE;
-    ie->value=v;
-
-    /*Decode length*/
-    length = decode_constrained_number(bytes, 1, maxNrOfERABs);
-
-    /*Decode E_RABToBeSetupItemCtxtSUReq_t*/
-    for(i=0 ; i < length ; i++){
-        fakeie = dec_protocolIEs(bytes);
-        v->additem(v, (ProtocolIE_SingleContainer_t*)fakeie);
-    }
-}
+SEQ_OF_CONTAINER_DEC(E_RABList, maxNrOfERABs);
 
 void dec_E_RABToBeModifiedItemBearerModReq(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
     struct BinaryData extensions;
@@ -1892,25 +1823,11 @@ void dec_E_RABSetupItemBearerSURes(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *
     skipextensions(bytes, 1, &extensions);
 }
 
-void dec_E_RABSetupListBearerSURes(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
-    uint8_t length, i;
-    S1AP_PROTOCOL_IES_t *fakeie;
-    E_RABSetupListBearerSURes_t *v = new_E_RABSetupListBearerSURes();
+SEQ_OF_CONTAINER_DEC(E_RABSetupListBearerSURes, maxNrOfERABs);
 
-    /*Link functions*/
-    ie->showValue = v->showIE;
-    ie->freeValue = v->freeIE;
-    ie->value=v;
+SEQ_OF_CONTAINER_DEC(E_RABSetupListCtxtSURes, maxNrOfERABs);
 
-    /*Decode length*/
-    length = decode_constrained_number(bytes, 1, maxNrOfERABs);
-
-    /*Decode E_RABSetupItemCtxtSUReq_t*/
-    for(i=0 ; i < length ; i++){
-        fakeie = dec_protocolIEs(bytes);
-        v->additem(v, (ProtocolIE_SingleContainer_t*)fakeie);
-    }
-}
+SEQ_OF_CONTAINER_DEC(E_RABToBeSwitchedULList, maxNrOfERABs);
 
 void dec_HandoverType(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
     HandoverType_t *v = new_HandoverType();
@@ -2026,31 +1943,7 @@ void dec_UEIdentityIndexValue(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes
     v->id = decode_bit_string(bytes, 10);
 }
 
-void dec_E_RAB_IE_ContainerList(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
-    ProtocolIE_Container_t *v = new_ProtocolIE_Container();
-    S1AP_PROTOCOL_IES_t *elem;
-    uint32_t len, i;
-
-    typedef void (*cast_cb)(void *);
-
-    /*Link functions*/
-    ie->freeValue = (cast_cb) v->freeContainer;
-    ie->showValue = (cast_cb) v->showIEs;
-    ie->value=v;
-
-    /*getbit(bytes, &ext);*/
-
-    /*attribute number 1 with type SEQUENCE OF*/
-    len = decode_constrained_number(bytes, 1, maxNrOfERABs);
-
-    /*Decode IEs*/
-    for(i=0; i<len;i++){
-        elem = dec_protocolIEs(bytes);
-        if(elem!=NULL){
-            v->addIe(v, elem);
-        }
-    }
-}
+SEQ_OF_CONTAINER_DEC(E_RABToBeSetupListHOReq, maxNrOfERABs);
 
 void dec_E_RABToBeSetupItemHOReq(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
     struct BinaryData extensions;
@@ -2305,6 +2198,7 @@ void dec_S_TMSI(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
 
 
 void dec_ResetType(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
+    S1AP_PROTOCOL_IES_t fakeie;
     ResetType_t *v = new_ResetType();
     ie->value=v;
 
@@ -2327,7 +2221,8 @@ void dec_ResetType(S1AP_PROTOCOL_IES_t * ie, struct BinaryData *bytes){
         break;
     case 1:
         /* UE_associatedLogicalS1_ConnectionListRes_t *partOfS1_Interface;*/
-        v->type.partOfS1_Interface = dec_UE_associatedLogicalS1_ConnectionListRes(bytes);
+        dec_UE_associatedLogicalS1_ConnectionListRes(&fakeie, bytes);
+        v->type.partOfS1_Interface = fakeie.value;
         break;
     default:
         s1ap_msg(WARN, 0, "Extension not implemented\n");
@@ -2428,7 +2323,7 @@ const getDecS1AP_IE getdec_S1AP_IE[] = {
         dec_E_RABSetupItemBearerSURes,/*"id-E-RABSetupItemCtxtSURes"*/
         dec_E_RABSetupListBearerSURes,/*"id-E-RABSetupListCtxtSURes"*/
         dec_E_RABToBeSetupItemCtxtSUReq,/*"id-E-RABToBeSetupItemCtxtSUReq"*/
-        dec_E_RAB_IE_ContainerList,/*"id-E-RABToBeSetupListHOReq"*/
+        dec_E_RABToBeSetupListHOReq,/*"id-E-RABToBeSetupListHOReq"*/
         NULL,/*"id-undefined"*/
         NULL,/*"id-GERANtoLTEHOInformationRes"*/
         NULL,/*"id-undefined"*/
@@ -2470,7 +2365,7 @@ const getDecS1AP_IE getdec_S1AP_IE[] = {
         dec_ResetType,/*"id-ResetType"*/
         dec_UE_associatedLogicalS1_ConnectionListResAck,/*"id-UE-associatedLogicalS1-ConnectionListResAck"*/
         dec_E_RABSetupItemBearerSURes,/*"id-E-RABToBeSwitchedULItem"*/
-        dec_E_RABSetupListBearerSURes,/*"id-E-RABToBeSwitchedULList"*/
+        dec_E_RABToBeSwitchedULList,/*"id-E-RABToBeSwitchedULList"*/
         dec_S_TMSI,/*"id-S-TMSI"*/
         NULL,/*"id-cdma2000OneXRAND"*/
         NULL,/*"id-RequestType"*/

@@ -1401,21 +1401,7 @@ E_RABToBeSetupItemCtxtSUReq_t *new_E_RABToBeSetupItemCtxtSUReq();
  *     ...
  * }
  * */
-typedef struct E_RABToBeSetupListCtxtSUReq_c{
-    void                                (*freeIE)(void *);
-    void                                (*showIE)(void *);
-    void                                (*additem)(struct E_RABToBeSetupListCtxtSUReq_c*, ProtocolIE_SingleContainer_t* ie);
-    void                                *(*newItem)(struct E_RABToBeSetupListCtxtSUReq_c*);
-
-    uint8_t                             size;               /*<Number of items*/
-    ProtocolIE_SingleContainer_t        **item;             /*<Item Array */
-}E_RABToBeSetupListCtxtSUReq_t;
-
-/** @brief Constructor of E-RABToBeSetupListCtxtSUReq type
- *  @return E_RABToBeSetupListCtxtSUReq_t allocated  and initialized structure
- * */
-E_RABToBeSetupListCtxtSUReq_t *new_E_RABToBeSetupListCtxtSUReq();
-
+SEQ_OF_CONTAINER_HEADER(E_RABToBeSetupListCtxtSUReq);
 
 /**@brief SecurityKey
  * ASN.1
@@ -1725,18 +1711,8 @@ E_RABItem_t *new_E_RABItem();
  *     ...
  * }
  * */
-typedef struct E_RABList_c{
-    void                                (*freeIE)(void *);
-    void                                (*showIE)(void *);
-    void                                (*additem)(struct E_RABList_c*, ProtocolIE_SingleContainer_t* ie);
-    uint8_t                             size;               /*<Number of items*/
-    ProtocolIE_SingleContainer_t        **item;             /*<Item Array */
-}E_RABList_t;
+SEQ_OF_CONTAINER_HEADER(E_RABList);
 
-/** @brief Constructor of E_RABList type
- *  @return E_RABList_t allocated  and initialized structure
- * */
-E_RABList_t *new_E_RABList();
 
 /**@brief E-RABToBeModifiedItemBearerModReq
  * ASN.1
@@ -1888,33 +1864,17 @@ E_RABSetupItemBearerSURes_t *new_E_RABSetupItemBearerSURes();
  *     ...
  * }
  */
-typedef struct E_RABSetupListBearerSURes_c{
-    void                                (*freeIE)(void *);
-    void                                (*showIE)(void *);
-    void                                (*additem)(struct E_RABSetupListBearerSURes_c*, ProtocolIE_SingleContainer_t* ie);
-    void                                *(*newItem)(struct E_RABSetupListBearerSURes_c*);
-    uint8_t                             size;               /*<Number of items*/
-    ProtocolIE_SingleContainer_t        **item;             /*<Item Array */
-}E_RABSetupListBearerSURes_t;
-
-/** @brief Constructor of E-RABSetupListBearerSURes type
- *  @return E_RABSetupListBearerSURes_t allocated  and initialized structure
- * */
-E_RABSetupListBearerSURes_t *new_E_RABSetupListBearerSURes();
-
+SEQ_OF_CONTAINER_HEADER(E_RABSetupListBearerSURes);
 
 typedef E_RABSetupItemBearerSURes_t E_RABSetupItemCtxtSURes_t;
 #define new_E_RABSetupItemCtxtSURes new_E_RABSetupItemBearerSURes
 
-typedef E_RABSetupListBearerSURes_t E_RABSetupListCtxtSURes_t;
-#define new_E_RABSetupListCtxtSURes new_E_RABSetupListBearerSURes
+SEQ_OF_CONTAINER_HEADER(E_RABSetupListCtxtSURes);
 
 typedef E_RABSetupItemBearerSURes_t E_RABToBeSwitchedULItem_t;
 #define new_E_RABToBeSwitchedULItem new_E_RABSetupItemBearerSURes
 
-typedef E_RABSetupListBearerSURes_t E_RABToBeSwitchedULList_t;
-
-E_RABToBeSwitchedULList_t *new_E_RABToBeSwitchedULList();
+SEQ_OF_CONTAINER_HEADER(E_RABToBeSwitchedULList);
 
 /**@brief HandoverType
  *
@@ -2193,19 +2153,14 @@ UEIdentityIndexValue_t *new_UEIdentityIndexValue();
 /**@brief E-RABToBeSetupListHOReq
  *
  * ASN.1
- * E-RABToBeSetupListHOReq                     ::= E-RAB-IE-ContainerList { {E-RABToBeSetupItemHOReqIEs} }
+ * E-RABToBeSetupListHOReq ::= E-RAB-IE-ContainerList { {E-RABToBeSetupItemHOReqIEs} }
  *
  * E-RABToBeSetupItemHOReqIEs S1AP-PROTOCOL-IES ::= {
  *     { ID id-E-RABToBeSetupItemHOReq         CRITICALITY reject  TYPE E-RABToBeSetupItemHOReq             PRESENCE mandatory    },
  *     ...
  * }
  * */
-typedef E_RABToBeSetupListCtxtSUReq_t E_RABToBeSetupListHOReq_t;
-
-/** @brief Constructor of E-RABToBeSetupListHOReq type
- *  @return E_RABToBeSetupListHOReq_t allocated  and initialized structure
- * */
-E_RABToBeSetupListHOReq_t *new_E_RABToBeSetupListHOReq();
+SEQ_OF_CONTAINER_HEADER(E_RABToBeSetupListHOReq);
 
 
 /**@brief E-RABToBeSetupItemHOReq
@@ -2278,10 +2233,7 @@ E-RABAdmittedItemIEs S1AP-PROTOCOL-IES ::= {
     ...
 }
  */
-typedef E_RABToBeSetupListCtxtSUReq_t E_RABAdmittedList_t;
-
-E_RABAdmittedList_t *new_E_RABAdmittedList();
-
+SEQ_OF_CONTAINER_HEADER(E_RABAdmittedList);
 
 /**@brief E-RABAdmittedItem
  *
@@ -2331,10 +2283,7 @@ E-RABDataForwardingItemIEs S1AP-PROTOCOL-IES ::= {
     ...
 }
  */
-typedef E_RABToBeSetupListCtxtSUReq_t E_RABSubjecttoDataForwardingList_t;
-
-E_RABSubjecttoDataForwardingList_t *new_E_RABSubjecttoDataForwardingList();
-
+SEQ_OF_CONTAINER_HEADER(E_RABSubjecttoDataForwardingList);
 
 /**@brief E-RABDataForwardingItem
  *
@@ -2503,20 +2452,7 @@ UE_associatedLogicalS1_ConnectionItem_t *new_UE_associatedLogicalS1_ConnectionIt
  *     ...
  * }
  */
-typedef struct UE_associatedLogicalS1_ConnectionListRes_c{
-    void                                (*freeIE)(void *);
-    void                                (*showIE)(void *);
-    void                                (*additem)(struct UE_associatedLogicalS1_ConnectionListRes_c*, ProtocolIE_SingleContainer_t* ie);
-    void                                *(*newItem)(struct UE_associatedLogicalS1_ConnectionListRes_c*);
-
-    uint8_t                             size;               /*<Number of items*/
-    ProtocolIE_SingleContainer_t        **item;             /*<Item Array */
-}UE_associatedLogicalS1_ConnectionListRes_t;
-
-/** @brief Constructor of UE-associatedLogicalS1-ConnectionListRes type
- *  @return UE_associatedLogicalS1_ConnectionListRes_t allocated  and initialized structure
- * */
-UE_associatedLogicalS1_ConnectionListRes_t *new_UE_associatedLogicalS1_ConnectionListRes();
+SEQ_OF_CONTAINER_HEADER(UE_associatedLogicalS1_ConnectionListRes);
 
 /**@brief UE-associatedLogicalS1-ConnectionListResAck
  *
@@ -2529,9 +2465,7 @@ UE_associatedLogicalS1_ConnectionListRes_t *new_UE_associatedLogicalS1_Connectio
  *    ...
  * }
  */
-typedef UE_associatedLogicalS1_ConnectionListRes_t UE_associatedLogicalS1_ConnectionListResAck_t;
-
-UE_associatedLogicalS1_ConnectionListResAck_t *new_UE_associatedLogicalS1_ConnectionListResAck();
+SEQ_OF_CONTAINER_HEADER(UE_associatedLogicalS1_ConnectionListResAck);
 
 /** @brief ResetAll
  *
@@ -2597,7 +2531,7 @@ typedef struct TAIItem_c{
 TAIItem_t *new_TAIItem();
 
 
-/**@brief  TAIItem
+/**@brief TAIList
  *
  * ASN.1
  *
@@ -2607,6 +2541,6 @@ TAIItem_t *new_TAIItem();
  *     ...
  * }
  **/
-SEQ_OF_CONTAINER_HEADER(TAIList, TAIItem);
+SEQ_OF_CONTAINER_HEADER(TAIList);
 
 #endif /* S1AP_IE_H_ */

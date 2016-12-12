@@ -527,21 +527,6 @@ void enc_CGI(struct BinaryData *bytes, CGI_t *v){
     }
 }
 
-
-void enc_UE_associatedLogicalS1_ConnectionListRes(struct BinaryData *bytes,
-                                                  UE_associatedLogicalS1_ConnectionListRes_t *v){
-    uint8_t i;
-
-    /*Encode length*/
-    encode_constrained_number(bytes, v->size, 1, maxNrOfIndividualS1ConnectionsToReset);
-
-    /*Encode Bearers_SubjectToStatusTransfer_Item_t, tyep Bearers_SubjectToStatusTransfer_Item*/
-    for(i=0 ; i < v->size ; i++){
-        enc_protocolIEs(bytes, (S1AP_PROTOCOL_IES_t*)v->item[i]);
-    }
-}
-
-
 void enc_UE_associatedLogicalS1_ConnectionItem(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
     S1AP_PROTOCOL_IES_t fakeie1, fakeie2;
 
@@ -578,21 +563,11 @@ void enc_UE_associatedLogicalS1_ConnectionItem(struct BinaryData *bytes, S1AP_PR
 }
 
 
-void enc_UE_associatedLogicalS1_ConnectionListResAck(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
+SEQ_OF_CONTAINER_ENC(UE_associatedLogicalS1_ConnectionListRes,
+                     maxNrOfIndividualS1ConnectionsToReset);
 
-    uint32_t i;
-    UE_associatedLogicalS1_ConnectionListResAck_t *v;
-    v = (UE_associatedLogicalS1_ConnectionListResAck_t *)ie->value;
-
-    /*Encode length*/
-    encode_constrained_number(bytes, v->size, 1, maxNrOfIndividualS1ConnectionsToReset);
-
-    /*Encode SupportedTAs_Items*/
-    for(i=0 ; i < v->size ; i++){
-        enc_protocolIEs(bytes, (S1AP_PROTOCOL_IES_t*)v->item[i]);
-    }
-}
-
+SEQ_OF_CONTAINER_ENC(UE_associatedLogicalS1_ConnectionListResAck,
+                     maxNrOfIndividualS1ConnectionsToReset);
 
 void enc_Global_ENB_ID(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
     Global_ENB_ID_t *v;
@@ -1078,18 +1053,7 @@ void enc_E_RABToBeSetupItemCtxtSUReq(struct BinaryData *bytes, S1AP_PROTOCOL_IES
     }
 }
 
-void enc_E_RABToBeSetupListCtxtSUReq(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
-    uint8_t i;
-    E_RABToBeSetupListCtxtSUReq_t *v = (E_RABToBeSetupListCtxtSUReq_t *)ie->value;
-
-    /*Encode length*/
-    encode_constrained_number(bytes, v->size, 1, maxNrOfERABs);
-
-    /*Encode E_RABToBeSetupItemCtxtSUReq_t*/
-    for(i=0 ; i < v->size ; i++){
-        enc_protocolIEs(bytes, (S1AP_PROTOCOL_IES_t*)v->item[i]);
-    }
-}
+SEQ_OF_CONTAINER_ENC(E_RABToBeSetupListCtxtSUReq, maxNrOfERABs);
 
 void enc_SecurityKey(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
     SecurityKey_t *v = (SecurityKey_t *)ie->value;
@@ -1274,18 +1238,7 @@ void enc_E_RABItem(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
     }
 }
 
-void enc_E_RABList(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
-    uint8_t i;
-    E_RABList_t *v =  (E_RABList_t*)ie->value;
-
-    /*Encode length*/
-    encode_constrained_number(bytes, v->size, 1, maxNrOfERABs);
-
-    /*Encode E_RABList_t, type E_RABItem*/
-    for(i=0 ; i < v->size ; i++){
-        enc_protocolIEs(bytes, v->item[i]);
-    }
-}
+SEQ_OF_CONTAINER_ENC(E_RABList, maxNrOfERABs);
 
 void enc_E_RABToBeModifiedItemBearerModReq(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
     S1AP_PROTOCOL_IES_t fakeie;
@@ -1413,18 +1366,11 @@ void enc_E_RABSetupItemBearerSURes(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t
     }
 }
 
-void enc_E_RABSetupListBearerSURes(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
-    uint8_t i;
-    E_RABSetupListBearerSURes_t *v =  (E_RABSetupListBearerSURes_t*)ie->value;
+SEQ_OF_CONTAINER_ENC(E_RABSetupListBearerSURes, maxNrOfERABs);
 
-    /*Encode length*/
-    encode_constrained_number(bytes, v->size, 1, maxNrOfERABs);
+SEQ_OF_CONTAINER_ENC(E_RABSetupListCtxtSURes, maxNrOfERABs);
 
-    /*Encode E_RABSetupListBearerSURes, type E-E_RABSetupItemBearerSURes*/
-    for(i=0 ; i < v->size ; i++){
-        enc_protocolIEs(bytes, v->item[i]);
-    }
-}
+SEQ_OF_CONTAINER_ENC(E_RABToBeSwitchedULList, maxNrOfERABs);
 
 void enc_HandoverType(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
 
@@ -1528,6 +1474,8 @@ void enc_E_RAB_IE_ContainerList(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * 
 
     }
 }
+
+SEQ_OF_CONTAINER_ENC(E_RABToBeSetupListHOReq, maxNrOfERABs);
 
 void enc_E_RABToBeSetupItemHOReq(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
     E_RABToBeSetupItemHOReq_t *v = (E_RABToBeSetupItemHOReq_t*)ie->value;
@@ -1755,6 +1703,7 @@ void enc_UEPagingID(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
 }
 
 void enc_ResetType(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
+    S1AP_PROTOCOL_IES_t fakeIE;
     ResetType_t *v;
 
     v = (ResetType_t*)ie->value;
@@ -1772,7 +1721,8 @@ void enc_ResetType(struct BinaryData *bytes, S1AP_PROTOCOL_IES_t * ie){
         encode_constrained_number(bytes, v->type.s1_Interface, 0, 1);
     }else if(v->choice == 1){
         /* UE_associatedLogicalS1_ConnectionListRes_t */
-        enc_UE_associatedLogicalS1_ConnectionListRes(bytes, v->type.partOfS1_Interface);
+        fakeIE.value = v->type.partOfS1_Interface;
+        enc_UE_associatedLogicalS1_ConnectionListRes(bytes, &fakeIE);
     }
 }
 
@@ -1863,9 +1813,9 @@ const getEncS1AP_IE getenc_S1AP_IE[] = {
         enc_E_RABList,/*"id-E-RABFailedToSetupListCtxtSURes"*/
         NULL,/*"id-E-RABReleaseItemHOCmd"*/
         enc_E_RABSetupItemBearerSURes,/*"id-E-RABSetupItemCtxtSURes"*/
-        enc_E_RABSetupListBearerSURes,/*"id-E-RABSetupListCtxtSURes"*/
+        enc_E_RABSetupListCtxtSURes,/*"id-E-RABSetupListCtxtSURes"*/
         enc_E_RABToBeSetupItemCtxtSUReq,/*"id-E-RABToBeSetupItemCtxtSUReq"*/
-        enc_E_RABToBeSetupListCtxtSUReq,/*"id-E-RABToBeSetupListHOReq"*/
+        enc_E_RABToBeSetupListHOReq,/*"id-E-RABToBeSetupListHOReq"*/
         NULL,/*"id-undefined"*/
         NULL,/*"id-GERANtoLTEHOInformationRes"*/
         NULL,/*"id-undefined"*/
@@ -1907,7 +1857,7 @@ const getEncS1AP_IE getenc_S1AP_IE[] = {
         enc_ResetType,/*"id-ResetType"*/
         enc_UE_associatedLogicalS1_ConnectionListResAck,/*"id-UE-associatedLogicalS1-ConnectionListResAck"*/
         enc_E_RABSetupItemBearerSURes,/*"id-E-RABToBeSwitchedULItem"*/
-        enc_E_RABSetupListBearerSURes,/*"id-E-RABToBeSwitchedULList"*/
+        enc_E_RABToBeSwitchedULList,/*"id-E-RABToBeSwitchedULList"*/
         enc_S_TMSI,/*"id-S-TMSI"*/
         NULL,/*"id-cdma2000OneXRAND"*/
         NULL,/*"id-RequestType"*/

@@ -71,7 +71,7 @@ iEconstructor getconstructor[]={
         (iEconstructor)NULL, /*new_E_RABReleaseItemBearerRelComp,*//* NOt Implemented*/
         (iEconstructor)new_E_RABToBeSetupListBearerSUReq,
         (iEconstructor)new_E_RABToBeSetupItemBearerSUReq,
-        (iEconstructor)NULL, /*new_E_RABAdmittedList,*//* NOt Implemented*/
+        (iEconstructor)new_E_RABAdmittedList,
         (iEconstructor)NULL, /* Container : new_E_RABFailedToSetupListHOReqAck,*/
         (iEconstructor)new_E_RABAdmittedItem,
         (iEconstructor)NULL, /* Item Of Container : new_E_RABFailedtoSetupItemHOReqAck,*/
@@ -146,7 +146,7 @@ iEconstructor getconstructor[]={
         (iEconstructor)NULL, /*new_eNB_StatusTransfer_TransparentContainer,*/ /* Not implemented*/
         (iEconstructor)NULL, /*new_UE_associatedLogicalS1_ConnectionItem,*/ /* Not implemented*/
         (iEconstructor)NULL, /* new_ResetType,*/ /* Not implemented*/
-        (iEconstructor)NULL, /*new_UE_associatedLogicalS1_ConnectionListResAck,*/ /* Not implemented*/
+        (iEconstructor)new_UE_associatedLogicalS1_ConnectionListResAck,
         (iEconstructor)new_E_RABSetupItemBearerSURes, /*new_E_RABToBeSwitchedULItem,*/ /* Not implemented*/
         (iEconstructor)new_E_RABToBeSwitchedULList, /*new_E_RABToBeSwitchedULList,*/ /* Not implemented*/
         (iEconstructor)new_S_TMSI, /*new_S_TMSI,*/
@@ -2732,106 +2732,8 @@ E_RABToBeSetupItemCtxtSUReq_t *new_E_RABToBeSetupItemCtxtSUReq(){
 
 
 /* ************** E_RABToBeSetupListCtxtSUReq ****************** */
-/** @brief E_RABToBeSetupListCtxtSUReq IE Destructor
- *
- * Deallocate the E_RABToBeSetupListCtxtSUReq_t structure.
- * */
-void free_E_RABToBeSetupListCtxtSUReq(void * data){
-    uint16_t i;
-    E_RABToBeSetupListCtxtSUReq_t *self = (E_RABToBeSetupListCtxtSUReq_t*)data;
-    if(!self){
-        return;
-    }
-
-    for(i=0; i<self->size;i++){
-        if(self->item[i]->freeIE){
-            self->item[i]->freeIE(self->item[i]);
-        }
-    }
-    free(self->item);
-    free(self);
-}
-
-/** @brief Show IE information
- *
- * Tool function to print the information on stdout
- * */
-void show_E_RABToBeSetupListCtxtSUReq(void * data){
-    E_RABToBeSetupListCtxtSUReq_t *self = (E_RABToBeSetupListCtxtSUReq_t*)data;
-    S1AP_PROTOCOL_IES_t *item;
-    uint16_t i;
-
-    for(i=0; i < self->size; i++){
-        if(&(self->item[i]) == NULL){
-            printf("\t\t\tE_E_RABToBeSetupItemCtxtSUReq_t_t Item #%u not found\n", i);
-            continue;
-        }
-
-        item = (S1AP_PROTOCOL_IES_t*) self->item[i];
-        if(item->showIE){
-            item->showIE(item);
-        }else{
-            printf("\t\t\tE_E_RABToBeSetupItemCtxtSUReq_t_t Item #%u: show function not found\n", i);
-        }
-    }
-
-}
-
-void E_RABToBeSetupListCtxtSUReq_addItem(E_RABToBeSetupListCtxtSUReq_t* c, ProtocolIE_SingleContainer_t* item){
-    ProtocolIE_SingleContainer_t** vector;
-    if(c->size+1==maxNrOfERABs){
-        s1ap_msg(ERROR, 0, "maxNrOfE-RABs reached");
-        return;
-    }
-
-    c->size++;
-    vector = (ProtocolIE_SingleContainer_t**) realloc (c->item, c->size * sizeof(ProtocolIE_SingleContainer_t*));
-
-    /*Error Check*/
-    if (vector!=NULL) {
-        c->item=vector;
-        c->item[c->size-1]=item;
-    }
-    else {
-      free (c->item);
-      s1ap_msg(ERROR, 0, "Error (re)allocating memory");
-    }
-}
-
-void *E_RABToBeSetupListCtxtSUReq_newItem(struct E_RABToBeSetupListCtxtSUReq_c* eRABlist){
-    S1AP_PROTOCOL_IES_t* ie = newProtocolIE();
-    E_RABToBeSetupItemCtxtSUReq_t *eRABitem = new_E_RABToBeSetupItemCtxtSUReq();
-    ie->value = eRABitem;
-    ie->showValue = eRABitem->showIE;
-    ie->freeValue = eRABitem->freeIE;
-    ie->id = id_E_RABToBeSetupItemCtxtSUReq;
-    ie->presence = optional;
-    ie->criticality = reject;
-    eRABlist->additem(eRABlist, ie);
-    return eRABitem;
-}
-
-/** @brief Constructor of E_RABToBeSetupListCtxtSUReq type
- *  @return E_RABToBeSetupListCtxtSUReq_t allocated  and initialized structure
- * */
-E_RABToBeSetupListCtxtSUReq_t *new_E_RABToBeSetupListCtxtSUReq(){
-    E_RABToBeSetupListCtxtSUReq_t *self;
-
-    self = malloc(sizeof(E_RABToBeSetupListCtxtSUReq_t));
-    if(!self){
-        s1ap_msg(ERROR, 0, "S1AP E_RABToBeSetupListCtxtSUReq_t not allocated correctly");
-        return NULL;
-    }
-    memset(self, 0, sizeof(E_RABToBeSetupListCtxtSUReq_t));
-
-    self->freeIE=free_E_RABToBeSetupListCtxtSUReq;
-    self->showIE=show_E_RABToBeSetupListCtxtSUReq;
-    self->additem=E_RABToBeSetupListCtxtSUReq_addItem;
-    self->newItem = E_RABToBeSetupListCtxtSUReq_newItem;
-
-    return self;
-}
-
+SEQ_OF_CONTAINER_FUNC(E_RABToBeSetupListCtxtSUReq, E_RABToBeSetupItemCtxtSUReq,
+                      mandatory, reject, maxNrOfERABs);
 
 /* ************************ SecurityKey ************************ */
 /** @brief SecurityKey IE Destructor
@@ -3468,88 +3370,9 @@ E_RABItem_t *new_E_RABItem(){
 
 
 /* ************************** E_RABList ************************ */
-/** @brief E_RABList Destructor
- *
- * Deallocate the E_RABList_t structure.
- * */
-void free_E_RABList(void * data){
-    uint16_t i;
-    E_RABList_t *self = (E_RABList_t*)data;
-    if(!self){
-        return;
-    }
 
-    for(i=0; i<self->size;i++){
-        if(self->item[i]->freeIE){
-            self->item[i]->freeIE(self->item[i]);
-        }
-    }
-    free(self->item);
-    free(self);
-}
-
-/** @brief Show IE information
- *
- * Tool function to print the information on stdout
- * */
-void show_E_RABList(void * data){
-    E_RABList_t *self = (E_RABList_t*)data;
-    uint16_t i;
-
-    for(i=0; i < self->size; i++){
-        if(&(self->item[i]) == NULL){
-            printf("\t\t\t(*ie_item)_t Item #%u not found\n", i);
-            continue;
-        }
-        if(self->item[i]->showIE){
-            self->item[i]->showIE(self->item[i]);
-        }else{
-            printf("\t\t\t(*ie_item)_t Item #%u: show function not found\n", i);
-        }
-    }
-
-}
-
-void E_RABList_addItem(E_RABList_t* c, ProtocolIE_SingleContainer_t* item){
-    ProtocolIE_SingleContainer_t** vector;
-    if(c->size+1==maxnoofGroupIDs){
-        s1ap_msg(ERROR, 0, "maxnoofGroupIDs reached");
-        return;
-    }
-
-    c->size++;
-    vector = (ProtocolIE_SingleContainer_t**) realloc (c->item, c->size * sizeof(ProtocolIE_SingleContainer_t*));
-
-    /*Error Check*/
-    if (vector!=NULL) {
-        c->item=vector;
-        c->item[c->size-1]=item;
-    }
-    else {
-      free (c->item);
-      s1ap_msg(ERROR, 0, "Error (re)allocating memory");
-    }
-}
-
-/** @brief Constructor of E_RABList type
- *  @return E_RABList_t allocated  and initialized structure
- * */
-E_RABList_t *new_E_RABList(){
-    E_RABList_t *self;
-
-    self = malloc(sizeof(E_RABList_t));
-    if(!self){
-        s1ap_msg(ERROR, 0, "S1AP E_RABList_t not allocated correctly");
-        return NULL;
-    }
-    memset(self, 0, sizeof(E_RABList_t));
-
-    self->freeIE=free_E_RABList;
-    self->showIE=show_E_RABList;
-    self->additem=E_RABList_addItem;
-
-    return self;
-}
+SEQ_OF_CONTAINER_FUNC(E_RABList, E_RABItem,
+                      mandatory, ignore, maxnoofGroupIDs);
 
 
 /* ************* E-RABToBeModifiedItemBearerModReq ************* */
@@ -3924,105 +3747,16 @@ E_RABSetupItemBearerSURes_t *new_E_RABSetupItemBearerSURes(){
     return self;
 }
 
-
-/* ************* E_RABSetupListBearerSUReq ************* */
-/** @brief E_RABSetupListBearerSUReq Destructor
- *
- * Deallocate the E_RABSetupListBearerSUReq_t structure.
- * */
-void free_E_RABSetupListBearerSURes(void * data){
-    uint16_t i;
-    E_RABSetupListBearerSURes_t *self = (E_RABSetupListBearerSURes_t*)data;
-    if(!self){
-        return;
-    }
-
-    for(i=0; i<self->size;i++){
-        if(self->item[i]->freeIE){
-            self->item[i]->freeIE(self->item[i]);
-        }
-    }
-    free(self->item);
-    free(self);
-}
-
-/** @brief Show IE information
- *
- * Tool function to print the information on stdout
- * */
-void show_E_RABSetupListBearerSURes(void * data){
-    E_RABSetupListBearerSURes_t *self = (E_RABSetupListBearerSURes_t*)data;
-    uint16_t i;
-
-    for(i=0; i < self->size; i++){
-        if(&(self->item[i]) == NULL){
-            printf("\t\t\t(*ie_item)_t Item #%u not found\n", i);
-            continue;
-        }
-        if(self->item[i]->showIE){
-            self->item[i]->showIE(self->item[i]);
-        }else{
-            printf("\t\t\t(*ie_item)_t Item #%u: show function not found\n", i);
-        }
-    }
-
-}
-
-void E_RABSetupListBearerSURes_addItem(E_RABSetupListBearerSURes_t* c, ProtocolIE_SingleContainer_t* item){
-    ProtocolIE_SingleContainer_t** vector;
-    if(c->size+1==maxnoofGroupIDs){
-        s1ap_msg(ERROR, 0, "maxnoofGroupIDs reached");
-        return;
-    }
-
-    c->size++;
-    vector = (ProtocolIE_SingleContainer_t**) realloc (c->item, c->size * sizeof(ProtocolIE_SingleContainer_t*));
-
-    /*Error Check*/
-    if (vector!=NULL) {
-        c->item=vector;
-        c->item[c->size-1]=item;
-    }
-    else {
-        free (c->item);
-        s1ap_msg(ERROR, 0, "Error (re)allocating memory");
-    }
-}
-
-void *E_RABSetupListBearerSURes_newItem(struct E_RABSetupListBearerSURes_c* eRABlist){
-    S1AP_PROTOCOL_IES_t* ie = newProtocolIE();
-    E_RABSetupItemBearerSURes_t *eRABitem = new_E_RABSetupItemBearerSURes();
-    ie->value = eRABitem;
-    ie->showValue = eRABitem->showIE;
-    ie->freeValue = eRABitem->freeIE;
-    ie->id = id_E_RABSetupItemBearerSURes;
-    ie->presence = optional;
-    ie->criticality = reject;
-    eRABlist->additem(eRABlist, ie);
-    return eRABitem;
-}
+/* ************* E_RABSetupListCtxtSURes ************* */
+SEQ_OF_CONTAINER_FUNC(E_RABSetupListCtxtSURes, E_RABSetupItemCtxtSURes,
+                      mandatory, ignore,
+                      maxNrOfERABs);
 
 
-/** @brief Constructor of E_RABSetupListBearerSUReq type
- *  @return E_RABSetupListBearerSUReq_t allocated  and initialized structure
- * */
-E_RABSetupListBearerSURes_t *new_E_RABSetupListBearerSURes(){
-    E_RABSetupListBearerSURes_t *self;
-
-    self = malloc(sizeof(E_RABSetupListBearerSURes_t));
-    if(!self){
-        s1ap_msg(ERROR, 0, "S1AP E_RABSetupListBearerSUReq_t not allocated correctly");
-        return NULL;
-    }
-    memset(self, 0, sizeof(E_RABSetupListBearerSURes_t));
-
-    self->freeIE=free_E_RABSetupListBearerSURes;
-    self->showIE=show_E_RABSetupListBearerSURes;
-    self->additem=E_RABSetupListBearerSURes_addItem;
-    self->newItem=E_RABSetupListBearerSURes_newItem;
-
-    return self;
-}
+/* ************* E_RABSetupListBearerSURes ************* */
+SEQ_OF_CONTAINER_FUNC(E_RABSetupListBearerSURes, E_RABSetupItemBearerSURes,
+                      mandatory, ignore,
+                      maxNrOfERABs);
 
 
 /* ************************ HandoverType *********************** */
@@ -4706,10 +4440,8 @@ UEPagingID_t *new_UEPagingID(){
 
 
 /* ********************** E-RABAdmittedList ******************** */
-E_RABAdmittedList_t *new_E_RABAdmittedList(){
-    return new_E_RABToBeSetupListCtxtSUReq();
-}
-
+SEQ_OF_CONTAINER_FUNC(E_RABAdmittedList, E_RABAdmittedItem,
+                      mandatory, ignore, maxNrOfERABs);
 
 /* ********************** E-RABAdmittedItem ******************** */
 /** @brief E_RABAdmittedItem  Destructor
@@ -4813,9 +4545,8 @@ E_RABAdmittedItem_t *new_E_RABAdmittedItem(){
 
 
 /* ************** E-RABSubjecttoDataForwardingList ************* */
-E_RABSubjecttoDataForwardingList_t *new_E_RABSubjecttoDataForwardingList(){
-    return new_E_RABToBeSetupListCtxtSUReq();
-}
+SEQ_OF_CONTAINER_FUNC(E_RABSubjecttoDataForwardingList, E_RABDataForwardingItem,
+                      mandatory, ignore, maxNrOfERABs);
 
 /* ******************* E-RABDataForwardingItem ***************** */
 /** @brief E_RABDataForwardingItem  Destructor
@@ -4905,91 +4636,8 @@ E_RABDataForwardingItem_t *new_E_RABDataForwardingItem(){
 
 
 /* ************** E_RABToBeSetupListHOReq ****************** */
-/** @brief E_RABToBeSetupListHOReq IE Destructor
- *
- * Deallocate the E_RABToBeSetupListHOReq_t structure.
- * */
-void free_E_RABToBeSetupListHOReq(void * data){
-    uint16_t i;
-    E_RABToBeSetupListHOReq_t *self = (E_RABToBeSetupListHOReq_t*)data;
-    if(!self){
-        return;
-    }
-
-    for(i=0; i<self->size;i++){
-        if(self->item[i]->freeIE){
-            self->item[i]->freeIE(self->item[i]);
-        }
-    }
-    free(self->item);
-    free(self);
-}
-
-/** @brief Show IE information
- *
- * Tool function to print the information on stdout
- * */
-void show_E_RABToBeSetupListHOReq(void * data){
-    E_RABToBeSetupListHOReq_t *self = (E_RABToBeSetupListHOReq_t*)data;
-    S1AP_PROTOCOL_IES_t *item;
-    uint16_t i;
-
-    for(i=0; i < self->size; i++){
-        if(&(self->item[i]) == NULL){
-            printf("\t\t\tE_E_RABToBeSetupListHOReq_t Item #%u not found\n", i);
-            continue;
-        }
-
-        item = (S1AP_PROTOCOL_IES_t*) self->item[i];
-        if(item->showIE){
-            item->showIE(item);
-        }else{
-            printf("\t\t\tE_E_RABToBeSetupListHOReq_t Item #%u: show function not found\n", i);
-        }
-    }
-
-}
-
-void E_RABToBeSetupListHOReq_addItem(E_RABToBeSetupListHOReq_t* c, ProtocolIE_SingleContainer_t* item){
-    ProtocolIE_SingleContainer_t** vector;
-    if(c->size+1==maxNrOfERABs){
-        s1ap_msg(ERROR, 0, "maxNrOfE-RABs reached");
-        return;
-    }
-
-    c->size++;
-    vector = (ProtocolIE_SingleContainer_t**) realloc (c->item, c->size * sizeof(ProtocolIE_SingleContainer_t*));
-
-    /*Error Check*/
-    if (vector!=NULL) {
-        c->item=vector;
-        c->item[c->size-1]=item;
-    }
-    else {
-       free (c->item);
-       s1ap_msg(ERROR, 0, "Error (re)allocating memory");
-    }
-}
-
-/** @brief Constructor of E_RABToBeSetupListHOReq type
- *  @return E_RABToBeSetupListHOReq_t allocated  and initialized structure
- * */
-E_RABToBeSetupListHOReq_t *new_E_RABToBeSetupListHOReq(){
-    E_RABToBeSetupListHOReq_t *self;
-
-    self = malloc(sizeof(E_RABToBeSetupListHOReq_t));
-    if(!self){
-        s1ap_msg(ERROR, 0, "S1AP E_RABToBeSetupListHOReq_t not allocated correctly");
-        return NULL;
-    }
-    memset(self, 0, sizeof(E_RABToBeSetupListHOReq_t));
-
-    self->freeIE=free_E_RABToBeSetupListHOReq;
-    self->showIE=show_E_RABToBeSetupListHOReq;
-    self->additem=E_RABToBeSetupListHOReq_addItem;
-
-    return self;
-}
+SEQ_OF_CONTAINER_FUNC(E_RABToBeSetupListHOReq, E_RABToBeSetupItemHOReq,
+                      mandatory, reject, maxNrOfERABs);
 
 
 /* *********************** S_TMSI ************************** */
@@ -5042,104 +4690,8 @@ S_TMSI_t *new_S_TMSI(){
 
 
 /* ************** E_RABToBeSwitchedULList ************** */
-/** @brief E_RABSetupListBearerSUReq Destructor
- *
- * Deallocate the E_RABToBeSwitchedULList_t structure.
- * */
-void free_E_RABToBeSwitchedULList(void * data){
-    uint16_t i;
-    E_RABToBeSwitchedULList_t *self = (E_RABToBeSwitchedULList_t*)data;
-    if(!self){
-        return;
-    }
-
-    for(i=0; i<self->size;i++){
-        if(self->item[i]->freeIE){
-            self->item[i]->freeIE(self->item[i]);
-        }
-    }
-    free(self->item);
-    free(self);
-}
-
-/** @brief Show IE information
- *
- * Tool function to print the information on stdout
- * */
-void show_E_RABToBeSwitchedULList(void * data){
-    E_RABToBeSwitchedULList_t *self = (E_RABToBeSwitchedULList_t*)data;
-    uint16_t i;
-
-    for(i=0; i < self->size; i++){
-        if(&(self->item[i]) == NULL){
-            printf("\t\t\t(*ie_item)_t Item #%u not found\n", i);
-            continue;
-        }
-        if(self->item[i]->showIE){
-            self->item[i]->showIE(self->item[i]);
-        }else{
-            printf("\t\t\t(*ie_item)_t Item #%u: show function not found\n", i);
-        }
-    }
-
-}
-
-void E_RABToBeSwitchedULList_addItem(E_RABToBeSwitchedULList_t* c, ProtocolIE_SingleContainer_t* item){
-    ProtocolIE_SingleContainer_t** vector;
-    if(c->size+1==maxnoofGroupIDs){
-        s1ap_msg(ERROR, 0, "maxnoofGroupIDs reached");
-        return;
-    }
-
-    c->size++;
-    vector = (ProtocolIE_SingleContainer_t**) realloc (c->item, c->size * sizeof(ProtocolIE_SingleContainer_t*));
-
-    /*Error Check*/
-    if (vector!=NULL) {
-        c->item=vector;
-        c->item[c->size-1]=item;
-    }
-    else {
-        free (c->item);
-        s1ap_msg(ERROR, 0, "Error (re)allocating memory");
-    }
-}
-
-void *E_RABToBeSwitchedULList_newItem(E_RABToBeSwitchedULList_t* eRABlist){
-    S1AP_PROTOCOL_IES_t* ie = newProtocolIE();
-    E_RABToBeSwitchedULItem_t *eRABitem = new_E_RABToBeSwitchedULItem();
-    ie->value = eRABitem;
-    ie->showValue = eRABitem->showIE;
-    ie->freeValue = eRABitem->freeIE;
-    ie->id = id_E_RABToBeSwitchedULItem;
-    ie->presence = optional;
-    ie->criticality = reject;
-    eRABlist->additem(eRABlist, ie);
-    return eRABitem;
-}
-
-
-/** @brief Constructor of E_RABSetupListBearerSUReq type
- *  @return E_RABSetupListBearerSUReq_t allocated  and initialized structure
- * */
-E_RABToBeSwitchedULList_t *new_E_RABToBeSwitchedULList(){
-    E_RABToBeSwitchedULList_t *self;
-
-    self = malloc(sizeof(E_RABToBeSwitchedULList_t));
-    if(!self){
-        s1ap_msg(ERROR, 0, "S1AP E_RABToBeSwitchedULList_t not allocated correctly");
-        return NULL;
-    }
-    memset(self, 0, sizeof(E_RABToBeSwitchedULList_t));
-
-    self->freeIE=free_E_RABToBeSwitchedULList;
-    self->showIE=show_E_RABToBeSwitchedULList;
-    self->additem=E_RABToBeSwitchedULList_addItem;
-    self->newItem=E_RABToBeSwitchedULList_newItem;
-
-    return self;
-}
-
+SEQ_OF_CONTAINER_FUNC(E_RABToBeSwitchedULList, E_RABToBeSwitchedULList,
+                      mandatory, ignore, maxNrOfERABs);
 
 /* ********** UE-associatedLogicalS1-ConnectionItem ************ */
 /** @brief UE_associatedLogicalS1_ConnectionItem IE Destructor
@@ -5216,142 +4768,14 @@ UE_associatedLogicalS1_ConnectionItem_t *new_UE_associatedLogicalS1_ConnectionIt
 
 
 /* ******** UE_associatedLogicalS1_ConnectionListRes *********** */
-/** @brief UE_associatedLogicalS1_ConnectionListRes IE Destructor
- *
- * Deallocate the UE_associatedLogicalS1_ConnectionListRes_t structure.
- * */
-void free_UE_associatedLogicalS1_ConnectionListRes(void * data){
-    uint16_t i;
-    UE_associatedLogicalS1_ConnectionListRes_t *self = (UE_associatedLogicalS1_ConnectionListRes_t*)data;
-    if(!self){
-        return;
-    }
+SEQ_OF_CONTAINER_FUNC(UE_associatedLogicalS1_ConnectionListRes,
+                      UE_associatedLogicalS1_ConnectionItem,
+                      mandatory, reject, maxNrOfIndividualS1ConnectionsToReset);
 
-    for(i=0; i<self->size;i++){
-        if(self->item[i]->freeIE){
-            self->item[i]->freeIE(self->item[i]);
-        }
-    }
-    free(self->item);
-    free(self);
-}
-
-/** @brief Show IE information
- *
- * Tool function to print the information on stdout
- * */
-void show_UE_associatedLogicalS1_ConnectionListRes(void * data){
-    UE_associatedLogicalS1_ConnectionListRes_t *self = (UE_associatedLogicalS1_ConnectionListRes_t*)data;
-    S1AP_PROTOCOL_IES_t *item;
-    uint16_t i;
-
-    for(i=0; i < self->size; i++){
-        if(&(self->item[i]) == NULL){
-            printf("\t\t\tUE_associatedLogicalS1_ConnectionItem_t Item #%u not found\n", i);
-            continue;
-        }
-
-        item = (S1AP_PROTOCOL_IES_t*) self->item[i];
-        if(item->showIE){
-            item->showIE(item);
-        }else{
-            printf("\t\t\tUE_associatedLogicalS1_ConnectionItem_t Item #%u: show function not found\n", i);
-        }
-    }
-
-}
-
-void UE_associatedLogicalS1_ConnectionListRes_addItem(UE_associatedLogicalS1_ConnectionListRes_t* c, ProtocolIE_SingleContainer_t* item){
-    ProtocolIE_SingleContainer_t** vector;
-    if(c->size+1==maxNrOfIndividualS1ConnectionsToReset){
-        s1ap_msg(ERROR, 0, "maxnoofIndividualS1ConnectionsToReset reached");
-        return;
-    }
-
-    c->size++;
-    vector = (ProtocolIE_SingleContainer_t**) realloc (c->item, c->size * sizeof(ProtocolIE_SingleContainer_t*));
-
-    /*Error Check*/
-    if (vector!=NULL) {
-        c->item=vector;
-        c->item[c->size-1]=item;
-    }
-    else {
-      free (c->item);
-      s1ap_msg(ERROR, 0, "Error (re)allocating memory");
-    }
-}
-
-void *UE_associatedLogicalS1_ConnectionListRes_newItem(struct UE_associatedLogicalS1_ConnectionListRes_c* list){
-    S1AP_PROTOCOL_IES_t* ie = newProtocolIE();
-    UE_associatedLogicalS1_ConnectionItem_t *item = new_UE_associatedLogicalS1_ConnectionItem();
-    ie->value = item;
-    ie->showValue = item->showIE;
-    ie->freeValue = item->freeIE;
-    ie->id = id_UE_associatedLogicalS1_ConnectionItem;
-    ie->presence = mandatory;
-    ie->criticality = reject;
-    list->additem(list, ie);
-    return item;
-}
-
-/** @brief Constructor of UE_associatedLogicalS1_ConnectionListRes type
- *  @return UE_associatedLogicalS1_ConnectionListRes_t allocated  and initialized structure
- * */
-UE_associatedLogicalS1_ConnectionListRes_t *new_UE_associatedLogicalS1_ConnectionListRes(){
-    UE_associatedLogicalS1_ConnectionListRes_t *self;
-
-    self = malloc(sizeof(UE_associatedLogicalS1_ConnectionListRes_t));
-    if(!self){
-        s1ap_msg(ERROR, 0, "S1AP UE_associatedLogicalS1_ConnectionListRes_t not allocated correctly");
-        return NULL;
-    }
-    memset(self, 0, sizeof(UE_associatedLogicalS1_ConnectionListRes_t));
-
-    self->freeIE=free_UE_associatedLogicalS1_ConnectionListRes;
-    self->showIE=show_UE_associatedLogicalS1_ConnectionListRes;
-    self->additem=UE_associatedLogicalS1_ConnectionListRes_addItem;
-    self->newItem = UE_associatedLogicalS1_ConnectionListRes_newItem;
-
-    return self;
-}
-
-
-void *UE_associatedLogicalS1_ConnectionListResAck_newItem(struct UE_associatedLogicalS1_ConnectionListRes_c* list){
-    S1AP_PROTOCOL_IES_t* ie = newProtocolIE();
-    UE_associatedLogicalS1_ConnectionItem_t *item = new_UE_associatedLogicalS1_ConnectionItem();
-    ie->value = item;
-    ie->showValue = item->showIE;
-    ie->freeValue = item->freeIE;
-    ie->id = id_UE_associatedLogicalS1_ConnectionItem;
-    ie->presence = mandatory;
-    ie->criticality = ignore;
-    list->additem(list, ie);
-    return item;
-}
-
-
-/** @brief Constructor of UE_associatedLogicalS1_ConnectionListRes type
- *  @return UE_associatedLogicalS1_ConnectionListRes_t allocated  and initialized structure
- * */
-UE_associatedLogicalS1_ConnectionListResAck_t *new_UE_associatedLogicalS1_ConnectionListResAck(){
-    UE_associatedLogicalS1_ConnectionListResAck_t *self;
-
-    self = malloc(sizeof(UE_associatedLogicalS1_ConnectionListResAck_t));
-    if(!self){
-        s1ap_msg(ERROR, 0, "S1AP UE_associatedLogicalS1_ConnectionListResAck_t not allocated correctly");
-        return NULL;
-    }
-    memset(self, 0, sizeof(UE_associatedLogicalS1_ConnectionListResAck_t));
-
-    self->freeIE=free_UE_associatedLogicalS1_ConnectionListRes;
-    self->showIE=show_UE_associatedLogicalS1_ConnectionListRes;
-    self->additem=UE_associatedLogicalS1_ConnectionListRes_addItem;
-    self->newItem = UE_associatedLogicalS1_ConnectionListResAck_newItem;
-
-    return self;
-}
-
+/* ******* UE_associatedLogicalS1_ConnectionListResAck ********* */
+SEQ_OF_CONTAINER_FUNC(UE_associatedLogicalS1_ConnectionListResAck,
+                      UE_associatedLogicalS1_ConnectionItem,
+                      mandatory, ignore, maxNrOfIndividualS1ConnectionsToReset);
 
 /* ************************* ResetType ************************ */
 /** @brief ResetType  Destructor

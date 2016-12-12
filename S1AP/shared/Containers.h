@@ -313,7 +313,7 @@ typedef struct list_name##_c{ \
 list_name##_t *new_##list_name()
 
 
-#define SEQ_OF_CONTAINER_HEADER(list_name, item_name)                       \
+#define SEQ_OF_CONTAINER_HEADER(list_name)                                  \
 typedef struct list_name##_c{                                               \
     void                                (*freeIE)(void *);                  \
     void                                (*showIE)(void *);                  \
@@ -451,14 +451,9 @@ void list_name##_addItem(list_name##_t* c,                                  \
         s1ap_msg(ERROR, 0, #max_items "  reached");                         \
         return;                                                             \
     }                                                                       \
-    s1ap_msg(WARN, 0, "Test");                                              \
-                                                                            \
     c->size++;                                                              \
-    s1ap_msg(WARN, 0, "Test");                                              \
     vector = (ProtocolIE_SingleContainer_t**) realloc (c->item,             \
                                         c->size * sizeof(ProtocolIE_SingleContainer_t*));  \
-    s1ap_msg(WARN, 0, "Test");                                              \
-                                                                            \
     /*Error Check*/                                                         \
     if (vector!=NULL) {                                                     \
         c->item=vector;                                                     \
@@ -479,9 +474,7 @@ void *list_name##_newItem(struct list_name##_c* list){                      \
     ie->id = id_##item_name;                                                \
     ie->presence = item_presence;                                           \
     ie->criticality = item_criticality;                                     \
-    s1ap_msg(WARN, 0, "Test");                                              \
     list->additem(list, ie);                                                \
-    s1ap_msg(WARN, 0, "Test");                                              \
     return item;                                                            \
 }                                                                           \
                                                                             \

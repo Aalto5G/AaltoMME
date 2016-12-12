@@ -438,6 +438,5 @@ void s1Assoc_paging(S1Assoc h, gpointer emm){
     emmCtx_getTAI(emm, &sn, &tac);
     if( s1Assoc_containsTA(self, sn, tac) ){
         sendPaging(self, emm);
-        log_msg(LOG_WARNING, 0, "Paging not implemented yet");
     }
 }
