@@ -4690,7 +4690,7 @@ S_TMSI_t *new_S_TMSI(){
 
 
 /* ************** E_RABToBeSwitchedULList ************** */
-SEQ_OF_CONTAINER_FUNC(E_RABToBeSwitchedULList, E_RABToBeSwitchedULList,
+SEQ_OF_CONTAINER_FUNC(E_RABToBeSwitchedULList, E_RABToBeSwitchedULItem,
                       mandatory, ignore, maxNrOfERABs);
 
 /* ********** UE-associatedLogicalS1-ConnectionItem ************ */

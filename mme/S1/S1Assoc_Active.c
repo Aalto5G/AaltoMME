@@ -61,7 +61,7 @@ static void processMsg(gpointer _assoc, S1AP_Message_t *s1msg, int r_sid,
                  s1msg->choice == initiating_message){
             s1Assoc_log(assoc, LOG_DEBUG, 0, "Received Path Switch Request");
             mme_id = s1ap_findIe(s1msg, id_SourceMME_UE_S1AP_ID);
-            mme_lookupECM(mme, mme_id->mme_id, ecm);
+            mme_lookupECM(mme, mme_id->mme_id, &ecm);
             ecmSession_pathSwitchReq(ecm, assoc, s1msg, r_sid);
         }else if(s1msg->pdu->procedureCode == id_WriteReplaceWarning &&
                  s1msg->choice == successful_outcome){
