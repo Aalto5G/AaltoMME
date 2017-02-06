@@ -9,14 +9,16 @@ build:
   # instead of calling g++ directly you can also use some build toolkit like make
   # install the necessary build tools when needed
   before_script: 
-    - apt update && apt -y install make autoconf build-essential cmake libevent-dev libsctp-dev libmariadbclient-dev libconfig-dev libglib2.0-dev libssl-dev
+    - apt update && apt -y install make autoconf build-essential cmake libevent-dev libsctp-dev libmysqlclient-dev libconfig-dev libglib2.0-dev libssl-dev
   script: 
     - mkdir Release && cd Release
     - cmake -DCMAKE_BUILD_TYPE=Release ..
     - make
+    - cpack -G DEB
   artifacts:
     paths:
       - MME
+      - MME-*.deb
   # depending on your build setup it's most likely a good idea to cache outputs to reduce the build time
   # cache:
   #   paths:
