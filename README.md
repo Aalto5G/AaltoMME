@@ -12,17 +12,17 @@ Dependencies
 - libconfig9 (http://www.hyperrealm.com/libconfig/libconfig.html)
 - glib
 - libsctp
-- MariaDB server and client (mariadb-server libmariadbclient-dev)
+- MariaDB server and client (mariadb-server libmysqlclient-dev)
 
 ### Install
 
 ```
-# apt-get install libsctp1 libevent-2.0-5 libglib2.0-0 libmariadbclient18 mariadb-server libconfig9
+# apt-get install libsctp1 libevent-2.0-5 libglib2.0-0 libmysqlclient20 mariadb-server libconfig9
 ```
 
 ### Build
 ```
-# apt-get install build-essential cmake libevent-dev libsctp-dev libmariadbclient-dev libconfig-dev libglib2.0-dev libssl-dev
+# apt-get install build-essential cmake libevent-dev libsctp-dev libmysqlclient-dev libconfig-dev libglib2.0-dev libssl-dev
 ```
 
 3rd Party Sources included on the project
@@ -124,8 +124,8 @@ Under the supervision of,
 in AALTO University and partially funded by EIT ICT labs.
 
 
-Unit testing
-------------
+Unit testing (old)
+------------------
 This project was using check framework at the begining, but now it includes some tests using glib.
 
 - Check Test framework: http://check.sourceforge.net/
@@ -199,24 +199,3 @@ $ cd gcovr
 $ sudo python setup.py install
 ```
 
-
-Test bed execution
-------------------
-
-### nwLteSaeGw
-- NAT is required to have an IP pool address available to assign to the UEs. The nwLteSaeGw is not able to asnwer ARP requests, to solve this issue the arp table spoofing is considered as a temporal solution:
-```
-$ arpspoof -i <iface> -t <NAT route> <UE IP>
-```
-
-- Other requirements detailed on nwLteSaeGw README.
-
-### MME
-    - The MME configuration is obtained from the mme.cfg file
-    - (Autotools) Before executing the MME don't forget to set the required library path, i.e. :
-        $ export LD_LIBRARY_PATH=~/MME/libgtp/.libs/:~/MME/S1AP/src/.libs/:~/MME/NAS/src/.libs/
-    - The MME currently uses the same NIC for S1 and S11.
-
-### Firewall
-    Disable the firewall if there are connection problems like
-    "Destination Unreachable" - "Host Administratively prohibited"
