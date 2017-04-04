@@ -120,7 +120,7 @@ In practice this means that the main application structure is quite simple:
 2. A serving phase when the application block on a main loop waiting incoming packets.
 
 When a packet is received, the registered callback will process that packet and return to the main loop.
-It is very important that blocking call are avoided, otherwise, the application will stop serving requests.
+It is very important that blocking calls are avoided, otherwise, the application will stop serving requests.
 
 
 ### Object Oriented C
