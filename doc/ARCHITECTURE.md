@@ -115,8 +115,9 @@ The MME uses an asynchronous design based on [libevent][libevent].
 The design is inspired by the [C10K][c10k] problem.
 
 In practice this means that the main application structure is quite simple:
- 1- A setup phase when sockets are registered to the ports of interest
- 2- A serving phase when the application block on a main loop waiting incoming packets.
+
+1. A setup phase when sockets are registered to the ports of interest
+2. A serving phase when the application block on a main loop waiting incoming packets.
 
 When a packet is received, the registered callback will process that packet and return to the main loop.
 It is very important that blocking call are avoided, otherwise, the application will stop serving requests.
