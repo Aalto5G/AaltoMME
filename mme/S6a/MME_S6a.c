@@ -18,7 +18,6 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include "signals.h"
 
 #include "MME.h"
 #include "MME_S6a.h"

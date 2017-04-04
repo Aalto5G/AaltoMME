@@ -21,7 +21,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "signals.h"
 #include <syslog.h>
 #include <errno.h>
 #include <glib.h>

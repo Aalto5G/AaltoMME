@@ -18,7 +18,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
-#include "signals.h"
 
 //#include "MME.h"
 //#include "NAS_FSM.h"

@@ -24,8 +24,6 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 
-#include "signals.h"
-
 #include "MME_S11.h"
 #include "logmgr.h"
 #include "gtp.h"
