@@ -94,7 +94,7 @@ void dec_AttachAccept(AttachAccept_t *msg, const uint8_t *buffer, const size_t s
     buffer++;
     nas_msg(NAS_DEBUG, 0, "DEC : t3412 = %#x", msg->t3412[0]);
 
-    /*UENetworkCapability*/
+    /*TAI_list*/
     msg->tAI_list.l = *buffer;
     buffer++;
     memcpy(msg->tAI_list.v, buffer, msg->tAI_list.l);
