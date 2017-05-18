@@ -483,9 +483,22 @@ void emm_sendSecurityModeCommand(EMMCtx emm_h){
     pointer++; /*Spare half octet*/
 
     /* Replayed UE security capabilities */
+    /* Zero up to the max length of payload  */
     memset(capabilities, 0, 5);
-    memcpy(capabilities, emm->ueCapabilities, 4);
-    capabilities[4]=0x70;
+    /* Copy received capabilities */
+    memcpy(capabilities, emm->ueCapabilities, emm->ueCapabilitiesLen);
+    /* 3GPP TS 24.301 Rel 13 - 9.9.3.36 UE security capability
+     * Octets 5, 6, and 7 are optional. If octet 5 is included,
+     * then also octet 6 shall be included and octet 7 may be included.
+     * Since we are not parsing the capabilities, just copy and zero spare bits. */
+
+    /* Zero spare bit 8th from UMTS Integrity Algorithm UIA */
+    capabilities[3] &= 0x7F;
+    /* Copy GEA fields from MS Network Capability.
+     * Add the values to the destination by masking and shifting. */
+    capabilities[4] |= (emm->msNetCap[0] & 0x80) >> 1; /* GEA/1    */
+    capabilities[4] |= (emm->msNetCap[1] & 0x7E) >> 1; /* GEA/2..7 */
+    /* TODO: Calculate better length based on current values */
     nasIe_lv_t4(&pointer, capabilities, 5);
 
     /* IMEISV request */

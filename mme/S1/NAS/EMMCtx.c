@@ -70,6 +70,11 @@ EMMCtx emmCtx_init(){
     /* self->t3412 = 0x23; /\* 3 min*\/ */
     self->t3412 = 0x49; /* 54 min, default */
 
+    /* Initialize UE Network Capabilities */
+    bzero(self->ueCapabilities, 15);
+    /* Initialize MS Network Capabilities */
+    bzero(self->msNetCap, 10);
+
     return self;
 }
 
