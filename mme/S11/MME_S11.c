@@ -349,7 +349,7 @@ void S11_Attach_ModifyBearerReq(gpointer s11_user, void(*cb)(gpointer), gpointer
     modBearer(s11_user, cb, args);
 }
 
-void S11_dettach(gpointer s11_user, void(*cb)(gpointer), gpointer args){
+void S11_detach(gpointer s11_user, void(*cb)(gpointer), gpointer args){
     log_msg(LOG_DEBUG, 0, "enter");
     detach(s11_user, cb, args);
 }

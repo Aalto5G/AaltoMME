@@ -157,7 +157,7 @@ void S11_Attach_ModifyBearerReq(gpointer s11_user, void(*cb)(gpointer), gpointer
  * @param [in]  session User session structure
  *
  */
-void S11_dettach(gpointer s11_user, void(*cb)(gpointer), gpointer args);
+void S11_detach(gpointer s11_user, void(*cb)(gpointer), gpointer args);
 
 /* /\** */
 /*  * @brief Trigger Indirect Data Forwarding Tunnel */

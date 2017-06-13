@@ -285,12 +285,12 @@ void ePSsession_UEContextReleaseReq(EPS_Session s,
 
 void ePSsession_detach(EPS_Session s, void(*cb)(gpointer), gpointer args){
     EPS_Session_t *self = (EPS_Session_t*)s;
-    S11_dettach(self->s11, cb, args);
+    S11_detach(self->s11, cb, args);
 }
 
 void ePSsession_errorESM(EPS_Session s){
     EPS_Session_t *self = (EPS_Session_t*)s;
     log_msg(LOG_ERR, 0, "ESM Error indication, deleting Session");
     self->esm=NULL;
-    S11_dettach(self->s11, NULL, NULL);
+    S11_detach(self->s11, NULL, NULL);
 }
