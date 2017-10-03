@@ -1,6 +1,6 @@
 [Unit]
 Description=Mobility Management Entity
-#After=mysql.service
+After=mysql.service
 
 [Service]
 Type=simple
