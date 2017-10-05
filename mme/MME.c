@@ -11,6 +11,8 @@
  * @Author Vicent Ferrer
  * @date   March, 2013
  * @brief  MME type definition and functions.
+ * @modifiedby Jesus Llorente, Todor Ginchev
+ * @lastmodified 5 October 2017
  *
  * The goal of this file is to define the generic functions of the MME and its interfaces.
  */
@@ -93,12 +95,12 @@ int init_sctp_srv(const char *src, int port){
     /* servaddr.sin_addr.s_addr = addr; */
     servaddr.sin_port = htons(port);
 
-    /* Turn off bind address checking and allow port numbers to be reused*/
-    /* on = 1; */
-    /* if( setsockopt(listenSock, SOL_SOCKET, SO_REUSEADDR, (const char*)&on, sizeof(int))==-1){ */
-    /*     log_msg(LOG_ERR, errno, "setsockopt(fd=%d) to turn off bind address checking failed. ", listenSock); */
-    /*     return -1; */
-    /* } */
+    /* Enable socket address reuse to avoid binding issues */
+    int enable = 1;
+    if (setsockopt(listenSock, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(int)) < 0) {
+        log_msg(LOG_ERR, errno, "setsockopt(fd=%d) to turn off bind address checking failed. ", listenSock);
+        return -1;
+    }
 
 
     if (bind( listenSock, (struct sockaddr *)&servaddr, sizeof(servaddr) ) < 0) {
