@@ -73,10 +73,10 @@ Install
 Execution
 ---------
 
-- Setup the configuration file on `/etc/cumucore/mme.cfg`:
+- Setup the configuration file on `/etc/aalto/mme.cfg`:
 
 ```
-# cp /etc/cumucore/mme.cfg.template /etc/cumucore/mme.cfg
+# cp /etc/aalto/mme.cfg.template /etc/aalto/mme.cfg
 ```
 - Run the binary or start the unit file:
 ```

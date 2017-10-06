@@ -75,7 +75,7 @@ target_link_libraries( ${PROJECT_NAME}
   ${OPENSSL_LIBRARIES})
 
 install(TARGETS ${PROJECT_NAME} DESTINATION /usr/bin COMPONENT binaries)
-install(FILES mme.cfg DESTINATION /etc/cumucore/ COMPONENT config RENAME mme.cfg.template)
+install(FILES mme.cfg DESTINATION /etc/aalto/ COMPONENT config RENAME mme.cfg.template)
 install(FILES MME.service DESTINATION /lib/systemd/system/ COMPONENT config)
 
 ################################

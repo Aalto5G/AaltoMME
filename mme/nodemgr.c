@@ -28,7 +28,7 @@
 #include <libconfig.h>
 #include <stdlib.h>
 
-#define CFGFILENAME "/etc/cumucore/mme.cfg"
+#define CFGFILENAME "/etc/aalto/mme.cfg"
 
 G_DEFINE_QUARK(MME-Configuration, conf);
 
@@ -188,7 +188,7 @@ void loadMMEinfo(struct mme_t *mme, GError **err){
 
     tmp_c = config_lookup(&cfg, "mme.state_directory");
     if(!tmp_c){
-        mme->stateDir = g_strdup("/var/lib/cumucore");
+        mme->stateDir = g_strdup("/var/lib/aalto");
     }else{
         mme->stateDir = g_strdup(config_setting_get_string(tmp_c));
     }
