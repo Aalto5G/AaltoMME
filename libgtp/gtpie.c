@@ -283,43 +283,17 @@ void tbcd2dec(uint64_t *dec, const uint8_t *tbcd, const uint32_t length){
 }
 
 void dec2tbcd(uint8_t *tbcd, uint32_t *length, const uint64_t dec){
-    uint64_t bcd=0, from = dec;
-    uint8_t len=0;
-    uint8_t l=1;
-
-    while(from>9){ /*Count Digits*/
-        l++;
-        from/=10;
+    uint8_t bcd[8] = {0};
+    uint64_t imsi64 = dec, aux = 0;
+    /* Fill last octect with padding */
+    bcd[7] = (imsi64 % 10) & 0xF0;
+    imsi64 /= 10;
+    /* Iterate IMSI in reverse order to fill up TBCD array */
+    for (int i=6; i>=0; i--){
+        aux = imsi64 % 100;
+        bcd[i] = (aux % 10 << 4) + (aux / 10);
+        imsi64 /= 100;
     }
-    from = dec;
-    if(l%2){ /*If odd, add a 0xF digit at the end*/
-        bcd = 0xF;
-        bcd <<= 4;
-        bcd |= (from % 10);
-        from /= 10;
-        l++;
-    }
-
-    while(from>0){  /*Reorder the digits, network order*/
-        bcd <<= 4;
-        /*if(!(len%2)){
-          bcd |= (from % 100)/10;
-          }
-          else{
-          bcd |= (from % 10);
-          from /= 100;
-          }*/
-        bcd |= (from % 10);
-        from /= 10;
-        len++;
-    }
-    *length = l/2;
-    /*bcd = hton64(bcd);*/
-    /*printf("bcd=0x%16llx\n", bcd);
-
-      printf("#digits = %d\n", *length);
-      printf("tbcd=0x%llx\n", tbcd);*/
-    memcpy(tbcd, &bcd, *length);
-    /*printf("tbcd=0x%llx\n", tbcd);*/
-
+    *length = 8;
+    memcpy(tbcd, bcd, *length);
 }
