@@ -494,10 +494,13 @@ void emm_sendSecurityModeCommand(EMMCtx emm_h){
 
     /* Zero spare bit 8th from UMTS Integrity Algorithm UIA */
     capabilities[3] &= 0x7F;
+    /* Initialize GEA fields */
+    capabilities[4]  = 0;
     /* Copy GEA fields from MS Network Capability.
      * Add the values to the destination by masking and shifting. */
     capabilities[4] |= (emm->msNetCap[0] & 0x80) >> 1; /* GEA/1    */
     capabilities[4] |= (emm->msNetCap[1] & 0x7E) >> 1; /* GEA/2..7 */
+
     /* TODO: Calculate better length based on current values */
     nasIe_lv_t4(&pointer, capabilities, 5);
 
