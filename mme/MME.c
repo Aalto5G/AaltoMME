@@ -12,7 +12,7 @@
  * @date   March, 2013
  * @brief  MME type definition and functions.
  * @modifiedby Jesus Llorente, Todor Ginchev
- * @lastmodified 5 October 2017
+ * @lastmodified 9 October 2017
  *
  * The goal of this file is to define the generic functions of the MME and its interfaces.
  */
@@ -378,11 +378,14 @@ gboolean mme_containsSupportedTAs(const struct mme_t *self, SupportedTAs_t *tas)
                 served = self->servedGUMMEIs->item[k]->servedPLMNs;
                 for(l=0; l<served->size ; l++){
                     plmn_MME = served->item[l];
+		    guint8 plmn_mme_printable [7];
+		    plmn_FillPLMNFromTBCD (plmn_mme_printable, plmn_MME->tbc.s);
+		    guint8 plmn_eNB_printable [7];
+		    plmn_FillPLMNFromTBCD (plmn_eNB_printable, plmn_eNB->tbc.s);
                     log_msg(LOG_DEBUG, 0, "Comparing SupportedTA with ServedGUMMEIs"
-                            " PLMN %x%x%x <=> %x%x%x",
-                            plmn_MME->tbc.s[0], plmn_MME->tbc.s[1], plmn_MME->tbc.s[2],
-                            plmn_eNB->tbc.s[0], plmn_eNB->tbc.s[1], plmn_eNB->tbc.s[2]);
-                    if(memcmp(plmn_MME->tbc.s, plmn_eNB->tbc.s, 3)==0){
+                            " PLMN %s <=> %s",
+                            plmn_mme_printable, plmn_eNB_printable );
+		    if(memcmp(plmn_MME->tbc.s, plmn_eNB->tbc.s, 3)==0){
                         return TRUE;
                     }
                 }

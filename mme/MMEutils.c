@@ -11,7 +11,8 @@
  * @Author Vicent Ferrer
  * @date   August, 2015
  * @brief  
- *
+ * @modifiedby Jesus Llorente, Todor Ginchev
+ * @lastmodified 9 October 2017
  * 
  */
 
@@ -43,6 +44,23 @@ gboolean plmn_Equal(const mme_PLMN *a, const mme_PLMN *b){
 	else
 		return FALSE;
 }
+
+void plmn_FillPLMNFromTBCD(guint8 *plmn, const guint8 *tbcd){
+    plmn[0] = 0x30 + (tbcd[0] & 0x0f);
+    plmn[1] = 0x30 + ((tbcd[0] & 0xf0) >> 4);
+    plmn[2] = 0x30 + (tbcd[1] & 0x0f);
+    plmn[3] = 0x30 + ((tbcd[1] & 0xf0) >> 4);
+    plmn[4] = 0x30 + (tbcd[2] & 0x0f);
+    plmn[5] = 0x30 + ((tbcd[2] & 0xf0) >>4);
+    plmn[6] = 0x00;
+
+    if(plmn[3] == 0x3f){
+        plmn[3] = plmn[4];
+	plmn[4] = plmn[5];
+        plmn[5] = 0x00;
+    }
+}
+
 
 guint plmn_Hash(const mme_PLMN *key){
 	guint32 nk = (key->tbcd[2] *10000) & (key->tbcd[1] * 100) & key->tbcd[0];

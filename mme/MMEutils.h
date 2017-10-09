@@ -11,7 +11,8 @@
  * @Author Vicent Ferrer
  * @date   August, 2015
  * @brief  
- *
+ * @modifiedby Jesus Llorente, Todor Ginchev
+ * @lastmodified 10 October 2017
  * 
  */
 
@@ -50,6 +51,7 @@ void plmn_FillFromTBCD(mme_PLMN *plmn, const guint8 *tbcd);
  */
 void plmn_FillFromMCCMNCs(mme_PLMN *plmn, const guint16 mcc, const guint16 mnc);
 
+void plmn_FillPLMNFromTBCD(guint8 *plmn, const guint8 *tbcd);
 
 gboolean plmn_Equal(const mme_PLMN *a, const mme_PLMN *b);
 
