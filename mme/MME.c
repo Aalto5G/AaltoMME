@@ -368,6 +368,7 @@ gboolean mme_containsSupportedTAs(const struct mme_t *self, SupportedTAs_t *tas)
     BPLMNs_t *bc_l;
     PLMNidentity_t *plmn_eNB, *plmn_MME;
     ServedPLMNs_t *served;
+    gboolean flag = false;
 
 
     for(i=0; i<tas->size; i++){
@@ -377,22 +378,24 @@ gboolean mme_containsSupportedTAs(const struct mme_t *self, SupportedTAs_t *tas)
             for(k=0; k<self->servedGUMMEIs->size; k++){
                 served = self->servedGUMMEIs->item[k]->servedPLMNs;
                 for(l=0; l<served->size ; l++){
-                    plmn_MME = served->item[l];
-		    guint8 plmn_mme_printable [7];
+		    guint8 plmn_mme_printable [7] = {0};
+		    guint8 plmn_eNB_printable [7] = {0};
+		    plmn_MME = served->item[l];
 		    plmn_FillPLMNFromTBCD (plmn_mme_printable, plmn_MME->tbc.s);
-		    guint8 plmn_eNB_printable [7];
 		    plmn_FillPLMNFromTBCD (plmn_eNB_printable, plmn_eNB->tbc.s);
                     log_msg(LOG_DEBUG, 0, "Comparing SupportedTA with ServedGUMMEIs"
                             " PLMN %s <=> %s",
                             plmn_mme_printable, plmn_eNB_printable );
 		    if(memcmp(plmn_MME->tbc.s, plmn_eNB->tbc.s, 3)==0){
-                        return TRUE;
+                        log_msg(LOG_INFO, 0, "Found compatible PLMN %s",
+                            plmn_mme_printable);
+		        flag = TRUE;
                     }
                 }
             }
         }
     }
-    return FALSE;
+    return flag;
 }
 
 

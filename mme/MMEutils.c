@@ -45,19 +45,25 @@ gboolean plmn_Equal(const mme_PLMN *a, const mme_PLMN *b){
 		return FALSE;
 }
 
+/*
+ * This function receives as input a plmn char array and a PLMN code in tbcd format. 
+ * It converts the PLMN tbcd encoding into a human readable null terminated string 
+ * and stores it in the char array. 
+ */
 void plmn_FillPLMNFromTBCD(guint8 *plmn, const guint8 *tbcd){
     plmn[0] = 0x30 + (tbcd[0] & 0x0f);
     plmn[1] = 0x30 + ((tbcd[0] & 0xf0) >> 4);
     plmn[2] = 0x30 + (tbcd[1] & 0x0f);
     plmn[3] = 0x30 + ((tbcd[1] & 0xf0) >> 4);
     plmn[4] = 0x30 + (tbcd[2] & 0x0f);
-    plmn[5] = 0x30 + ((tbcd[2] & 0xf0) >>4);
-    plmn[6] = 0x00;
+    plmn[5] = 0x30 + ((tbcd[2] & 0xf0) >> 4);
+    plmn[6] = 0x00; // equivalent to '\0' null termination
 
-    if(plmn[3] == 0x3f){
+    /* Check if there is 'F' padding to figure our of MNC is 2 or 3 digits */
+    if((tbcd[1] & 0xf0) == 0xf0){
         plmn[3] = plmn[4];
 	plmn[4] = plmn[5];
-        plmn[5] = 0x00;
+        plmn[5] = 0x00; // equivalent to '\0' null termination
     }
 }
 

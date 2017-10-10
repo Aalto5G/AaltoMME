@@ -51,9 +51,9 @@ void plmn_FillFromTBCD(mme_PLMN *plmn, const guint8 *tbcd);
  */
 void plmn_FillFromMCCMNCs(mme_PLMN *plmn, const guint16 mcc, const guint16 mnc);
 
-void plmn_FillPLMNFromTBCD(guint8 *plmn, const guint8 *tbcd);
-
 gboolean plmn_Equal(const mme_PLMN *a, const mme_PLMN *b);
+
+void plmn_FillPLMNFromTBCD(guint8 *plmn, const guint8 *tbcd);
 
 guint plmn_Hash(const mme_PLMN *key);
 
