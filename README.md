@@ -56,11 +56,9 @@ $ cpack -G DEB
 ```
 $ libtoolize
 $ autoreconf -i
-$ ./configure
+$ ./configure --prefix=/usr # This is required for systemd unit files
 $ make
 ```
-
-Node: To use systemd unit files, use `--prefix=/usr` on the configure step or change the execution path of the binary.
 
 Install
 -------
