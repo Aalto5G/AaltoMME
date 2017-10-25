@@ -34,6 +34,7 @@
 #include "ECMSession.h"
 #include "MME.h"
 #include "MME_S1_priv.h"
+#include "MMEutils.h"
 
 void s1Assoc_log_(S1Assoc assoc, int pri, char *fn, const char *func, int ln,
               int en, char *fmt, ...){
@@ -353,27 +354,37 @@ static gboolean s1Assoc_containsTA(const S1Assoc_t *self, const guint8 sn[3], co
     BPLMNs_t *bc_l;
     SupportedTAs_t *tas = self->supportedTAs;
     PLMNidentity_t *plmn_eNB;
-    for(i=0; i<tas->size; i++){
+    
+    for(i=0; i<tas->size; i++){      
         if(memcmp(tas->item[i]->tAC->s, &tac, 2)!=0){
-            log_msg(LOG_WARNING, 0, "UE TAC (%#X) != Supported TAC (0x%X%X) in eNB",
-                    tac, tas->item[i]->tAC->s[0], tas->item[i]->tAC->s[1]);
-            continue;
+	    guint16 printable_tac = tac>>8 | tac<<8;
+	    log_msg(LOG_WARNING, 0, "UE TAC (%#X) != Supported TAC (0x%X%X) in eNB",
+	            printable_tac, tas->item[i]->tAC->s[0], tas->item[i]->tAC->s[1]);
+	    continue;
         }
+	
         bc_l = tas->item[i]->broadcastPLMNs;
         for(j=0; j<bc_l->n ; j++){
-            plmn_eNB = bc_l->pLMNidentity[j];
+	    plmn_eNB = bc_l->pLMNidentity[j];
+	    
+            // Get PLMN from UE and eNB and convert from TBCD to human-readable output
+            guint8 plmn_UE_printable [7] = {0};
+            guint8 plmn_eNB_printable [7] = {0};
+            plmn_FillPLMNFromTBCD (plmn_UE_printable, sn);
+            plmn_FillPLMNFromTBCD (plmn_eNB_printable, plmn_eNB->tbc.s);
+	    
             if(memcmp(sn, plmn_eNB->tbc.s, 3)==0){
+	        log_msg(LOG_DEBUG, 0, "UE SN (%s) == Supported PLMN (%s) in eNB",
+                        plmn_UE_printable, plmn_eNB_printable);
                 return TRUE;
-            }else{
-                log_msg(LOG_WARNING, 0, "UE SN (0x%.2X%.2X%.2X)!= Supported PLMN (0x%.2X%.2X%.2X) in eNB",
-                        sn[0],sn[1],sn[2],
-                        plmn_eNB->tbc.s[0], plmn_eNB->tbc.s[1], plmn_eNB->tbc.s[2]);
+            }else{	       
+                log_msg(LOG_DEBUG, 0, "UE SN (%s) != Supported PLMN (%s) in eNB",
+                        plmn_UE_printable, plmn_eNB_printable);
             }
         }
     }
     return FALSE;
 }
-
 
 static void sendPaging(S1Assoc_t *self, EMMCtx emm){
     S1AP_Message_t *s1msg;
