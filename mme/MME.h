@@ -26,12 +26,15 @@
 #include <time.h>
 #include <arpa/inet.h>
 
+/* Required after removing uthash */
+#include <string.h>
+#include <inttypes.h>
+
 #include <event2/event.h>
 #include <glib.h>
 
 #include "Subscription.h"
 
-#include "uthash.h"
 #include "gtp.h"
 #include "NAS_Definitions.h"
 #include "S1AP.h"
