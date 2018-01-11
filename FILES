@@ -1,0 +1,276 @@
+AaltoMME
+├── AUTHORS
+├── ChangeLog
+├── cmake
+│   ├── config.h.in
+│   ├── COPYING-CMAKE-SCRIPTS.txt
+│   ├── Doxyfile.in
+│   ├── FindCheck.cmake
+│   ├── FindMySQL.cmake
+│   ├── FindSCTP.cmake
+│   └── UseDoxygen.cmake
+├── CMakeLists.txt
+├── Common
+│   ├── logmgr.c
+│   ├── logmgr.h
+│   ├── timermgr.c
+│   ├── timermgr.h
+│   ├── utarray.h
+│   ├── uthash.h
+│   ├── utlist.h
+│   └── utstring.h
+├── configure.ac
+├── COPYING
+├── doc
+│   └── ARCHITECTURE.md
+├── exampleProgram
+│   ├── binaries
+│   │   ├── initiatingMessage.s1
+│   │   └── resetSuccess.s1
+│   ├── eNBemulator.c
+│   ├── eping.c
+│   ├── exampleProgram.c
+│   ├── hmac_test.c
+│   ├── loadWithAttach.c
+│   └── Makefile.am
+├── FILES
+├── INSTALL
+├── libgtp
+│   ├── CMakeLists.txt
+│   ├── gtp.c
+│   ├── gtpie.c
+│   ├── include
+│   │   ├── gtp.h
+│   │   ├── gtpie.h
+│   │   └── Makefile.am
+│   └── Makefile.am
+├── LICENSE
+├── LICENSE_GPLv3
+├── m4
+├── Makefile.am
+├── Makefile.am.coverage
+├── mme
+│   ├── CMakeLists.txt
+│   ├── commands.c
+│   ├── commands.h
+│   ├── Controller
+│   │   ├── MME_Controller.c
+│   │   └── MME_Controller.h
+│   ├── Makefile.am
+│   ├── MME.c
+│   ├── MME.h
+│   ├── MME_test.c
+│   ├── MMEutils.c
+│   ├── MMEutils.h
+│   ├── nodemgr.c
+│   ├── nodemgr.h
+│   ├── S1
+│   │   ├── ECMSession.c
+│   │   ├── ECMSession_Connected.c
+│   │   ├── ECMSession_Connected.h
+│   │   ├── ECMSession_FSMConfig.c
+│   │   ├── ECMSession_FSMConfig.h
+│   │   ├── ECMSession.h
+│   │   ├── ECMSession_Idle.c
+│   │   ├── ECMSession_Idle.h
+│   │   ├── ECMSession_priv.h
+│   │   ├── ECMSession_State.h
+│   │   ├── MME_S1.c
+│   │   ├── MME_S1.h
+│   │   ├── MME_S1_priv.h
+│   │   ├── NAS
+│   │   │   ├── EMM_CommonProcedureInitiated.c
+│   │   │   ├── EMM_CommonProcedureInitiated.h
+│   │   │   ├── EMMCtx.c
+│   │   │   ├── EMMCtx.h
+│   │   │   ├── EMMCtx_iface.h
+│   │   │   ├── EMM_Deregistered.c
+│   │   │   ├── EMM_Deregistered.h
+│   │   │   ├── EMM_DeregisteredInitiated.c
+│   │   │   ├── EMM_DeregisteredInitiated.h
+│   │   │   ├── EMM_FSMConfig.c
+│   │   │   ├── EMM_FSMConfig.h
+│   │   │   ├── EMM_Registered.c
+│   │   │   ├── EMM_Registered.h
+│   │   │   ├── EMM_SpecificProcedureInitiated.c
+│   │   │   ├── EMM_SpecificProcedureInitiated.h
+│   │   │   ├── EMM_State.h
+│   │   │   ├── EMM_Timers.c
+│   │   │   ├── EMM_Timers.h
+│   │   │   ├── EPS_Session.c
+│   │   │   ├── EPS_Session.h
+│   │   │   ├── EPS_Session_priv.h
+│   │   │   ├── ESM_Active.c
+│   │   │   ├── ESM_Active.h
+│   │   │   ├── ESM_ActivePending.c
+│   │   │   ├── ESM_ActivePending.h
+│   │   │   ├── ESM_BearerContext.c
+│   │   │   ├── ESM_BearerContext.h
+│   │   │   ├── ESM_FSMConfig.c
+│   │   │   ├── ESM_FSMConfig.h
+│   │   │   ├── ESM_Inactive.c
+│   │   │   ├── ESM_Inactive.h
+│   │   │   ├── ESM_InactivePending.c
+│   │   │   ├── ESM_InactivePending.h
+│   │   │   ├── ESM_ModifyPending.c
+│   │   │   ├── ESM_ModifyPending.h
+│   │   │   ├── ESM_State.h
+│   │   │   ├── NAS_Definitions.h
+│   │   │   ├── NAS_EMM.c
+│   │   │   ├── NAS_EMM.h
+│   │   │   ├── NAS_EMM_priv.h
+│   │   │   ├── NAS_ESM.c
+│   │   │   ├── NAS_ESM.h
+│   │   │   └── NAS_ESM_priv.h
+│   │   ├── S1Assoc_Active.c
+│   │   ├── S1Assoc_Active.h
+│   │   ├── S1Assoc.c
+│   │   ├── S1Assoc_FSMConfig.c
+│   │   ├── S1Assoc_FSMConfig.h
+│   │   ├── S1Assoc.h
+│   │   ├── S1Assoc_NotConfigured.c
+│   │   ├── S1Assoc_NotConfigured.h
+│   │   ├── S1Assoc_priv.h
+│   │   └── S1Assoc_State.h
+│   ├── S11
+│   │   ├── MME_S11.c
+│   │   ├── MME_S11.h
+│   │   ├── S11_Ctx.c
+│   │   ├── S11_Ctx.h
+│   │   ├── S11_FSMConfig.c
+│   │   ├── S11_FSMConfig.h
+│   │   ├── S11_NoCtx.c
+│   │   ├── S11_NoCtx.h
+│   │   ├── S11_Peer.c
+│   │   ├── S11_Peer.h
+│   │   ├── S11_State.h
+│   │   ├── S11_UlCtx.c
+│   │   ├── S11_UlCtx.h
+│   │   ├── S11_User.c
+│   │   ├── S11_User.h
+│   │   ├── S11_WCtxRsp.c
+│   │   ├── S11_WCtxRsp.h
+│   │   ├── S11_WDel.c
+│   │   ├── S11_WDel.h
+│   │   ├── S11_WModBearerRsp.c
+│   │   └── S11_WModBearerRsp.h
+│   ├── S6a
+│   │   ├── hmac
+│   │   │   ├── hmac_sha2.c
+│   │   │   ├── hmac_sha2.h
+│   │   │   ├── sha2.c
+│   │   │   └── sha2.h
+│   │   ├── HSS.c
+│   │   ├── HSS.h
+│   │   ├── milenage
+│   │   │   ├── aes.c
+│   │   │   ├── aes.h
+│   │   │   ├── milenage.c
+│   │   │   └── milenage.h
+│   │   ├── MME_S6a.c
+│   │   ├── MME_S6a.h
+│   │   ├── S6a.h
+│   │   ├── scripts
+│   │   │   ├── dbdump.sh
+│   │   │   ├── hss_lte_db.sql
+│   │   │   └── userdata.sql
+│   │   └── SQLqueries.h
+│   ├── Subscription.c
+│   └── Subscription.h
+├── mme.cfg
+├── mme.doxyfile
+├── MME.service
+├── NAS
+│   ├── CMakeLists.txt
+│   ├── include
+│   │   ├── eea0.h
+│   │   ├── eia0.h
+│   │   ├── eia2.h
+│   │   ├── NASHandler.h
+│   │   └── NASlog.h
+│   ├── Makefile.am
+│   ├── shared
+│   │   ├── Makefile.am
+│   │   ├── NASConstants.h
+│   │   ├── NAS.h
+│   │   ├── NASMessages.h
+│   │   └── StandardIeSchemas.h
+│   ├── src
+│   │   ├── eea0.c
+│   │   ├── eia0.c
+│   │   ├── eia2.c
+│   │   ├── Makefile.am
+│   │   ├── NAS.c
+│   │   ├── NASlog.c
+│   │   ├── NASMessages.c
+│   │   └── StandardIeSchemas.c
+│   └── testApp
+│       ├── Makefile.am
+│       └── NAStest.c
+├── NEWS
+├── README.md
+├── run_tests.sh
+├── S1AP
+│   ├── CMakeLists.txt
+│   ├── Doxyfile.in
+│   ├── include
+│   │   ├── rt_per_bin.h
+│   │   ├── S1AP_IEdec.h
+│   │   ├── S1AP_IEenc.h
+│   │   └── S1APlog.h
+│   ├── Makefile.am
+│   ├── shared
+│   │   ├── CommonDataTypes.h
+│   │   ├── Constants.h
+│   │   ├── Containers.h
+│   │   ├── Makefile.am
+│   │   ├── S1AP.h
+│   │   ├── S1AP_IE.h
+│   │   └── S1AP_PDU.h
+│   ├── specs
+│   │   ├── S1AP-CommonDataTypes.asn
+│   │   ├── S1AP-Constants.asn
+│   │   ├── S1AP-Containers.asn
+│   │   ├── S1AP-IEs.asn
+│   │   ├── S1AP-PDU-Contents.asn
+│   │   ├── S1AP-PDU-Descriptions.asn
+│   │   └── S1AP v8.10.0.asn
+│   ├── src
+│   │   ├── CommonDataTypes.c
+│   │   ├── Constants.c
+│   │   ├── Containers.c
+│   │   ├── rt_per_bin.c
+│   │   ├── S1AP.c
+│   │   ├── S1AP_IE.c
+│   │   ├── S1AP_IEdec.c
+│   │   ├── S1AP_IEenc.c
+│   │   ├── S1APlog.c
+│   │   └── S1AP_PDU.c
+│   ├── testApp
+│   │   ├── binaries
+│   │   │   ├── initiatingMessage.s1
+│   │   │   └── resetSuccess.s1
+│   │   └── S1APtest.c
+│   └── TODO
+├── test
+│   ├── CMakeLists.txt
+│   └── main_tests.c
+├── TestProgram
+│   ├── check_all.c
+│   ├── check_libgtp.c
+│   ├── check_libgtp.h
+│   ├── check_libs1ap.c
+│   ├── check_libs1ap.h
+│   ├── check_nas.c
+│   ├── check_nas.h
+│   ├── check_rt_per.c
+│   ├── check_rt_per.h
+│   ├── CMakeLists.txt
+│   ├── EchoReq.pcap
+│   ├── EchoRsp.pcap
+│   ├── Makefile.am
+│   └── README
+├── TODO
+└── VERSION
+
+31 directories, 242 files

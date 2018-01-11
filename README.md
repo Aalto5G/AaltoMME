@@ -29,7 +29,6 @@ Dependencies
 -----------------------------------------
 - HMAC library (https://github.com/ouah/hmac)
 - AES & milenage (http://svn0.us-east.freebsd.org/base/vendor/hostapd/0.5.8/contrib/hostapd/)
-- HASH Table (http://uthash.sourceforge.net)
 
 
 Build
