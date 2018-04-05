@@ -46,7 +46,7 @@ const char exists_auth_vec[]="SELECT EXISTS (SELECT '1' FROM auth_vec WHERE (mcc
 const char get_auth_vec[]="SELECT rand, autn, xres, kasme FROM auth_vec WHERE (mcc, mnc, msin, ksi) = (%u, %u, x'%.10llu', %u)";
 
 const char update_location[] = "UPDATE subscriber_profile "
-        "SET mmec=x'%.2x', mmegi=x'%s', network_access_mode = '%u'"
+        "SET mmec=CONV('%.2x',16,10), mmegi=CONV('%s',16,10), network_access_mode = '%u'"
         "WHERE (mcc, mnc, msin) = (%u, %u, x'%.10llu')";
 
 const char get_subscriber_profile[] = "SELECT "
