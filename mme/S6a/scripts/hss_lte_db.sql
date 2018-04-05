@@ -134,8 +134,3 @@ CREATE TABLE `subscriber_profile` (
 # DB access rights
 grant delete,insert,select,update on hss_lte_db.* to hss@localhost identified by 'hss';
 
-# Commands to remove STRICT_TRANS_TABLES mode, if it is enabled
-# STRICT_TRANS_TABLES mode makes the UpdateLocation procedure to fail during initial attach
-# the mode is enabled by default in MariaDB from version 10.2.4 on.
-set sql_mode = 'ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION';
-set GLOBAL sql_mode = 'ERROR_FOR_DIVISION_BY_ZERO,NO_AUTO_CREATE_USER,NO_ENGINE_SUBSTITUTION';
